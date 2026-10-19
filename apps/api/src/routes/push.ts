@@ -43,7 +43,18 @@ pushRoutes.post('/broadcast', authMiddleware, async (c) => {
   const user = c.get('user')!;
   const body = await c.req.json().catch(() => ({}));
   const target = body.target || 'all'; // 'all', 'tenant', 'staff'
-  const targetTenantId = body.tenant_id || c.req.header('x-tenant-id');
+  let targetTenantId = body.tenant_id || c.req.header('x-tenant-id');
+  const hotelCode = (body.hotel_code || '').trim();
+
+  if (!targetTenantId && hotelCode) {
+    const prop: any = await c.env.DB.prepare(
+      `SELECT tenant_id FROM properties WHERE hotel_code = ? LIMIT 1`
+    ).bind(hotelCode).first();
+    if (prop?.tenant_id) {
+      targetTenantId = prop.tenant_id;
+    }
+  }
+
   const title = (body.title || 'HotelFlexi Alert').trim();
   const message = (body.message || body.body || '').trim();
   const priority = body.priority || 'normal'; // 'normal', 'urgent'
