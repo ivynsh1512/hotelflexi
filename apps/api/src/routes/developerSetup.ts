@@ -133,8 +133,8 @@ developerSetupRoutes.post('/verify', async (c) => {
        WHERE id = ? AND tenant_id = ?`
     ).bind(razorpayPaymentId, now, requestId, tenantId),
     c.env.DB.prepare(
-      `INSERT INTO notifications (id, tenant_id, title, message, type, is_read, created_at)
-       VALUES (?, ?, 'Developer Setup Confirmed', 'Thank you! A HotelFlexi implementation engineer has been assigned to complete your property setup within 24 hours. We will reach out to you directly.', 'info', 0, ?)`
+      `INSERT INTO notifications (id, tenant_id, title, message, category, link_url, is_read, created_at)
+       VALUES (?, ?, 'Developer Setup Confirmed', 'Thank you! A HotelFlexi implementation engineer has been assigned to complete your property setup within 24 hours. We will reach out to you directly.', 'system', '/app/settings', 0, ?)`
     ).bind(`notif_${crypto.randomUUID()}`, tenantId, now)
   ]);
 

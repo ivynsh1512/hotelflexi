@@ -119,7 +119,8 @@ authRoutes.get('/me', authMiddleware, async (c) => {
   const memberships = await c.env.DB.prepare(
     `SELECT tm.id as membership_id, tm.role, tm.tenant_id,
             t.name as tenant_name, t.slug as tenant_slug,
-            t.account_access_status, t.subscription_status, t.current_plan_id
+            t.account_access_status, t.subscription_status, t.current_plan_id,
+            t.trial_ends_at, t.current_period_ends_at, t.suspension_reason
      FROM tenant_memberships tm
      JOIN tenants t ON t.id = tm.tenant_id
      WHERE tm.user_id = ?
@@ -127,6 +128,47 @@ authRoutes.get('/me', authMiddleware, async (c) => {
   )
     .bind(user.uid)
     .all();
+
+  const evaluatedTenants = ((memberships.results || []) as any[]).map((m) => {
+    let accessStatus = m.account_access_status || 'active';
+    let subStatus = m.subscription_status || 'trial';
+    let suspensionReason = m.suspension_reason;
+
+    // Check trial expiration
+    const isTrial = subStatus === 'trial' || subStatus === 'trialing';
+    if (isTrial && m.trial_ends_at && m.trial_ends_at < now) {
+      if (accessStatus !== 'locked') {
+        accessStatus = 'locked';
+        subStatus = 'expired';
+        suspensionReason = 'Your 14-day free trial has expired. Please choose a subscription plan and complete payment to unlock your hotel operations.';
+        c.env.DB.prepare(
+          `UPDATE tenants SET account_access_status = 'locked', subscription_status = 'expired', suspension_reason = ?, updated_at = ? WHERE id = ?`
+        ).bind(suspensionReason, now, m.tenant_id).run().catch(() => {});
+      }
+    } else if (
+      subStatus === 'active' &&
+      m.current_plan_id &&
+      m.current_plan_id !== 'starter' &&
+      m.current_period_ends_at &&
+      m.current_period_ends_at < now
+    ) {
+      if (accessStatus !== 'locked') {
+        accessStatus = 'locked';
+        subStatus = 'past_due';
+        suspensionReason = 'Your subscription period has expired. Please renew your subscription to continue managing your hotel.';
+        c.env.DB.prepare(
+          `UPDATE tenants SET account_access_status = 'locked', subscription_status = 'past_due', suspension_reason = ?, updated_at = ? WHERE id = ?`
+        ).bind(suspensionReason, now, m.tenant_id).run().catch(() => {});
+      }
+    }
+
+    return {
+      ...m,
+      account_access_status: accessStatus,
+      subscription_status: subStatus,
+      suspension_reason: suspensionReason,
+    };
+  });
 
   return c.json({
     user: {
@@ -137,6 +179,6 @@ authRoutes.get('/me', authMiddleware, async (c) => {
       emailVerified: user.email_verified,
       isPlatformAdmin,
     },
-    tenants: memberships.results || [],
+    tenants: evaluatedTenants,
   });
 });

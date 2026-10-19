@@ -174,8 +174,8 @@ diningRoutes.post('/public/:codeOrSlug/book', async (c) => {
   const notifMsg = `🍽️ Table booked for ${guestsCount} guests on ${bookingDate} at ${bookingTime} by ${guestName} (${guestPhone}). Origin: ${originDesc}. Payment: ${paymentMethod === 'pay_online' ? 'Paid Online' : 'Pay at Counter'}.`;
 
   await c.env.DB.prepare(
-    `INSERT INTO notifications (id, tenant_id, title, message, type, is_read, created_at)
-     VALUES (?, ?, ?, ?, 'dining', 0, ?)`
+    `INSERT INTO notifications (id, tenant_id, title, message, category, link_url, is_read, created_at)
+     VALUES (?, ?, ?, ?, 'dining', '/app/dining', 0, ?)`
   )
     .bind(notificationId, property.tenant_id, `New Dine-Out Booking: ${bookingNumber}`, notifMsg, now)
     .run();

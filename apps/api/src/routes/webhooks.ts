@@ -93,6 +93,51 @@ webhookRoutes.post('/razorpay', async (c) => {
           .bind(amountPaise, amountPaise, amountPaise, now, notes.reservationId)
           .run();
       }
+
+      // Handle SaaS Subscription Payment
+      if (notes.tenantId && notes.planId) {
+        const plan: any = await c.env.DB.prepare(
+          'SELECT * FROM subscription_plans WHERE id = ?'
+        ).bind(notes.planId).first();
+
+        if (plan) {
+          const nextPeriod = now + 30 * 86400;
+          await c.env.DB.prepare(
+            `UPDATE tenants
+             SET current_plan_id = ?,
+                 subscription_status = 'active',
+                 account_access_status = 'active',
+                 suspension_reason = NULL,
+                 current_period_ends_at = ?,
+                 updated_at = ?
+             WHERE id = ?`
+          ).bind(notes.planId, nextPeriod, now, notes.tenantId).run();
+
+          await c.env.DB.prepare(
+            `UPDATE feature_entitlements
+             SET max_properties = ?, max_rooms = ?, max_users = ?, has_pms = ?,
+                 has_booking_engine = ?, has_channel_manager = ?, max_channel_connections = ?,
+                 has_ai_agent = ?, ai_monthly_limit = ?, has_advanced_reports = ?,
+                 has_accounting = ?, has_multi_property = ?, updated_at = ?
+             WHERE tenant_id = ?`
+          ).bind(
+            plan.max_properties || 1,
+            plan.max_rooms || 10,
+            plan.max_users || 2,
+            plan.has_pms || 1,
+            plan.has_booking_engine || 1,
+            plan.has_channel_manager || 0,
+            plan.max_channel_connections || 0,
+            plan.has_ai_agent || 1,
+            plan.ai_monthly_limit || 100,
+            plan.has_advanced_reports || 0,
+            plan.has_accounting || 0,
+            plan.has_multi_property || 0,
+            now,
+            notes.tenantId
+          ).run();
+        }
+      }
     }
   }
 

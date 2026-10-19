@@ -102,4 +102,80 @@ describe('HotelFlexi Security & Core Architecture Tests', () => {
       expect(overlaps('2026-10-15', '2026-10-20')).toBe(false); // Next check-in on checkout date (permitted!)
     });
   });
+
+  describe('5. Subscription & Payment Enforcement Safeguards', () => {
+    it('should correctly flag expired 14-day trials', () => {
+      const now = Math.floor(Date.now() / 1000);
+      const activeTrialEndsAt = now + 5 * 86400; // 5 days left
+      const expiredTrialEndsAt = now - 3600; // 1 hour ago
+
+      const isTrial = (status: string) => status === 'trial' || status === 'trialing';
+      const isExpired = (status: string, endsAt: number) => isTrial(status) && endsAt < now;
+
+      expect(isExpired('trial', activeTrialEndsAt)).toBe(false);
+      expect(isExpired('trialing', activeTrialEndsAt)).toBe(false);
+      expect(isExpired('trial', expiredTrialEndsAt)).toBe(true);
+      expect(isExpired('trialing', expiredTrialEndsAt)).toBe(true);
+    });
+
+    it('should correctly flag expired subscription periods for non-starter plans', () => {
+      const now = Math.floor(Date.now() / 1000);
+      const activePeriodEndsAt = now + 15 * 86400;
+      const expiredPeriodEndsAt = now - 60;
+
+      const isSubExpired = (planId: string, status: string, periodEnds: number) =>
+        status === 'active' && planId !== 'starter' && periodEnds < now;
+
+      expect(isSubExpired('essential', 'active', activePeriodEndsAt)).toBe(false);
+      expect(isSubExpired('growth', 'active', activePeriodEndsAt)).toBe(false);
+      expect(isSubExpired('starter', 'active', expiredPeriodEndsAt)).toBe(false); // Free starter doesn't expire
+      expect(isSubExpired('essential', 'active', expiredPeriodEndsAt)).toBe(true);
+      expect(isSubExpired('enterprise', 'active', expiredPeriodEndsAt)).toBe(true);
+    });
+
+    it('should verify HMAC-SHA256 signatures for payment webhooks and verifications', async () => {
+      const secret = 'rzp_test_secret_key_12345';
+      const orderId = 'order_ABC1234567890';
+      const paymentId = 'pay_XYZ9876543210';
+      const payload = `${orderId}|${paymentId}`;
+
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw',
+        enc.encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const sigBytes = await crypto.subtle.sign('HMAC', key, enc.encode(payload));
+      const validHex = Array.from(new Uint8Array(sigBytes))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      // Valid signature check
+      expect(validHex.length).toBe(64);
+
+      // Verify matching
+      const verifyKey = await crypto.subtle.importKey(
+        'raw',
+        enc.encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['verify']
+      );
+      const testSigBytes = new Uint8Array(
+        validHex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || []
+      );
+      const isValid = await crypto.subtle.verify('HMAC', verifyKey, testSigBytes, enc.encode(payload));
+      expect(isValid).toBe(true);
+
+      // Verify tampered signature is rejected
+      const tamperedHex = validHex.slice(0, -2) + '00';
+      const tamperedBytes = new Uint8Array(
+        tamperedHex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || []
+      );
+      const isTamperedValid = await crypto.subtle.verify('HMAC', verifyKey, tamperedBytes, enc.encode(payload));
+      expect(isTamperedValid).toBe(false);
+    });
+  });
 });

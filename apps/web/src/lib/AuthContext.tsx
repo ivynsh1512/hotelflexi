@@ -14,6 +14,9 @@ export interface TenantSummary {
   account_access_status: string;
   subscription_status: string;
   current_plan_id: string;
+  trial_ends_at?: number;
+  current_period_ends_at?: number;
+  suspension_reason?: string;
 }
 
 interface AuthContextType {

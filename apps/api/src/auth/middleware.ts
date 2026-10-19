@@ -69,7 +69,8 @@ export const tenantMiddleware: MiddlewareHandler<{ Bindings: Env; Variables: App
   // Fetch membership & tenant status from D1
   const row: any = await c.env.DB.prepare(
     `SELECT tm.id, tm.tenant_id, tm.user_id, tm.role, tm.permissions,
-            t.name as tenant_name, t.account_access_status, t.subscription_status, t.suspension_reason
+            t.name as tenant_name, t.account_access_status, t.subscription_status, t.suspension_reason,
+            t.current_plan_id, t.trial_ends_at, t.current_period_ends_at
      FROM tenant_memberships tm
      JOIN tenants t ON t.id = tm.tenant_id
      WHERE tm.tenant_id = ? AND tm.user_id = ?`
@@ -81,15 +82,82 @@ export const tenantMiddleware: MiddlewareHandler<{ Bindings: Env; Variables: App
     return c.json({ error: 'Forbidden: You are not a member of this hotel organization' }, 403);
   }
 
-  if (row.account_access_status === 'suspended' || row.account_access_status === 'locked') {
-    return c.json(
-      {
-        error: 'Tenant access restricted',
-        status: row.account_access_status,
-        reason: row.suspension_reason || 'Please contact support or platform administration.',
-      },
-      403
-    );
+  const now = Math.floor(Date.now() / 1000);
+  let accessStatus = row.account_access_status || 'active';
+  let subStatus = row.subscription_status || 'trial';
+  let suspensionReason = row.suspension_reason;
+
+  // 1. Auto-lock when 14-day free trial has expired
+  const isTrial = subStatus === 'trial' || subStatus === 'trialing';
+  if (isTrial && row.trial_ends_at && row.trial_ends_at < now) {
+    if (accessStatus !== 'locked') {
+      accessStatus = 'locked';
+      subStatus = 'expired';
+      suspensionReason = 'Your 14-day free trial has expired. Please choose a subscription plan and complete payment to unlock your hotel operations.';
+      c.env.DB.prepare(
+        `UPDATE tenants
+         SET account_access_status = 'locked',
+             subscription_status = 'expired',
+             suspension_reason = ?,
+             updated_at = ?
+         WHERE id = ?`
+      )
+        .bind(suspensionReason, now, tenantId)
+        .run()
+        .catch(() => {});
+    }
+  }
+
+  // 2. Auto-lock when paid subscription period has expired (non-free plans)
+  if (
+    subStatus === 'active' &&
+    row.current_plan_id &&
+    row.current_plan_id !== 'starter' &&
+    row.current_period_ends_at &&
+    row.current_period_ends_at < now
+  ) {
+    if (accessStatus !== 'locked') {
+      accessStatus = 'locked';
+      subStatus = 'past_due';
+      suspensionReason = 'Your subscription period has expired. Please renew your subscription to continue managing your hotel.';
+      c.env.DB.prepare(
+        `UPDATE tenants
+         SET account_access_status = 'locked',
+             subscription_status = 'past_due',
+             suspension_reason = ?,
+             updated_at = ?
+         WHERE id = ?`
+      )
+        .bind(suspensionReason, now, tenantId)
+        .run()
+        .catch(() => {});
+    }
+  }
+
+  // If locked or suspended, restrict all operational actions unless accessing subscription / support / properties
+  if (accessStatus === 'suspended' || accessStatus === 'locked') {
+    const path = c.req.path;
+    const isAllowedRecoveryRoute =
+      path.includes('/subscriptions') ||
+      path.includes('/support') ||
+      path.endsWith('/properties');
+
+    if (!isAllowedRecoveryRoute) {
+      return c.json(
+        {
+          error: 'Tenant access restricted',
+          status: accessStatus,
+          reason: suspensionReason || 'Please complete payment to unlock your hotel workspace.',
+          locked: true,
+          requiresPayment: true,
+          trialExpired: isTrial && row.trial_ends_at && row.trial_ends_at < now,
+          subscriptionExpired:
+            subStatus === 'past_due' ||
+            Boolean(row.current_period_ends_at && row.current_period_ends_at < now),
+        },
+        403
+      );
+    }
   }
 
   c.set('tenantId', tenantId);
@@ -100,8 +168,8 @@ export const tenantMiddleware: MiddlewareHandler<{ Bindings: Env; Variables: App
     role: row.role as TenantRole,
     permissions: row.permissions,
     tenant_name: row.tenant_name,
-    account_access_status: row.account_access_status,
-    subscription_status: row.subscription_status,
+    account_access_status: accessStatus,
+    subscription_status: subStatus,
   });
 
   await next();

@@ -141,9 +141,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         ).toString()
       : '58291');
 
+  const now = Math.floor(Date.now() / 1000);
+  const isTrialExpired = Boolean(
+    (currentTenant?.subscription_status === 'trial' || currentTenant?.subscription_status === 'trialing') &&
+    currentTenant?.trial_ends_at &&
+    currentTenant.trial_ends_at < now
+  );
+  const isSubscriptionExpired = Boolean(
+    currentTenant?.subscription_status !== 'trial' &&
+    currentTenant?.subscription_status !== 'trialing' &&
+    currentTenant?.current_plan_id !== 'starter' &&
+    currentTenant?.current_period_ends_at &&
+    currentTenant.current_period_ends_at < now
+  );
+
   const isAccountRestricted =
     currentTenant?.account_access_status === 'suspended' ||
-    currentTenant?.account_access_status === 'locked';
+    currentTenant?.account_access_status === 'locked' ||
+    currentTenant?.subscription_status === 'expired' ||
+    currentTenant?.subscription_status === 'past_due' ||
+    isTrialExpired ||
+    isSubscriptionExpired;
+
+  const isAllowedWhenLocked = pathname === '/app/subscription' || pathname === '/app/support';
 
   return (
     <div className="min-h-screen bg-surface-light flex flex-col md:flex-row">
@@ -327,7 +347,65 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Child Pages Container */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-          {children}
+          {isAccountRestricted && !isAllowedWhenLocked ? (
+            <div className="max-w-2xl mx-auto my-12 bg-white rounded-3xl border border-red-200 shadow-xl p-8 sm:p-10 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
+              <div className="w-16 h-16 rounded-2xl bg-red-100 border border-red-200 flex items-center justify-center text-red-600 mx-auto shadow-inner">
+                <Lock className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  {isTrialExpired
+                    ? '14-Day Free Trial Expired'
+                    : isSubscriptionExpired
+                    ? 'Subscription Period Expired'
+                    : 'Property Profile Locked'}
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-content-primary-light tracking-tight">
+                  {isTrialExpired
+                    ? 'Your 14-Day Free Trial Has Ended'
+                    : isSubscriptionExpired
+                    ? 'Your Subscription Has Expired'
+                    : 'Hotel Workspace Access Locked'}
+                </h2>
+                <p className="text-sm text-content-secondary-light max-w-lg mx-auto leading-relaxed">
+                  {currentTenant?.suspension_reason ||
+                    (isTrialExpired
+                      ? 'Your trial period has concluded. To reactivate your live Channel Manager, Housekeeping Urgency Siren, and Front Desk operations, please upgrade to a paid plan or switch to the Free Starter tier.'
+                      : 'Your billing period has ended. Please renew your subscription to restore full access to your property workspace.')}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-surface-light border border-border-light text-left text-xs space-y-2">
+                <div className="font-bold text-content-primary-light flex items-center gap-1.5">
+                  <Shield className="w-4 h-4 text-emerald-600" />
+                  Your hotel data is 100% safe and preserved
+                </div>
+                <p className="text-content-secondary-light">
+                  All room types, rate plans, past reservations, and customer records are safely stored.
+                  Workspace unlocks instantly once payment is completed or Free Starter is selected.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <Link
+                  href="/app/subscription"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-brand-blue text-white font-extrabold text-xs sm:text-sm hover:bg-blue-700 shadow-md transition text-center"
+                >
+                  Choose Plan &amp; Unlock Workspace &rarr;
+                </Link>
+                <Link
+                  href="/app/support"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl border border-border-light bg-surface-light text-content-primary-light font-bold text-xs sm:text-sm hover:bg-white transition text-center"
+                >
+                  Raise Support Complaint
+                </Link>
+              </div>
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
 

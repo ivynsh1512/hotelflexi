@@ -17,7 +17,7 @@ adminRoutes.get('/overview', async (c) => {
     `SELECT 
        COUNT(*) as total_tenants,
        SUM(CASE WHEN account_access_status = 'active' THEN 1 ELSE 0 END) as active_tenants,
-       SUM(CASE WHEN subscription_status = 'trial' THEN 1 ELSE 0 END) as trial_tenants,
+       SUM(CASE WHEN subscription_status IN ('trial', 'trialing') THEN 1 ELSE 0 END) as trial_tenants,
        SUM(CASE WHEN account_access_status = 'suspended' THEN 1 ELSE 0 END) as suspended_tenants,
        SUM(CASE WHEN account_access_status = 'locked' THEN 1 ELSE 0 END) as locked_tenants
      FROM tenants`

@@ -16,10 +16,11 @@ import {
   Wrench,
   AlertCircle,
   HelpCircle,
+  Lock,
 } from 'lucide-react';
 
 export default function SubscriptionPage() {
-  const { currentTenant, user } = useAuth();
+  const { currentTenant, user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [subData, setSubData] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
@@ -48,17 +49,112 @@ export default function SubscriptionPage() {
     loadSub();
   }, [currentTenant]);
 
+  // Dynamically load Razorpay SDK
+  useEffect(() => {
+    if (!document.getElementById('razorpay-checkout-script')) {
+      const script = document.createElement('script');
+      script.id = 'razorpay-checkout-script';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
   const handleUpgrade = async (planId: string) => {
     try {
       setUpgradingPlanId(planId);
       setMessage(null);
-      const res = await apiClient('/subscriptions/upgrade', {
+
+      // Free Starter Plan doesn't require payment gateway
+      if (planId === 'starter') {
+        const res = await apiClient('/subscriptions/switch-free', {
+          method: 'POST',
+        });
+        setMessage({ type: 'success', text: res.message || 'Switched to Free Starter plan successfully!' });
+        await refreshUser();
+        await loadSub();
+        return;
+      }
+
+      // Paid plans: Initiate Order via Razorpay
+      const orderRes = await apiClient('/subscriptions/create-order', {
         method: 'POST',
         body: JSON.stringify({ planId }),
       });
 
-      setMessage({ type: 'success', text: res.message || 'Plan upgraded successfully!' });
-      await loadSub();
+      // Handle simulated test mode (when platform keys are in demo test)
+      if (orderRes.isSimulated) {
+        const verifyRes = await apiClient('/subscriptions/verify-payment', {
+          method: 'POST',
+          body: JSON.stringify({
+            planId,
+            orderId: orderRes.orderId,
+            paymentId: `pay_sim_${Date.now()}`,
+            signature: 'simulated_signature_approved',
+          }),
+        });
+        setMessage({
+          type: 'success',
+          text: verifyRes.message || 'Payment confirmed! Your plan is activated and property workspace is unlocked.',
+        });
+        await refreshUser();
+        await loadSub();
+        return;
+      }
+
+      // Real Razorpay Checkout modal
+      if (typeof window !== 'undefined' && (window as any).Razorpay) {
+        const options = {
+          key: orderRes.keyId,
+          amount: orderRes.amount,
+          currency: orderRes.currency || 'INR',
+          name: 'HotelFlexi by NovaX AI',
+          description: `Subscription: ${orderRes.planName}`,
+          image: '/light-logo.png',
+          order_id: orderRes.orderId,
+          prefill: {
+            name: user?.displayName || currentTenant?.tenant_name || '',
+            email: user?.email || '',
+          },
+          theme: {
+            color: '#2563eb',
+          },
+          handler: async function (response: any) {
+            setUpgradingPlanId(planId);
+            try {
+              const verifyRes = await apiClient('/subscriptions/verify-payment', {
+                method: 'POST',
+                body: JSON.stringify({
+                  planId,
+                  orderId: response.razorpay_order_id,
+                  paymentId: response.razorpay_payment_id,
+                  signature: response.razorpay_signature,
+                }),
+              });
+              setMessage({
+                type: 'success',
+                text: verifyRes.message || 'Payment verified! Plan activated and hotel unlocked.',
+              });
+              await refreshUser();
+              await loadSub();
+            } catch (err: any) {
+              setMessage({ type: 'error', text: err.message || 'Payment verification failed' });
+            } finally {
+              setUpgradingPlanId(null);
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              setUpgradingPlanId(null);
+            },
+          },
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      } else {
+        throw new Error('Razorpay checkout SDK is loading. Please try again in a moment.');
+      }
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to complete plan upgrade' });
     } finally {
@@ -127,6 +223,26 @@ export default function SubscriptionPage() {
         </div>
       ) : (
         <>
+          {/* Profile Locked / Trial Expired Alert Banner */}
+          {(currentPlan?.is_locked || currentPlan?.is_trial_expired || currentPlan?.is_subscription_expired) && (
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-red-600 to-rose-700 text-white shadow-lg space-y-2 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-white animate-bounce shrink-0" />
+                <h2 className="text-base font-extrabold tracking-tight">
+                  {currentPlan?.is_trial_expired
+                    ? '14-Day Free Trial Has Ended — Profile Locked'
+                    : currentPlan?.is_subscription_expired
+                    ? 'Subscription Period Has Expired — Profile Locked'
+                    : 'Hotel Workspace Access is Restricted'}
+                </h2>
+              </div>
+              <p className="text-xs text-red-100 max-w-2xl leading-relaxed">
+                {currentPlan?.suspension_reason ||
+                  'Protected front desk, channel manager, and rate sync operations are locked. Complete payment below for Essential, Growth, or Enterprise, or switch to the Free Starter tier to unlock your hotel workspace.'}
+              </p>
+            </div>
+          )}
+
           {/* Current Status Box */}
           <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="space-y-2">
@@ -262,10 +378,20 @@ export default function SubscriptionPage() {
                         <button
                           onClick={() => handleUpgrade(p.id)}
                           disabled={isUpgrading}
-                          className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-brand-blue text-white hover:bg-brand-blue-hover transition shadow disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 ${
+                            p.id === 'starter'
+                              ? 'border border-border-light bg-surface-light text-content-primary-light hover:bg-white'
+                              : 'bg-brand-blue text-white hover:bg-brand-blue-hover shadow'
+                          }`}
                         >
                           {isUpgrading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                          <span>{isUpgrading ? 'Upgrading...' : `Upgrade to ${p.name}`}</span>
+                          <span>
+                            {isUpgrading
+                              ? 'Processing...'
+                              : p.id === 'starter'
+                              ? 'Switch to Free Starter (₹0)'
+                              : `Pay & Activate (${formatINR(p.monthly_price_paise)}/mo)`}
+                          </span>
                         </button>
                       )}
                     </div>
