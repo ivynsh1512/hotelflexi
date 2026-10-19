@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { Env, AppVariables } from '../types';
+import { sendBookingEmails } from '../services/email';
 
 export const bookingEngineRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -20,7 +21,8 @@ bookingEngineRoutes.get('/properties/:slug', async (c) => {
   const property: any = await c.env.DB.prepare(
     `SELECT p.id, p.tenant_id, p.name, p.slug, p.address_line1, p.city, p.state,
             p.country, p.phone, p.email, p.timezone, p.currency, p.check_in_time,
-            p.check_out_time, p.cancellation_policy, p.description, p.amenities
+            p.check_out_time, p.cancellation_policy, p.description, p.amenities,
+            p.logo_url, p.gallery_images, p.child_cutoff_age, p.child_rate_paise
      FROM properties p
      WHERE p.slug = ?`
   )
@@ -34,7 +36,8 @@ bookingEngineRoutes.get('/properties/:slug', async (c) => {
   // Fetch active room types
   const roomTypes = await c.env.DB.prepare(
     `SELECT id, name, code, base_occupancy, max_occupancy, base_price_paise,
-            weekend_price_paise, extra_adult_price_paise, description, amenities, images
+            weekend_price_paise, extra_adult_price_paise, extra_child_price_paise,
+            description, amenities, images
      FROM room_types
      WHERE property_id = ? AND is_active = 1
      ORDER BY base_price_paise ASC`
@@ -46,6 +49,9 @@ bookingEngineRoutes.get('/properties/:slug', async (c) => {
     property: {
       ...property,
       amenities: property.amenities ? JSON.parse(property.amenities) : [],
+      galleryImages: property.gallery_images ? JSON.parse(property.gallery_images) : [],
+      childCutoffAge: property.child_cutoff_age ?? 10,
+      childRatePaise: property.child_rate_paise ?? 0,
     },
     roomTypes: (roomTypes.results || []).map((rt: any) => ({
       ...rt,
@@ -121,31 +127,59 @@ bookingEngineRoutes.get('/properties/:slug/availability', async (c) => {
       .bind(rt.id, checkOut, checkIn)
       .first();
 
-    const unavailableRooms = (resConflictResult?.count || 0) + (blockConflictResult?.count || 0);
-    const availableCount = Math.max(0, totalRooms - unavailableRooms);
+    const bookedRooms = resConflictResult?.count || 0;
+    const blockedRooms = blockConflictResult?.count || 0;
+    const availableCount = Math.max(0, totalRooms - bookedRooms - blockedRooms);
 
-    if (availableCount > 0) {
-      const nightlyRatePaise = rt.base_price_paise;
-      const totalRoomChargePaise = nightlyRatePaise * nights;
-      const gstRateBasisPoints = nightlyRatePaise > 750000 ? 1800 : 1200;
-      const totalTaxPaise = Math.round((totalRoomChargePaise * gstRateBasisPoints) / 10000);
-      const totalAmountPaise = totalRoomChargePaise + totalTaxPaise;
+    if (availableCount > 0 && rt.max_occupancy >= guests) {
+      // Check Daily Rate Overrides
+      const dailyRateRows: any = await c.env.DB.prepare(
+        `SELECT date, price_paise FROM daily_rates
+         WHERE room_type_id = ? AND date >= ? AND date < ?`
+      )
+        .bind(rt.id, checkIn, checkOut)
+        .all();
+
+      const dailyMap = new Map<string, number>();
+      for (const d of dailyRateRows.results || []) {
+        dailyMap.set(d.date, d.price_paise);
+      }
+
+      let roomChargePaise = 0;
+      const cur = new Date(checkIn);
+      const end = new Date(checkOut);
+      while (cur < end) {
+        const dStr = cur.toISOString().split('T')[0];
+        const isWeekend = cur.getDay() === 0 || cur.getDay() === 6;
+        if (dailyMap.has(dStr)) {
+          roomChargePaise += dailyMap.get(dStr)!;
+        } else if (isWeekend && rt.weekend_price_paise) {
+          roomChargePaise += rt.weekend_price_paise;
+        } else {
+          roomChargePaise += rt.base_price_paise;
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+
+      const effectiveNightlyPaise = Math.round(roomChargePaise / nights);
+      const gstRate = effectiveNightlyPaise > 750000 ? 1800 : 1200;
+      const taxPaise = Math.round((roomChargePaise * gstRate) / 10000);
+      const totalPaise = roomChargePaise + taxPaise;
 
       availableRoomTypes.push({
         id: rt.id,
         name: rt.name,
         code: rt.code,
-        description: rt.description,
-        amenities: rt.amenities ? JSON.parse(rt.amenities) : [],
         baseOccupancy: rt.base_occupancy,
         maxOccupancy: rt.max_occupancy,
-        availableUnits: availableCount,
-        nights,
-        nightlyRatePaise,
-        totalRoomChargePaise,
-        gstRateBasisPoints,
-        totalTaxPaise,
-        totalAmountPaise,
+        availableCount,
+        nightlyPricePaise: effectiveNightlyPaise,
+        totalRoomChargePaise: roomChargePaise,
+        taxPaise,
+        totalPaise,
+        description: rt.description,
+        amenities: rt.amenities ? JSON.parse(rt.amenities) : [],
+        images: rt.images ? JSON.parse(rt.images) : [],
       });
     }
   }
@@ -164,13 +198,30 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
   const body = await c.req.json();
   const now = Math.floor(Date.now() / 1000);
 
-  const { roomTypeId, checkInDate, checkOutDate, guestName, guestEmail, guestPhone, adults = 1, children = 0, specialRequests } = body;
+  const {
+    roomTypeId,
+    checkInDate,
+    checkOutDate,
+    guestName,
+    guestEmail,
+    guestPhone,
+    adults = 1,
+    children = 0,
+    childAges = [],
+    couponCode = '',
+    specialRequests,
+  } = body;
 
   if (!roomTypeId || !checkInDate || !checkOutDate || !guestName || !guestPhone) {
     return c.json({ error: 'Missing required booking details (dates, guest name, phone, room type)' }, 400);
   }
 
-  const property: any = await c.env.DB.prepare('SELECT id, tenant_id FROM properties WHERE slug = ?')
+  const property: any = await c.env.DB.prepare(
+    `SELECT p.*, ps.razorpay_key_id as prop_key_id, ps.razorpay_key_secret as prop_secret, ps.razorpay_enabled
+     FROM properties p
+     LEFT JOIN property_settings ps ON ps.property_id = p.id
+     WHERE p.slug = ?`
+  )
     .bind(slug)
     .first();
 
@@ -201,16 +252,101 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
   }
 
   // Get Room Type Pricing
-  const roomType: any = await c.env.DB.prepare('SELECT base_price_paise FROM room_types WHERE id = ?')
+  const roomType: any = await c.env.DB.prepare(
+    'SELECT base_price_paise, weekend_price_paise, extra_adult_price_paise, extra_child_price_paise FROM room_types WHERE id = ?'
+  )
     .bind(roomTypeId)
     .first();
 
   const nights = getNights(checkInDate, checkOutDate);
-  const nightlyRatePaise = roomType?.base_price_paise || 250000;
-  const totalRoomChargePaise = nightlyRatePaise * nights;
+
+  // Check Daily Rate Overrides
+  const dailyRateRows: any = await c.env.DB.prepare(
+    `SELECT date, price_paise FROM daily_rates
+     WHERE room_type_id = ? AND date >= ? AND date < ?`
+  )
+    .bind(roomTypeId, checkInDate, checkOutDate)
+    .all();
+
+  const dailyOverrides = new Map<string, number>();
+  for (const dr of dailyRateRows.results || []) {
+    dailyOverrides.set(dr.date, dr.price_paise);
+  }
+
+  let calculatedRoomChargePaise = 0;
+  const currentD = new Date(checkInDate);
+  const endD = new Date(checkOutDate);
+
+  while (currentD < endD) {
+    const dStr = currentD.toISOString().split('T')[0];
+    const isWeekend = currentD.getDay() === 0 || currentD.getDay() === 6;
+    if (dailyOverrides.has(dStr)) {
+      calculatedRoomChargePaise += dailyOverrides.get(dStr)!;
+    } else if (isWeekend && roomType.weekend_price_paise) {
+      calculatedRoomChargePaise += roomType.weekend_price_paise;
+    } else {
+      calculatedRoomChargePaise += roomType.base_price_paise;
+    }
+    currentD.setDate(currentD.getDate() + 1);
+  }
+
+  const nightlyRatePaise = Math.round(calculatedRoomChargePaise / nights);
+
+  // Child Pricing Calculation
+  const childCutoffAge = property.child_cutoff_age ?? 10;
+  const configuredChildRatePaise = property.child_rate_paise ?? roomType.extra_child_price_paise ?? 0;
+  const extraAdultPricePaise = roomType.extra_adult_price_paise || Math.round(roomType.base_price_paise * 0.3);
+
+  let childSurchargePaise = 0;
+  if (Array.isArray(childAges) && childAges.length > 0) {
+    for (const age of childAges) {
+      if (age > childCutoffAge) {
+        childSurchargePaise += extraAdultPricePaise * nights;
+      } else {
+        childSurchargePaise += configuredChildRatePaise * nights;
+      }
+    }
+  } else if (children > 0) {
+    childSurchargePaise = children * configuredChildRatePaise * nights;
+  }
+
+  const totalRoomChargePaise = calculatedRoomChargePaise + childSurchargePaise;
+
+  // Coupon Application
+  let discountPaise = 0;
+  let appliedCouponId: string | null = null;
+  if (couponCode) {
+    const cCode = String(couponCode).trim().toUpperCase();
+    const coupon: any = await c.env.DB.prepare(
+      `SELECT * FROM coupons WHERE property_id = ? AND UPPER(code) = ? AND is_active = 1`
+    )
+      .bind(property.id, cCode)
+      .first();
+
+    if (coupon) {
+      const today = checkInDate;
+      const isValidDate = (!coupon.valid_from || coupon.valid_from <= today) && (!coupon.valid_to || coupon.valid_to >= today);
+      const isUnderLimit = !coupon.usage_limit || coupon.times_used < coupon.usage_limit;
+      const meetsMinSpend = !coupon.min_booking_amount_paise || totalRoomChargePaise >= coupon.min_booking_amount_paise;
+
+      if (isValidDate && isUnderLimit && meetsMinSpend) {
+        appliedCouponId = coupon.id;
+        if (coupon.discount_type === 'percentage') {
+          let calculated = Math.round((totalRoomChargePaise * coupon.discount_value) / 100);
+          if (coupon.max_discount_paise && calculated > coupon.max_discount_paise) {
+            calculated = coupon.max_discount_paise;
+          }
+          discountPaise = calculated;
+        } else {
+          discountPaise = Math.min(totalRoomChargePaise, coupon.discount_value);
+        }
+      }
+    }
+  }
+
   const gstRateBasisPoints = nightlyRatePaise > 750000 ? 1800 : 1200;
   const totalTaxPaise = Math.round((totalRoomChargePaise * gstRateBasisPoints) / 10000);
-  const totalAmountPaise = totalRoomChargePaise + totalTaxPaise;
+  const totalAmountPaise = Math.max(0, totalRoomChargePaise + totalTaxPaise - discountPaise);
 
   const reservationId = `res_${crypto.randomUUID()}`;
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -218,13 +354,18 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
   const guestId = `gst_${crypto.randomUUID()}`;
   const invoiceId = `inv_${crypto.randomUUID()}`;
 
-  // Check Razorpay config
-  const razorpayKeyId = c.env.RAZORPAY_KEY_ID;
-  const razorpaySecret = c.env.RAZORPAY_KEY_SECRET;
+  // FlexiLink Token and 7-Day Expiry Post Checkout
+  const guestPortalToken = crypto.randomUUID();
+  const guestPortalExpiresAt = Math.floor(new Date(`${checkOutDate}T23:59:59Z`).getTime() / 1000) + (7 * 86400);
+  const guestPortalUrl = `https://hotelflexi.vercel.app/guest/${guestPortalToken}`;
+
+  // Determine Razorpay Credentials (Property direct vs Superadmin Platform)
+  const usePropKey = property.razorpay_enabled && property.prop_key_id && property.prop_secret;
+  const razorpayKeyId = usePropKey ? property.prop_key_id : c.env.RAZORPAY_KEY_ID;
+  const razorpaySecret = usePropKey ? property.prop_secret : c.env.RAZORPAY_KEY_SECRET;
 
   let razorpayOrderId: string | null = null;
   if (razorpayKeyId && razorpaySecret && razorpayKeyId !== 'rzp_test_placeholder_key_id') {
-    // Generate order via Razorpay API
     try {
       const basicAuth = btoa(`${razorpayKeyId}:${razorpaySecret}`);
       const rzpRes = await fetch('https://api.razorpay.com/v1/orders', {
@@ -237,7 +378,7 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
           amount: totalAmountPaise,
           currency: 'INR',
           receipt: reservationNumber,
-          notes: { reservationId, guestName, propertySlug: slug },
+          notes: { reservationId, guestName, propertySlug: slug, guestPortalToken },
         }),
       });
       if (rzpRes.ok) {
@@ -250,15 +391,17 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
   }
 
   const statements: any[] = [
-    // Reservation
+    // Reservation with FlexiLink & Coupon details
     c.env.DB.prepare(
       `INSERT INTO reservations (
         id, property_id, tenant_id, reservation_number, source, status,
         room_id, room_type_id, check_in_date, check_out_date,
         adults, children, nightly_rate_paise, total_room_charge_paise,
         total_tax_paise, total_discount_paise, total_amount_paise, paid_amount_paise,
-        balance_amount_paise, payment_status, special_requests, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, 'booking_engine', 'confirmed', ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 0, ?, 'pending', ?, ?, ?)`
+        balance_amount_paise, payment_status, special_requests,
+        guest_portal_token, guest_portal_expires_at, self_checkin_completed,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, 'booking_engine', 'confirmed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'pending', ?, ?, ?, 0, ?, ?)`
     ).bind(
       reservationId,
       property.id,
@@ -273,13 +416,16 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
       nightlyRatePaise,
       totalRoomChargePaise,
       totalTaxPaise,
+      discountPaise,
       totalAmountPaise,
       totalAmountPaise,
       specialRequests || null,
+      guestPortalToken,
+      guestPortalExpiresAt,
       now,
       now
     ),
-    // Guest
+    // Primary Guest record
     c.env.DB.prepare(
       `INSERT INTO reservation_guests (
         id, reservation_id, tenant_id, is_primary, full_name, email, phone, created_at, updated_at
@@ -290,9 +436,9 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
       `INSERT INTO invoices (
         id, property_id, tenant_id, reservation_id, invoice_number, status,
         guest_name, guest_email, guest_phone, issue_date, subtotal_paise,
-        total_tax_paise, total_amount_paise, paid_amount_paise, balance_amount_paise,
+        total_tax_paise, discount_paise, total_amount_paise, paid_amount_paise, balance_amount_paise,
         tax_snapshot_json, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'issued', ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, 'issued', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`
     ).bind(
       invoiceId,
       property.id,
@@ -305,6 +451,7 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
       checkInDate,
       totalRoomChargePaise,
       totalTaxPaise,
+      discountPaise,
       totalAmountPaise,
       totalAmountPaise,
       JSON.stringify({ gstRateBasisPoints }),
@@ -313,7 +460,38 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
     ),
   ];
 
+  if (appliedCouponId) {
+    statements.push(
+      c.env.DB.prepare('UPDATE coupons SET times_used = times_used + 1, updated_at = ? WHERE id = ?').bind(now, appliedCouponId)
+    );
+  }
+
   await c.env.DB.batch(statements);
+
+  const formatINR = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`;
+
+  // Send confirmation emails to guest and property owner
+  sendBookingEmails(c.env, {
+    reservationNumber,
+    guestName,
+    guestEmail: guestEmail || undefined,
+    guestPhone,
+    propertyName: property.name,
+    propertyAddress: [property.address_line1, property.city, property.state].filter(Boolean).join(', '),
+    propertyPhone: property.phone,
+    propertyEmail: property.email,
+    ownerEmail: property.email,
+    checkInDate,
+    checkOutDate,
+    roomTypeName: roomType.name,
+    roomNumber: availableRoom.room_number,
+    adults,
+    children,
+    totalAmountRupees: formatINR(totalAmountPaise),
+    paidAmountRupees: formatINR(0),
+    balanceAmountRupees: formatINR(totalAmountPaise),
+    guestPortalUrl,
+  }).catch((e) => console.error('[Resend Error]', e));
 
   return c.json({
     success: true,
@@ -321,6 +499,9 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
     reservationNumber,
     roomNumber: availableRoom.room_number,
     totalAmountPaise,
+    totalDiscountPaise: discountPaise,
+    guestPortalToken,
+    guestPortalUrl,
     razorpay: razorpayOrderId
       ? {
           orderId: razorpayOrderId,

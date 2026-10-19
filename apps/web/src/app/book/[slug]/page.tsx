@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { apiClient, formatINR } from '@/lib/api';
 import {
   Hotel,
@@ -16,6 +17,12 @@ import {
   Loader2,
   AlertCircle,
   FileText,
+  Tag,
+  Percent,
+  Baby,
+  ExternalLink,
+  ChevronRight,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 export default function DirectBookingPage() {
@@ -37,6 +44,7 @@ export default function DirectBookingPage() {
     return tomorrow.toISOString().split('T')[0];
   });
   const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
 
   // Booking Modal State
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
@@ -44,6 +52,11 @@ export default function DirectBookingPage() {
   const [guestEmail, setGuestEmail] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +66,9 @@ export default function DirectBookingPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiClient(`/public/properties/${slug}/availability?check_in=${checkInDate}&check_out=${checkOutDate}&guests=${adults}`);
+      const data = await apiClient(
+        `/public/properties/${slug}/availability?check_in=${checkInDate}&check_out=${checkOutDate}&guests=${adults}`
+      );
       setRoomTypes(data.roomTypes || []);
     } catch (e: any) {
       console.error('Availability fetch error:', e);
@@ -79,6 +94,35 @@ export default function DirectBookingPage() {
     }
   }, [slug]);
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim() || !property?.id || !selectedRoom) return;
+    setValidatingCoupon(true);
+    setCouponError(null);
+    try {
+      const res = await apiClient('/coupons/validate', {
+        method: 'POST',
+        body: JSON.stringify({
+          propertyId: property.id,
+          code: couponCode.trim().toUpperCase(),
+          totalAmountPaise: selectedRoom.totalPaise,
+          checkInDate,
+        }),
+      });
+
+      if (res.valid) {
+        setAppliedCoupon(res);
+      } else {
+        setCouponError(res.error || 'Invalid coupon code');
+        setAppliedCoupon(null);
+      }
+    } catch (err: any) {
+      setCouponError(err.message || 'Coupon validation failed');
+      setAppliedCoupon(null);
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
   const handleBookNow = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRoom) return;
@@ -95,6 +139,8 @@ export default function DirectBookingPage() {
         guestEmail,
         guestPhone,
         adults,
+        children,
+        couponCode: appliedCoupon ? appliedCoupon.code : undefined,
         specialRequests,
       };
 
@@ -123,41 +169,68 @@ export default function DirectBookingPage() {
     );
   }
 
+  const childCutoffAge = property?.childCutoffAge ?? property?.child_cutoff_age ?? 10;
+  const childRatePaise = property?.childRatePaise ?? property?.child_rate_paise ?? 0;
+  const galleryImages: string[] = Array.isArray(property?.galleryImages)
+    ? property.galleryImages
+    : typeof property?.gallery_images === 'string'
+    ? JSON.parse(property.gallery_images || '[]')
+    : [];
+
   return (
     <div className="min-h-screen bg-surface-light text-content-primary-light">
       {/* Property Header */}
       <header className="bg-white border-b border-border-light shadow-sm sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-blue flex items-center justify-center text-white shadow-sm">
-              <Hotel className="w-5 h-5 text-white" />
-            </div>
+            {property?.logo_url || property?.logoUrl ? (
+              <img
+                src={property.logo_url || property.logoUrl}
+                alt={property.name}
+                className="w-10 h-10 rounded-xl object-contain border border-border-light bg-surface-light p-1"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-brand-blue flex items-center justify-center text-white shadow-sm font-bold">
+                {property?.name?.charAt(0) || 'H'}
+              </div>
+            )}
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-content-primary-light">
+              <h1 className="text-base sm:text-lg font-bold tracking-tight text-content-primary-light">
                 {property?.name || 'HotelFlexi Property'}
               </h1>
-              <div className="flex items-center gap-2 text-xs text-content-secondary-light">
-                <MapPin className="w-3.5 h-3.5 text-brand-blue" />
-                <span>{property?.city || 'India'}, {property?.state || ''}</span>
+              <div className="flex items-center gap-1.5 text-xs text-content-secondary-light">
+                <MapPin className="w-3.5 h-3.5 text-brand-blue shrink-0" />
+                <span>{[property?.city, property?.state, property?.country].filter(Boolean).join(', ')}</span>
               </div>
             </div>
           </div>
 
           <div className="hidden sm:flex items-center gap-4 text-xs font-semibold text-content-secondary-light">
-            <span className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-              <ShieldCheck className="w-4 h-4" /> Verified Direct Booking
+            <span className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              <ShieldCheck className="w-4 h-4" /> Direct Best Rate Guaranteed
             </span>
           </div>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Photo Gallery Banner if present */}
+        {galleryImages.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-2xl overflow-hidden border border-border-light bg-white p-2">
+            {galleryImages.slice(0, 4).map((img, i) => (
+              <div key={i} className="aspect-video relative rounded-xl overflow-hidden bg-surface-light">
+                <img src={img} alt="Property" className="w-full h-full object-cover hover:scale-105 transition duration-300" />
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Date & Guest Filter Bar */}
-        <div className="p-4 rounded-xl bg-white border border-border-light shadow-sm mb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+        <div className="p-5 rounded-2xl bg-white border border-border-light shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end">
             <div>
-              <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-semibold text-content-primary-light uppercase tracking-wider mb-1">
                 Check-in Date
               </label>
               <input
@@ -170,7 +243,7 @@ export default function DirectBookingPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-semibold text-content-primary-light uppercase tracking-wider mb-1">
                 Check-out Date
               </label>
               <input
@@ -183,15 +256,15 @@ export default function DirectBookingPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1.5">
-                Guests (Adults)
+              <label className="block text-[11px] font-semibold text-content-primary-light uppercase tracking-wider mb-1">
+                Adults
               </label>
               <select
                 value={adults}
                 onChange={(e) => setAdults(parseInt(e.target.value, 10))}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white"
               >
-                {[1, 2, 3, 4, 5].map((num) => (
+                {[1, 2, 3, 4, 5, 6].map((num) => (
                   <option key={num} value={num}>
                     {num} Adult{num > 1 ? 's' : ''}
                   </option>
@@ -200,98 +273,109 @@ export default function DirectBookingPage() {
             </div>
 
             <div>
-              <button
-                onClick={fetchAvailability}
-                className="w-full py-2.5 px-4 rounded-lg bg-brand-blue text-white font-semibold text-xs hover:bg-brand-blue-hover transition shadow-sm"
+              <label className="block text-[11px] font-semibold text-content-primary-light uppercase tracking-wider mb-1">
+                Children
+              </label>
+              <select
+                value={children}
+                onChange={(e) => setChildren(parseInt(e.target.value, 10))}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white"
               >
-                Search Available Rooms
-              </button>
+                {[0, 1, 2, 3, 4].map((num) => (
+                  <option key={num} value={num}>
+                    {num === 0 ? 'No Children' : `${num} Child${num > 1 ? 'ren' : ''}`}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            <button
+              onClick={fetchAvailability}
+              className="w-full py-2.5 rounded-lg bg-brand-blue text-white text-xs font-bold hover:bg-brand-blue-hover transition shadow-sm flex items-center justify-center gap-1.5"
+            >
+              Update Search
+            </button>
+          </div>
+
+          {/* Child policy banner */}
+          <div className="mt-3 pt-3 border-t border-border-light flex items-center gap-2 text-[11px] text-content-secondary-light">
+            <Baby className="w-3.5 h-3.5 text-brand-blue" />
+            <span>
+              <strong>Child Policy:</strong> Children up to {childCutoffAge} years qualify for child tariff{' '}
+              {childRatePaise > 0 ? `(₹${(childRatePaise / 100).toLocaleString('en-IN')}/night)` : '(complimentary)'}.
+              Children above {childCutoffAge} years are counted as extra adults.
+            </span>
           </div>
         </div>
 
-        {error && (
-          <div className="p-4 mb-6 rounded-lg bg-red-50 border border-red-200 text-status-danger text-sm flex items-start gap-2.5">
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-
         {/* Room Types Listing */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-content-primary-light">
-              Available Room Categories
+            <h2 className="text-base font-extrabold text-content-primary-light">
+              Available Room Categories ({roomTypes.length})
             </h2>
             <span className="text-xs text-content-secondary-light">
-              {roomTypes.length} room type(s) ready for instant booking
+              {checkInDate} to {checkOutDate}
             </span>
           </div>
 
           {roomTypes.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-2xl border border-border-light space-y-3">
-              <Calendar className="w-10 h-10 text-content-secondary-light mx-auto" />
-              <h3 className="text-base font-bold text-content-primary-light">No rooms available for selected dates</h3>
-              <p className="text-xs text-content-secondary-light max-w-md mx-auto">
-                All rooms are currently reserved or blocked for these dates. Please try selecting different check-in/out dates.
+            <div className="p-12 text-center bg-white rounded-2xl border border-border-light space-y-2">
+              <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+              <h3 className="font-bold text-sm text-content-primary-light">No Rooms Available</h3>
+              <p className="text-xs text-content-secondary-light">
+                All rooms are reserved for the selected dates. Try adjusting your dates or guest count.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {roomTypes.map((rt) => (
-                <div
-                  key={rt.id}
-                  className="p-6 rounded-2xl bg-white border border-border-light shadow-sm flex flex-col justify-between hover:border-brand-blue transition"
-                >
+                <div key={rt.id} className="p-5 rounded-2xl bg-white border border-border-light shadow-sm flex flex-col justify-between space-y-4 hover:border-brand-blue/40 transition">
                   <div>
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="text-lg font-bold text-content-primary-light">{rt.name}</h3>
-                        <div className="text-xs text-content-secondary-light mt-0.5">
-                          Up to {rt.maxOccupancy} Guests • Base: {rt.baseOccupancy} Guests
-                        </div>
+                        <h3 className="font-bold text-sm text-content-primary-light">{rt.name}</h3>
+                        <p className="text-xs text-content-secondary-light line-clamp-2 mt-0.5">
+                          {rt.description || 'Spacious, well-appointed room with modern amenities.'}
+                        </p>
                       </div>
-                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-                        {rt.availableUnits} Available
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                        {rt.availableCount} Available
                       </span>
                     </div>
 
-                    <p className="text-xs text-content-secondary-light mb-4 line-clamp-2">
-                      {rt.description || 'Comfortable room with attached private bath, high-speed Wi-Fi, and air conditioning.'}
-                    </p>
-
-                    {rt.amenities && rt.amenities.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-5">
-                        {rt.amenities.slice(0, 4).map((a: string) => (
-                          <span
-                            key={a}
-                            className="px-2 py-0.5 rounded bg-surface-light text-[11px] text-content-secondary-light border border-border-light"
-                          >
-                            {a}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      <span className="px-2 py-0.5 rounded bg-surface-light text-[10px] text-content-secondary-light">
+                        Max {rt.maxOccupancy} Guests
+                      </span>
+                      {rt.amenities?.slice(0, 4).map((am: string, i: number) => (
+                        <span key={i} className="px-2 py-0.5 rounded bg-surface-light text-[10px] text-content-secondary-light">
+                          {am}
+                        </span>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="pt-4 border-t border-border-light flex items-center justify-between">
+                  <div className="pt-3 border-t border-border-light flex items-center justify-between">
                     <div>
-                      <div className="text-xs text-content-secondary-light">
-                        {rt.nights} Night{rt.nights > 1 ? 's' : ''} total
-                      </div>
-                      <div className="text-xl font-extrabold text-content-primary-light">
-                        {formatINR(rt.totalAmountPaise)}
+                      <div className="text-base font-extrabold text-brand-blue">
+                        {formatINR(rt.nightlyPricePaise)}
+                        <span className="text-[10px] text-content-secondary-light font-normal"> / night</span>
                       </div>
                       <div className="text-[10px] text-content-secondary-light">
-                        Includes {formatINR(rt.totalTaxPaise)} GST ({rt.gstRateBasisPoints / 100}%)
+                        Total {formatINR(rt.totalPaise)} (incl. GST)
                       </div>
                     </div>
 
                     <button
-                      onClick={() => setSelectedRoom(rt)}
-                      className="px-5 py-2.5 rounded-lg bg-brand-blue text-white font-semibold text-xs hover:bg-brand-blue-hover transition shadow-sm"
+                      onClick={() => {
+                        setSelectedRoom(rt);
+                        setAppliedCoupon(null);
+                        setCouponCode('');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shadow-sm"
                     >
-                      Book Room
+                      Book Room &rarr;
                     </button>
                   </div>
                 </div>
@@ -301,68 +385,61 @@ export default function DirectBookingPage() {
         </div>
       </main>
 
-      {/* Booking Checkout Modal */}
+      {/* Booking Modal */}
       {selectedRoom && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-border-light max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="max-w-lg w-full bg-white rounded-2xl border border-border-light shadow-2xl p-6 space-y-4 my-8">
             {bookingConfirmed ? (
-              <div className="text-center py-6 space-y-4">
-                <div className="w-14 h-14 rounded-full bg-emerald-50 text-status-success flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-8 h-8" />
+              /* Booking Success & FlexiLink Presentation */
+              <div className="text-center space-y-4 py-2">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-content-primary-light">Booking Confirmed!</h3>
-                <p className="text-xs text-content-secondary-light max-w-sm mx-auto">
-                  Your reservation reference is{' '}
-                  <span className="font-mono font-bold text-content-primary-light">
-                    {bookingConfirmed.reservationNumber}
-                  </span>
-                  . Room {bookingConfirmed.roomNumber} has been reserved.
-                </p>
-
-                <div className="p-4 rounded-xl bg-surface-light border border-border-light text-left text-xs space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-content-secondary-light">Dates:</span>
-                    <span className="font-semibold">{checkInDate} to {checkOutDate}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-content-secondary-light">Guest:</span>
-                    <span className="font-semibold">{guestName} ({guestPhone})</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-content-secondary-light">Total Folio:</span>
-                    <span className="font-bold text-brand-blue">{formatINR(bookingConfirmed.totalAmountPaise)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-content-secondary-light">Payment:</span>
-                    <span className="font-semibold text-amber-600">Pay at Hotel Front Desk / Check-in</span>
-                  </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-content-primary-light">Reservation Confirmed!</h3>
+                  <p className="text-xs text-content-secondary-light mt-1">
+                    Booking Reference: <span className="font-mono font-bold text-brand-blue">{bookingConfirmed.reservationNumber}</span>
+                  </p>
                 </div>
 
-                <div className="pt-4 flex gap-3">
-                  <button
-                    onClick={() => window.print()}
-                    className="flex-1 py-2.5 rounded-lg border border-border-light text-content-primary-light font-semibold text-xs hover:bg-surface-light transition"
-                  >
-                    Print Confirmation
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedRoom(null);
-                      setBookingConfirmed(null);
-                    }}
-                    className="flex-1 py-2.5 rounded-lg bg-brand-blue text-white font-semibold text-xs hover:bg-brand-blue-hover transition"
-                  >
-                    Close
-                  </button>
+                <div className="p-4 bg-blue-50/70 rounded-xl border border-blue-200 text-left space-y-2 text-xs">
+                  <div className="font-bold text-brand-blue flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4" />
+                    Your Digital FlexiLink Guest Pass
+                  </div>
+                  <p className="text-slate-700 leading-relaxed text-[11px]">
+                    Use your personal FlexiLink portal for <strong>express self check-in</strong>, digital folio, and contactless payments.
+                    We have also emailed this link to <strong>{guestEmail || 'your email address'}</strong>.
+                  </p>
+                  <div className="pt-2">
+                    <Link
+                      href={`/guest/${bookingConfirmed.guestPortalToken}`}
+                      target="_blank"
+                      className="w-full py-2.5 rounded-lg bg-brand-blue text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-brand-blue-hover transition"
+                    >
+                      Open FlexiLink Guest Portal <ExternalLink className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </div>
+
+                <button
+                  onClick={() => {
+                    setSelectedRoom(null);
+                    setBookingConfirmed(null);
+                  }}
+                  className="w-full py-2.5 rounded-lg border border-border-light text-xs font-semibold hover:bg-surface-light text-content-secondary-light"
+                >
+                  Done & Close
+                </button>
               </div>
             ) : (
-              <form onSubmit={handleBookNow} className="space-y-4">
+              /* Reservation Input Form */
+              <form onSubmit={handleBookNow} className="space-y-4 text-xs">
                 <div className="flex items-center justify-between pb-3 border-b border-border-light">
                   <div>
-                    <h3 className="text-base font-bold text-content-primary-light">Confirm Your Reservation</h3>
+                    <h3 className="text-base font-bold text-content-primary-light">Reserve {selectedRoom.name}</h3>
                     <p className="text-xs text-content-secondary-light">
-                      {selectedRoom.name} • {checkInDate} to {checkOutDate} ({selectedRoom.nights} Night{selectedRoom.nights > 1 ? 's' : ''})
+                      {checkInDate} &rarr; {checkOutDate} • {adults} Adult(s) {children > 0 ? `• ${children} Child(ren)` : ''}
                     </p>
                   </div>
                   <button
@@ -375,22 +452,22 @@ export default function DirectBookingPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1">
-                    Primary Guest Full Name *
+                  <label className="block text-[11px] font-semibold text-content-primary-light uppercase tracking-wider mb-1">
+                    Primary Guest Name *
                   </label>
                   <input
                     type="text"
                     required
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="Ananya Roy"
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    placeholder="e.g. Vikram Sharma"
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-1 focus:ring-brand-blue text-xs"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1">
+                    <label className="block text-[11px] font-semibold text-content-primary-light uppercase tracking-wider mb-1">
                       Phone Number *
                     </label>
                     <input
@@ -399,63 +476,109 @@ export default function DirectBookingPage() {
                       value={guestPhone}
                       onChange={(e) => setGuestPhone(e.target.value)}
                       placeholder="+91 98765 43210"
-                      className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                      className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-1 focus:ring-brand-blue text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1">
-                      Email Address
+                    <label className="block text-[11px] font-semibold text-content-primary-light uppercase tracking-wider mb-1">
+                      Email (For FlexiLink) *
                     </label>
                     <input
                       type="email"
+                      required
                       value={guestEmail}
                       onChange={(e) => setGuestEmail(e.target.value)}
                       placeholder="guest@mail.com"
-                      className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                      className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-1 focus:ring-brand-blue text-xs"
                     />
                   </div>
                 </div>
 
+                {/* Promo Coupon Box */}
+                <div className="p-3 bg-surface-light rounded-xl border border-border-light space-y-2">
+                  <label className="text-[11px] font-semibold text-content-primary-light flex items-center gap-1.5">
+                    <Percent className="w-3.5 h-3.5 text-brand-blue" />
+                    Have a Promotional Coupon Code?
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. MONSOON20"
+                      className="flex-1 px-3 py-1.5 rounded-lg border border-border-light bg-white font-mono font-bold uppercase text-xs focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={validatingCoupon || !couponCode.trim()}
+                      className="px-3 py-1.5 rounded-lg bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition shrink-0"
+                    >
+                      {validatingCoupon ? 'Checking...' : 'Apply'}
+                    </button>
+                  </div>
+                  {appliedCoupon && (
+                    <p className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {appliedCoupon.message} (-{formatINR(appliedCoupon.discountPaise)})
+                    </p>
+                  )}
+                  {couponError && (
+                    <p className="text-[11px] text-red-600 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      {couponError}
+                    </p>
+                  )}
+                </div>
+
                 <div>
-                  <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1">
-                    Special Requests (Optional)
+                  <label className="block text-[11px] font-semibold text-content-primary-light uppercase tracking-wider mb-1">
+                    Special Requests
                   </label>
                   <textarea
                     rows={2}
                     value={specialRequests}
                     onChange={(e) => setSpecialRequests(e.target.value)}
-                    placeholder="Late arrival, extra pillows, quiet room..."
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    placeholder="Late arrival, high floor, quiet room..."
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-1 focus:ring-brand-blue text-xs"
                   />
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-surface-light border border-border-light text-xs space-y-1.5">
+                {/* Pricing Summary */}
+                <div className="p-3.5 rounded-xl bg-surface-light border border-border-light space-y-1.5 text-xs">
                   <div className="flex justify-between text-content-secondary-light">
-                    <span>Room Charges ({selectedRoom.nights} Nights)</span>
+                    <span>Room Tariff</span>
                     <span>{formatINR(selectedRoom.totalRoomChargePaise)}</span>
                   </div>
                   <div className="flex justify-between text-content-secondary-light">
-                    <span>Applicable GST ({selectedRoom.gstRateBasisPoints / 100}%)</span>
-                    <span>{formatINR(selectedRoom.totalTaxPaise)}</span>
+                    <span>Applicable GST</span>
+                    <span>{formatINR(selectedRoom.taxPaise)}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-content-primary-light text-sm pt-1 border-t border-border-light">
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-emerald-700 font-semibold">
+                      <span>Promo Discount ({appliedCoupon.code})</span>
+                      <span>-{formatINR(appliedCoupon.discountPaise)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-extrabold text-content-primary-light text-sm pt-1.5 border-t border-border-light">
                     <span>Total Amount Payable</span>
-                    <span className="text-brand-blue">{formatINR(selectedRoom.totalAmountPaise)}</span>
+                    <span className="text-brand-blue">
+                      {formatINR(Math.max(0, selectedRoom.totalPaise - (appliedCoupon?.discountPaise || 0)))}
+                    </span>
                   </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={bookingLoading}
-                  className="w-full py-3 rounded-lg bg-brand-blue text-white font-semibold text-xs hover:bg-brand-blue-hover transition disabled:opacity-50 shadow-sm flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shadow-sm flex items-center justify-center gap-2"
                 >
                   {bookingLoading ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Securing Room...
+                      <Loader2 className="w-4 h-4 animate-spin" /> Securing Reservation...
                     </>
                   ) : (
-                    'Confirm Direct Booking'
+                    'Confirm & Generate FlexiLink Pass'
                   )}
                 </button>
               </form>

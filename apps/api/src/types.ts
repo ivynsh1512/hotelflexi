@@ -5,6 +5,8 @@ export interface Env {
   RAZORPAY_KEY_SECRET?: string;
   RAZORPAY_WEBHOOK_SECRET?: string;
   AI_PROVIDER_API_KEY?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
   ENVIRONMENT?: string;
   API_BASE?: string;
   APP_NAME?: string;

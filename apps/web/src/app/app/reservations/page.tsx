@@ -17,6 +17,11 @@ import {
   Loader2,
   AlertCircle,
   Receipt,
+  Share2,
+  Copy,
+  ShieldCheck,
+  MessageCircle,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function ReservationsListPage() {
@@ -26,6 +31,14 @@ export default function ReservationsListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
+  const copyFlexiLink = (token: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hotelflexi.vercel.app';
+    navigator.clipboard.writeText(`${origin}/guest/${token}`);
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 2000);
+  };
 
   const fetchReservations = async () => {
     setLoading(true);
@@ -177,6 +190,7 @@ export default function ReservationsListPage() {
                   <th className="p-3.5">Room & Type</th>
                   <th className="p-3.5">Stay Dates</th>
                   <th className="p-3.5">Total Amount</th>
+                  <th className="p-3.5">Self Check-In & FlexiLink</th>
                   <th className="p-3.5">Status</th>
                   <th className="p-3.5 text-right">Actions</th>
                 </tr>
@@ -211,7 +225,7 @@ export default function ReservationsListPage() {
                           {res.check_in_date} → {res.check_out_date}
                         </div>
                         <div className="text-[10px] text-content-secondary-light">
-                          {res.adults} Adult{res.adults > 1 ? 's' : ''}
+                          {res.adults} Adult{res.adults > 1 ? 's' : ''} {res.children > 0 ? `• ${res.children} Child` : ''}
                         </div>
                       </td>
                       <td className="p-3.5">
@@ -220,6 +234,55 @@ export default function ReservationsListPage() {
                           res.balance_amount_paise > 0 ? 'text-amber-600' : 'text-emerald-600'
                         }`}>
                           {res.balance_amount_paise > 0 ? `Pending: ${formatINR(res.balance_amount_paise)}` : 'Fully Paid'}
+                        </div>
+                      </td>
+                      <td className="p-3.5">
+                        <div className="flex flex-col gap-1.5">
+                          <div>
+                            {res.self_checkin_completed ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                                <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                                Check-in Done
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                <Clock className="w-3 h-3 text-amber-600" />
+                                Pending ID
+                              </span>
+                            )}
+                          </div>
+
+                          {res.guest_portal_token && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => copyFlexiLink(res.guest_portal_token)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-brand-blue font-semibold text-[10px] border border-blue-200 transition"
+                                title="Copy Guest FlexiLink"
+                              >
+                                {copiedToken === res.guest_portal_token ? (
+                                  <span className="text-emerald-700 font-bold">Copied!</span>
+                                ) : (
+                                  <>
+                                    <Copy className="w-2.5 h-2.5" /> FlexiLink
+                                  </>
+                                )}
+                              </button>
+
+                              {res.guest_phone && (
+                                <a
+                                  href={`https://wa.me/${res.guest_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                                    `Namaste ${res.guest_name || 'Guest'}, here is your FlexiLink for reservation #${res.reservation_number}: https://hotelflexi.vercel.app/guest/${res.guest_portal_token} to complete express self check-in and view your stay details.`
+                                  )}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition"
+                                  title="Share FlexiLink via WhatsApp"
+                                >
+                                  <MessageCircle className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="p-3.5">

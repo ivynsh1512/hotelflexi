@@ -12,6 +12,7 @@ propertyRoutes.get('/', async (c) => {
   const tenantId = c.get('tenantId')!;
   const rows = await c.env.DB.prepare(
     `SELECT p.*, ps.gst_number, ps.gst_rate_standard, ps.invoice_prefix, ps.enable_online_booking,
+            ps.razorpay_key_id, ps.razorpay_enabled, ps.upi_id,
             (SELECT COUNT(*) FROM rooms r WHERE r.property_id = p.id AND r.is_active = 1) as total_rooms
      FROM properties p
      LEFT JOIN property_settings ps ON ps.property_id = p.id
@@ -31,7 +32,9 @@ propertyRoutes.get('/:id', async (c) => {
 
   const property: any = await c.env.DB.prepare(
     `SELECT p.*, ps.gst_number, ps.gst_rate_standard, ps.gst_rate_luxury, ps.invoice_prefix,
-            ps.next_invoice_number, ps.enable_online_booking, ps.payment_terms, ps.upi_id
+            ps.next_invoice_number, ps.enable_online_booking, ps.payment_terms, ps.upi_id,
+            ps.razorpay_key_id, ps.razorpay_enabled,
+            CASE WHEN ps.razorpay_key_secret IS NOT NULL AND LENGTH(ps.razorpay_key_secret) > 0 THEN 1 ELSE 0 END as has_razorpay_secret
      FROM properties p
      LEFT JOIN property_settings ps ON ps.property_id = p.id
      WHERE p.id = ? AND p.tenant_id = ?`
@@ -43,7 +46,13 @@ propertyRoutes.get('/:id', async (c) => {
     return c.json({ error: 'Property not found' }, 404);
   }
 
-  return c.json({ property });
+  return c.json({
+    property: {
+      ...property,
+      amenities: property.amenities ? JSON.parse(property.amenities) : [],
+      galleryImages: property.gallery_images ? JSON.parse(property.gallery_images) : [],
+    }
+  });
 });
 
 // Update property settings
@@ -64,8 +73,18 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
     body.longitude !== undefined ||
     body.phone ||
     body.email ||
-    body.cancellation_policy
+    body.cancellation_policy ||
+    body.logo_url !== undefined ||
+    body.gallery_images !== undefined ||
+    body.child_cutoff_age !== undefined ||
+    body.child_rate_paise !== undefined
   ) {
+    const galleryStr = Array.isArray(body.gallery_images)
+      ? JSON.stringify(body.gallery_images)
+      : typeof body.gallery_images === 'string'
+      ? body.gallery_images
+      : null;
+
     await c.env.DB.prepare(
       `UPDATE properties SET
          name = COALESCE(?, name),
@@ -79,6 +98,10 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
          phone = COALESCE(?, phone),
          email = COALESCE(?, email),
          cancellation_policy = COALESCE(?, cancellation_policy),
+         logo_url = COALESCE(?, logo_url),
+         gallery_images = COALESCE(?, gallery_images),
+         child_cutoff_age = COALESCE(?, child_cutoff_age),
+         child_rate_paise = COALESCE(?, child_rate_paise),
          updated_at = ?
        WHERE id = ? AND tenant_id = ?`
     )
@@ -94,6 +117,10 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
         body.phone || null,
         body.email || null,
         body.cancellation_policy || null,
+        body.logo_url ?? null,
+        galleryStr,
+        body.child_cutoff_age ?? null,
+        body.child_rate_paise ?? null,
         now,
         propertyId,
         tenantId
@@ -102,13 +129,24 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
   }
 
   // Update property settings
-  if (body.gst_number !== undefined || body.invoice_prefix || body.upi_id || body.enable_online_booking !== undefined) {
+  if (
+    body.gst_number !== undefined ||
+    body.invoice_prefix ||
+    body.upi_id !== undefined ||
+    body.enable_online_booking !== undefined ||
+    body.razorpay_key_id !== undefined ||
+    body.razorpay_key_secret !== undefined ||
+    body.razorpay_enabled !== undefined
+  ) {
     await c.env.DB.prepare(
       `UPDATE property_settings SET
          gst_number = COALESCE(?, gst_number),
          invoice_prefix = COALESCE(?, invoice_prefix),
          upi_id = COALESCE(?, upi_id),
          enable_online_booking = COALESCE(?, enable_online_booking),
+         razorpay_key_id = COALESCE(?, razorpay_key_id),
+         razorpay_key_secret = COALESCE(?, razorpay_key_secret),
+         razorpay_enabled = COALESCE(?, razorpay_enabled),
          updated_at = ?
        WHERE property_id = ? AND tenant_id = ?`
     )
@@ -117,6 +155,9 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
         body.invoice_prefix ?? null,
         body.upi_id ?? null,
         body.enable_online_booking !== undefined ? (body.enable_online_booking ? 1 : 0) : null,
+        body.razorpay_key_id ?? null,
+        body.razorpay_key_secret ?? null,
+        body.razorpay_enabled !== undefined ? (body.razorpay_enabled ? 1 : 0) : null,
         now,
         propertyId,
         tenantId
@@ -128,8 +169,8 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
     action: 'property.updated',
     resourceType: 'property',
     resourceId: propertyId,
-    newValues: body,
+    newValues: { ...body, razorpay_key_secret: body.razorpay_key_secret ? '***' : undefined },
   });
 
-  return c.json({ success: true, message: 'Property settings updated' });
+  return c.json({ success: true, message: 'Property settings updated successfully' });
 });

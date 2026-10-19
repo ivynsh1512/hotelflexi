@@ -4,10 +4,27 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
 import AddressAutocomplete, { SelectedLocation } from '@/components/ui/AddressAutocomplete';
-import { Settings, Save, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import {
+  Settings,
+  Save,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  CreditCard,
+  Code2,
+  ShieldCheck,
+  Headphones,
+  Sparkles,
+} from 'lucide-react';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function HotelSettingsPage() {
-  const { currentTenant } = useAuth();
+  const { currentTenant, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [property, setProperty] = useState<any>(null);
   const [saving, setSaving] = useState(false);
@@ -27,6 +44,27 @@ export default function HotelSettingsPage() {
   const [gstNumber, setGstNumber] = useState('');
   const [invoicePrefix, setInvoicePrefix] = useState('HF-');
   const [upiId, setUpiId] = useState('');
+
+  // Owner Razorpay Credentials
+  const [razorpayKeyId, setRazorpayKeyId] = useState('');
+  const [razorpayKeySecret, setRazorpayKeySecret] = useState('');
+  const [razorpayEnabled, setRazorpayEnabled] = useState(false);
+
+  // Developer setup states
+  const [devSetupLoading, setDevSetupLoading] = useState(false);
+  const [devSetupRequest, setDevSetupRequest] = useState<any>(null);
+  const [devSuccessMsg, setDevSuccessMsg] = useState('');
+
+  useEffect(() => {
+    // Load Razorpay script dynamically
+    if (!document.getElementById('razorpay-script')) {
+      const script = document.createElement('script');
+      script.id = 'razorpay-script';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
 
   useEffect(() => {
     async function loadSettings() {
@@ -49,6 +87,12 @@ export default function HotelSettingsPage() {
           setGstNumber(activeProp.gst_number || '');
           setInvoicePrefix(activeProp.invoice_prefix || 'HF-');
           setUpiId(activeProp.upi_id || '');
+          setRazorpayKeyId(activeProp.razorpay_key_id || '');
+          setRazorpayEnabled(Boolean(activeProp.razorpay_enabled));
+
+          // Load developer setup status
+          const devData = await apiClient(`/developer-setup/status?property_id=${activeProp.id}`);
+          setDevSetupRequest(devData.request);
         }
       } catch (e) {
         console.error(e);
@@ -91,6 +135,9 @@ export default function HotelSettingsPage() {
           gst_number: gstNumber,
           invoice_prefix: invoicePrefix,
           upi_id: upiId,
+          razorpay_key_id: razorpayKeyId || null,
+          razorpay_key_secret: razorpayKeySecret || undefined,
+          razorpay_enabled: razorpayEnabled,
         }),
       });
       setSaved(true);
@@ -102,187 +149,365 @@ export default function HotelSettingsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
-      </div>
-    );
-  }
+  const handleHireDeveloper = async () => {
+    if (!property) return;
+    setDevSetupLoading(true);
+    setDevSuccessMsg('');
+
+    try {
+      const order = await apiClient('/developer-setup/initiate', {
+        method: 'POST',
+        body: JSON.stringify({
+          propertyId: property.id,
+          contactPhone: phone || user?.phoneNumber || '',
+          contactEmail: email || user?.email || '',
+          notes: 'Full property PMS, OTA channels, and UPI gateway setup assistance',
+        }),
+      });
+
+      if (!window.Razorpay) {
+        alert('Payment gateway is loading. Please try again in 5 seconds.');
+        setDevSetupLoading(false);
+        return;
+      }
+
+      const options = {
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'HotelFlexi Implementation',
+        description: 'Complete Property Setup Service (₹499)',
+        order_id: order.orderId,
+        handler: async (response: any) => {
+          try {
+            await apiClient('/developer-setup/verify', {
+              method: 'POST',
+              body: JSON.stringify({
+                requestId: order.requestId,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpayOrderId: response.razorpay_order_id,
+              }),
+            });
+            setDevSuccessMsg('Payment confirmed! A dedicated HotelFlexi setup engineer has been assigned.');
+            setDevSetupRequest({ status: 'paid', payment_id: response.razorpay_payment_id });
+          } catch (e: any) {
+            alert(e.message || 'Payment verification failed');
+          }
+        },
+        prefill: {
+          name: name || user?.displayName || 'Hotel Owner',
+          email: email || user?.email,
+          contact: phone,
+        },
+        theme: {
+          color: '#1e40af',
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      alert(err.message || 'Could not initiate developer setup order');
+    } finally {
+      setDevSetupLoading(false);
+    }
+  };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="pb-3 border-b border-border-light">
-        <h1 className="text-xl sm:text-2xl font-extrabold text-content-primary-light">
-          Property Settings & GST
-        </h1>
-        <p className="text-xs text-content-secondary-light">
-          Configure hotel profile, tax identification (GSTIN), invoice prefixes, and UPI payment IDs
-        </p>
+    <div className="space-y-6 max-w-4xl">
+      <div className="pb-3 border-b border-border-light flex items-center justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-content-primary-light">
+            Property & Gateway Settings
+          </h1>
+          <p className="text-xs text-content-secondary-light">
+            Configure contact details, address, billing preferences, and your Razorpay payment gateway
+          </p>
+        </div>
+
+        {saved && (
+          <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-full border border-emerald-200 animate-fadeIn">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Settings Saved!
+          </span>
+        )}
       </div>
 
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-border-light shadow-sm">
-        {saved && (
-          <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-status-success text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>Settings saved successfully.</span>
-          </div>
-        )}
+      {loading ? (
+        <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-border-light">
+          <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
+        </div>
+      ) : (
+        <form onSubmit={handleSave} className="space-y-6">
+          {/* Property Identity & Contact */}
+          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
+            <h3 className="font-bold text-sm text-content-primary-light border-b border-border-light pb-2">
+              Property Identity & Contact
+            </h3>
 
-        <form onSubmit={handleSave} className="space-y-5 text-xs">
-          <div>
-            <label className="block font-semibold mb-1">Hotel / Property Name *</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-bold"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block font-semibold mb-1">Front Desk Phone *</label>
-              <input
-                type="tel"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold mb-1">Front Desk Email *</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
-              />
-            </div>
-          </div>
-
-          {/* Address Autocomplete with Photon */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block font-semibold">Property Address</label>
-              <span className="text-[10px] text-content-secondary-light">
-                Autocomplete powered by Photon
-              </span>
-            </div>
-            <AddressAutocomplete
-              value={address}
-              onChange={setAddress}
-              onSelectLocation={handleLocationSelect}
-              hasCoordinates={latitude !== null && longitude !== null}
-              placeholder="Search property address or landmark..."
-            />
-            {latitude !== null && longitude !== null && (
-              <div className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                <span>GPS coordinates pinned: {latitude.toFixed(5)}° N, {longitude.toFixed(5)}° E</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">Property Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
               </div>
-            )}
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">Official Phone</label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+91 98765 43210"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">Official Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="contact@hotel.com"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
+              </div>
+            </div>
+
+            {/* Address Autocomplete with Photon */}
+            <div>
+              <label className="block font-semibold mb-1 text-content-primary-light">Address (Search Autocomplete)</label>
+              <AddressAutocomplete
+                value={address}
+                onChange={setAddress}
+                onSelectLocation={handleLocationSelect}
+                placeholder="Search hotel location / landmark..."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">City</label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="City"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">State</label>
+                <input
+                  type="text"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  placeholder="State"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">PIN Code</label>
+                <input
+                  type="text"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                  placeholder="PIN"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">Country</label>
+                <input
+                  type="text"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block font-semibold mb-1">City</label>
-              <input
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="City"
-                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold mb-1">State</label>
-              <input
-                type="text"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                placeholder="State"
-                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
-              />
+          {/* Billing & Tax Settings */}
+          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
+            <h3 className="font-bold text-sm text-content-primary-light border-b border-border-light pb-2">
+              GST Invoicing & Direct UPI
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">GSTIN Number</label>
+                <input
+                  type="text"
+                  value={gstNumber}
+                  onChange={(e) => setGstNumber(e.target.value)}
+                  placeholder="07AAAAA0000A1Z5"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono uppercase"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">Invoice Prefix</label>
+                <input
+                  type="text"
+                  value={invoicePrefix}
+                  onChange={(e) => setInvoicePrefix(e.target.value)}
+                  placeholder="HF-"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono uppercase"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">UPI ID for Guest QR</label>
+                <input
+                  type="text"
+                  value={upiId}
+                  onChange={(e) => setUpiId(e.target.value)}
+                  placeholder="hotelname@upi"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block font-semibold mb-1">PIN / Postal Code</label>
-              <input
-                type="text"
-                value={postalCode}
-                onChange={(e) => setPostalCode(e.target.value)}
-                placeholder="PIN Code"
-                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
-              />
+          {/* Hotel Owner's Direct Razorpay Gateway Section */}
+          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b border-border-light pb-2">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-brand-blue" />
+                <h3 className="font-bold text-sm text-content-primary-light">
+                  Your Razorpay Live Payment Gateway
+                </h3>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer font-semibold text-content-primary-light">
+                <input
+                  type="checkbox"
+                  checked={razorpayEnabled}
+                  onChange={(e) => setRazorpayEnabled(e.target.checked)}
+                  className="rounded text-brand-blue focus:ring-brand-blue w-4 h-4"
+                />
+                Enable Direct Guest Collections
+              </label>
             </div>
-            <div>
-              <label className="block font-semibold mb-1">Country</label>
-              <input
-                type="text"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                placeholder="Country"
-                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-border-light">
-            <div>
-              <label className="block font-semibold mb-1">GSTIN Number</label>
-              <input
-                type="text"
-                value={gstNumber}
-                onChange={(e) => setGstNumber(e.target.value)}
-                placeholder="07AAAAA0000A1Z5"
-                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono uppercase"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold mb-1">Invoice Prefix</label>
-              <input
-                type="text"
-                value={invoicePrefix}
-                onChange={(e) => setInvoicePrefix(e.target.value)}
-                placeholder="HF-"
-                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono uppercase"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold mb-1">UPI ID for Guest QR</label>
-              <input
-                type="text"
-                value={upiId}
-                onChange={(e) => setUpiId(e.target.value)}
-                placeholder="hotel@upi"
-                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono"
-              />
+            <p className="text-content-secondary-light leading-relaxed">
+              Accept credit cards, debit cards, net banking, and UPI directly into your hotel's bank account without intermediary delays.
+              Obtain your live credentials from your{' '}
+              <a href="https://dashboard.razorpay.com/" target="_blank" rel="noreferrer" className="text-brand-blue underline font-semibold">
+                Razorpay Dashboard &rarr; Settings &rarr; API Keys
+              </a>.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">Razorpay Key ID</label>
+                <input
+                  type="text"
+                  value={razorpayKeyId}
+                  onChange={(e) => setRazorpayKeyId(e.target.value)}
+                  placeholder="rzp_live_xxxxxxxxxxxxxxxx"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">Razorpay Key Secret</label>
+                <input
+                  type="password"
+                  value={razorpayKeySecret}
+                  onChange={(e) => setRazorpayKeySecret(e.target.value)}
+                  placeholder="Enter or leave unchanged"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono"
+                />
+              </div>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={saving}
-            className="w-full py-3 rounded-lg bg-brand-blue text-white font-semibold text-xs hover:bg-brand-blue-hover transition shadow-sm flex items-center justify-center gap-2 mt-4"
+            className="w-full py-3 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shadow-sm flex items-center justify-center gap-2"
           >
             {saving ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Saving Changes...
+                <Loader2 className="w-4 h-4 animate-spin" /> Saving Changes...
               </>
             ) : (
               <>
-                <Save className="w-4 h-4" /> Save Property Settings
+                <Save className="w-4 h-4" /> Save Hotel Settings
               </>
             )}
           </button>
         </form>
+      )}
+
+      {/* Hire a Developer Setup Service Card (₹499) */}
+      <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 text-white shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-400/30 flex items-center justify-center shrink-0">
+              <Headphones className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-base text-white flex items-center gap-2">
+                Hire a HotelFlexi Developer for Full Setup
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">
+                  ₹499 One-Time
+                </span>
+              </h3>
+              <p className="text-xs text-slate-300">
+                End-to-end professional onboarding, room categories, OTA channel mapping, and payment gateway configuration.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            {devSetupRequest?.status === 'paid' ? (
+              <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                Engineer Assigned
+              </span>
+            ) : (
+              <button
+                onClick={handleHireDeveloper}
+                disabled={devSetupLoading}
+                className="px-4 py-2.5 rounded-xl bg-white text-slate-900 font-extrabold text-xs hover:bg-slate-100 transition shadow-md flex items-center gap-2"
+              >
+                {devSetupLoading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Opening Checkout...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> Get Full Setup (₹499)
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {devSuccessMsg && (
+          <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-semibold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            {devSuccessMsg}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-300 pt-1">
+          <div className="flex items-start gap-2">
+            <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+            <span>Complete Room Inventory & Rate Plans configured according to your property</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+            <span>Razorpay Live Payment Gateway & UPI QR integration verified</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+            <span>OTA Channel Sync (Booking.com, Agoda, MakeMyTrip) setup & test push</span>
+          </div>
+        </div>
       </div>
     </div>
   );

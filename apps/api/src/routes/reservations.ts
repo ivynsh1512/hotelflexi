@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { Env, AppVariables } from '../types';
 import { authMiddleware, tenantMiddleware, requireRole } from '../auth/middleware';
 import { recordAuditLog } from '../services/audit';
+import { sendBookingEmails } from '../services/email';
 
 export const reservationRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -187,9 +188,16 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
     }
   }
 
+  // Get Property details for child policies and contact info
+  const property: any = await c.env.DB.prepare(
+    'SELECT * FROM properties WHERE id = ? AND tenant_id = ?'
+  )
+    .bind(propertyId, tenantId)
+    .first();
+
   // Get Room Type Pricing
   const roomType: any = await c.env.DB.prepare(
-    'SELECT base_price_paise, weekend_price_paise FROM room_types WHERE id = ? AND tenant_id = ?'
+    'SELECT base_price_paise, weekend_price_paise, extra_adult_price_paise, extra_child_price_paise FROM room_types WHERE id = ? AND tenant_id = ?'
   )
     .bind(roomTypeId, tenantId)
     .first();
@@ -199,14 +207,99 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
   }
 
   const nights = getNights(checkInDate, checkOutDate);
-  const nightlyRatePaise = body.nightlyRatePaise || roomType.base_price_paise;
-  const totalRoomChargePaise = nightlyRatePaise * nights;
+
+  // Check Daily Rate Overrides
+  const dailyRateRows: any = await c.env.DB.prepare(
+    `SELECT date, price_paise FROM daily_rates
+     WHERE room_type_id = ? AND date >= ? AND date < ?`
+  )
+    .bind(roomTypeId, checkInDate, checkOutDate)
+    .all();
+
+  const dailyOverrides = new Map<string, number>();
+  for (const dr of dailyRateRows.results || []) {
+    dailyOverrides.set(dr.date, dr.price_paise);
+  }
+
+  let calculatedRoomChargePaise = 0;
+  const currentD = new Date(checkInDate);
+  const endD = new Date(checkOutDate);
+
+  while (currentD < endD) {
+    const dStr = currentD.toISOString().split('T')[0];
+    const isWeekend = currentD.getDay() === 0 || currentD.getDay() === 6;
+    if (dailyOverrides.has(dStr)) {
+      calculatedRoomChargePaise += dailyOverrides.get(dStr)!;
+    } else if (body.nightlyRatePaise) {
+      calculatedRoomChargePaise += body.nightlyRatePaise;
+    } else if (isWeekend && roomType.weekend_price_paise) {
+      calculatedRoomChargePaise += roomType.weekend_price_paise;
+    } else {
+      calculatedRoomChargePaise += roomType.base_price_paise;
+    }
+    currentD.setDate(currentD.getDate() + 1);
+  }
+
+  const nightlyRatePaise = Math.round(calculatedRoomChargePaise / nights);
+
+  // Child Pricing Rules:
+  // Admin can select cutoff age (default <= 10 yrs is child; > 10 yrs is extra adult)
+  const childCutoffAge = property?.child_cutoff_age ?? 10;
+  const configuredChildRatePaise = property?.child_rate_paise ?? roomType.extra_child_price_paise ?? 0;
+  const extraAdultPricePaise = roomType.extra_adult_price_paise || Math.round(roomType.base_price_paise * 0.3);
+
+  let childSurchargePaise = 0;
+  if (Array.isArray(body.childAges) && body.childAges.length > 0) {
+    for (const age of body.childAges) {
+      if (age > childCutoffAge) {
+        childSurchargePaise += extraAdultPricePaise * nights;
+      } else {
+        childSurchargePaise += configuredChildRatePaise * nights;
+      }
+    }
+  } else if (children > 0) {
+    childSurchargePaise = children * configuredChildRatePaise * nights;
+  }
+
+  const totalRoomChargePaise = calculatedRoomChargePaise + childSurchargePaise;
+
+  // Coupon Code Application
+  let discountPaise = body.discountPaise ? Math.round(body.discountPaise) : 0;
+  let appliedCouponId: string | null = null;
+
+  if (body.couponCode) {
+    const cCode = String(body.couponCode).trim().toUpperCase();
+    const coupon: any = await c.env.DB.prepare(
+      `SELECT * FROM coupons WHERE property_id = ? AND UPPER(code) = ? AND is_active = 1`
+    )
+      .bind(propertyId, cCode)
+      .first();
+
+    if (coupon) {
+      const today = checkInDate;
+      const isValidDate = (!coupon.valid_from || coupon.valid_from <= today) && (!coupon.valid_to || coupon.valid_to >= today);
+      const isUnderLimit = !coupon.usage_limit || coupon.times_used < coupon.usage_limit;
+      const meetsMinSpend = !coupon.min_booking_amount_paise || totalRoomChargePaise >= coupon.min_booking_amount_paise;
+
+      if (isValidDate && isUnderLimit && meetsMinSpend) {
+        appliedCouponId = coupon.id;
+        if (coupon.discount_type === 'percentage') {
+          let calculated = Math.round((totalRoomChargePaise * coupon.discount_value) / 100);
+          if (coupon.max_discount_paise && calculated > coupon.max_discount_paise) {
+            calculated = coupon.max_discount_paise;
+          }
+          discountPaise = calculated;
+        } else {
+          discountPaise = Math.min(totalRoomChargePaise, coupon.discount_value);
+        }
+      }
+    }
+  }
 
   // Indian GST Tax Rules:
   // Standard basis: 12% if daily rate <= ₹7,500 (750000 paise), 18% if > ₹7,500
   const gstRateBasisPoints = nightlyRatePaise > 750000 ? 1800 : 1200;
   const totalTaxPaise = Math.round((totalRoomChargePaise * gstRateBasisPoints) / 10000);
-  const discountPaise = body.discountPaise ? Math.round(body.discountPaise) : 0;
   const totalAmountPaise = Math.max(0, totalRoomChargePaise + totalTaxPaise - discountPaise);
   const paidPaise = Math.min(totalAmountPaise, Math.max(0, Math.round(advancePaidPaise)));
   const balancePaise = totalAmountPaise - paidPaise;
@@ -218,6 +311,10 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   const reservationNumber = `RES-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${randomSuffix}`;
 
+  // FlexiLink Guest Portal Token & Expiry: 7 days after checkout
+  const guestPortalToken = crypto.randomUUID();
+  const guestPortalExpiresAt = Math.floor(new Date(`${checkOutDate}T23:59:59Z`).getTime() / 1000) + (7 * 86400);
+
   const guestId = `gst_${crypto.randomUUID()}`;
   const invoiceId = `inv_${crypto.randomUUID()}`;
   const invoiceItemId = `ini_${crypto.randomUUID()}`;
@@ -225,7 +322,7 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
 
   const statements: any[] = [];
 
-  // 1. Insert Reservation
+  // 1. Insert Reservation with FlexiLink credentials
   statements.push(
     c.env.DB.prepare(
       `INSERT INTO reservations (
@@ -234,8 +331,9 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
         adults, children, nightly_rate_paise, total_room_charge_paise,
         total_tax_paise, total_discount_paise, total_amount_paise, paid_amount_paise,
         balance_amount_paise, payment_status, special_requests, created_by_user_id,
+        guest_portal_token, guest_portal_expires_at, self_checkin_completed,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'confirmed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, 'confirmed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`
     ).bind(
       reservationId,
       propertyId,
@@ -259,6 +357,8 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
       paymentStatus,
       specialRequests || null,
       user.uid,
+      guestPortalToken,
+      guestPortalExpiresAt,
       now,
       now
     )
@@ -378,8 +478,39 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
     );
   }
 
+  if (appliedCouponId) {
+    statements.push(
+      c.env.DB.prepare('UPDATE coupons SET times_used = times_used + 1, updated_at = ? WHERE id = ?').bind(now, appliedCouponId)
+    );
+  }
+
   // Execute batch
   await c.env.DB.batch(statements);
+
+  const guestPortalUrl = `https://hotelflexi.vercel.app/guest/${guestPortalToken}`;
+  const formatINR = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`;
+
+  // Dispatch confirmation emails to both guest and property admin/owner
+  sendBookingEmails(c.env, {
+    reservationNumber,
+    guestName,
+    guestEmail: guestEmail || undefined,
+    guestPhone: guestPhone || undefined,
+    propertyName: property?.name || 'HotelFlexi Property',
+    propertyAddress: [property?.address_line1, property?.city, property?.state].filter(Boolean).join(', '),
+    propertyPhone: property?.phone,
+    propertyEmail: property?.email,
+    ownerEmail: property?.email || user.email,
+    checkInDate,
+    checkOutDate,
+    roomTypeName: roomType.name,
+    adults,
+    children,
+    totalAmountRupees: formatINR(totalAmountPaise),
+    paidAmountRupees: formatINR(paidPaise),
+    balanceAmountRupees: formatINR(balancePaise),
+    guestPortalUrl,
+  }).catch((err) => console.error('[Email Notification Error]', err));
 
   await recordAuditLog(c, {
     action: 'reservation.created',
@@ -391,6 +522,7 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
       totalAmountPaise,
       checkInDate,
       checkOutDate,
+      guestPortalToken,
     },
   });
 
@@ -401,6 +533,8 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
     totalAmountPaise,
     paidAmountPaise: paidPaise,
     balanceAmountPaise: balancePaise,
+    guestPortalToken,
+    guestPortalUrl,
   });
 });
 

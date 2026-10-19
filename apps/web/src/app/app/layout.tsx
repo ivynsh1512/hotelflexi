@@ -33,6 +33,8 @@ import {
   PlusCircle,
   FileText,
   Lock,
+  Percent,
+  TrendingUp,
 } from 'lucide-react';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -65,21 +67,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Navigation Items
   const navSections = [
     {
-      title: 'Front Desk',
+      title: 'Front Desk & Assistant',
       items: [
         { label: 'Overview', href: '/app', icon: LayoutDashboard },
+        { label: 'AI Business Agent', href: '/app/ai-agent', icon: Sparkles, badge: 'Live AI' },
         { label: 'Calendar Grid', href: '/app/calendar', icon: Calendar },
         { label: 'Reservations', href: '/app/reservations', icon: BookOpen },
         { label: 'New Booking', href: '/app/reservations/new', icon: PlusCircle },
-        { label: 'Guests', href: '/app/guests', icon: Users },
+        { label: 'Guest Ledger', href: '/app/guests', icon: Users },
       ],
     },
     {
-      title: 'Rooms & Inventory',
+      title: 'Rooms & Pricing',
       items: [
         { label: 'Room List', href: '/app/rooms', icon: BedDouble },
         { label: 'Room Types', href: '/app/room-types', icon: Tag },
         { label: 'Rate Plans', href: '/app/rates', icon: DollarSign },
+        { label: 'Date Rate Overrides', href: '/app/rates/daily', icon: TrendingUp },
+        { label: 'Coupons & Promos', href: '/app/coupons', icon: Percent },
+      ],
+    },
+    {
+      title: 'Distribution & Channels',
+      items: [
+        { label: 'Channel Manager', href: '/app/channels', icon: Layers },
+        { label: 'Booking Engine', href: '/app/booking-engine', icon: Globe },
       ],
     },
     {
@@ -98,14 +110,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { label: 'Expenses', href: '/app/expenses', icon: PieChart },
         { label: 'Accounting P&L', href: '/app/accounting', icon: FileText },
         { label: 'Reports', href: '/app/reports', icon: BarChart3 },
-      ],
-    },
-    {
-      title: 'Distribution & AI',
-      items: [
-        { label: 'AI Business Agent', href: '/app/ai-agent', icon: Sparkles, badge: 'Bilingual' },
-        { label: 'Channel Manager', href: '/app/channels', icon: Layers },
-        { label: 'Booking Engine', href: '/app/booking-engine', icon: Globe },
       ],
     },
     {

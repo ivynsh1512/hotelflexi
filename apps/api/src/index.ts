@@ -16,6 +16,10 @@ import { reportRoutes } from './routes/reports';
 import { subscriptionRoutes } from './routes/subscriptions';
 import { adminRoutes } from './routes/admin';
 import { webhookRoutes } from './routes/webhooks';
+import { guestPortalRoutes } from './routes/guestPortal';
+import { couponRoutes } from './routes/coupons';
+import { dailyRatesRoutes } from './routes/dailyRates';
+import { developerSetupRoutes } from './routes/developerSetup';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -62,6 +66,10 @@ app.route('/api/v1/billing', billingRoutes);
 app.route('/api/v1/operations', operationsRoutes);
 app.route('/api/v1/channels', channelManagerRoutes);
 app.route('/api/v1/public', bookingEngineRoutes);
+app.route('/api/v1/public/guest-portal', guestPortalRoutes);
+app.route('/api/v1/coupons', couponRoutes);
+app.route('/api/v1/rooms/daily-rates', dailyRatesRoutes);
+app.route('/api/v1/developer-setup', developerSetupRoutes);
 app.route('/api/v1/ai', aiAgentRoutes);
 app.route('/api/v1/reports', reportRoutes);
 app.route('/api/v1/subscriptions', subscriptionRoutes);
