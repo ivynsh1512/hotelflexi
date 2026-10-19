@@ -7,11 +7,13 @@ import {
   sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
   User,
 } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyCeUGAhkqO0aDwq4l88eo2JVobzfSdUL0',
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyCeUG4AhkqO0aDwq4l88eo2JVobzfSdUL0',
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'hotelflexi.firebaseapp.com',
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'hotelflexi',
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'hotelflexi.firebasestorage.app',
@@ -23,6 +25,7 @@ const firebaseConfig = {
 // Initialize Firebase once
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
 
 export {
   signInWithEmailAndPassword,
@@ -31,5 +34,7 @@ export {
   sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
+  signInWithPopup,
+  GoogleAuthProvider,
 };
 export type { User };
