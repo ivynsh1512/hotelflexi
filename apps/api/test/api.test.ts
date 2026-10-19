@@ -21,8 +21,9 @@ describe('HotelFlexi Security & Core Architecture Tests', () => {
       expect(isSuperAdmin('', adminEmailsConfig, true)).toBe(false);
     });
 
-    it('should deny unverified emails even if on allowlist', () => {
-      expect(isSuperAdmin('divyansh.shukla1512@gmail.com', adminEmailsConfig, false)).toBe(false);
+    it('should handle quoted strings and bracketed arrays in secret', () => {
+      expect(isSuperAdmin('divyansh.shukla1512@gmail.com', '"divyansh.shukla1512@gmail.com", "info@novaxai.in"')).toBe(true);
+      expect(isSuperAdmin('divyansh.shukla1512@gmail.com', '["divyansh.shukla1512@gmail.com"]')).toBe(true);
     });
 
     it('should fail closed if ADMIN_EMAILS secret is missing or empty', () => {

@@ -20,7 +20,17 @@ import {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, loading, isPlatformAdmin } = useAuth();
+  const { user, loading, isPlatformAdmin, refreshUser } = useAuth();
+  const [rechecking, setRechecking] = React.useState(false);
+
+  const handleRecheck = async () => {
+    setRechecking(true);
+    try {
+      await refreshUser();
+    } finally {
+      setRechecking(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -43,6 +53,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             Your current account (<span className="text-white font-mono">{user?.email || 'Anonymous'}</span>) is not authorized on the NovaX AI super-admin allowlist (<span className="text-purple-400 font-mono">ADMIN_EMAILS</span>).
           </p>
           <div className="pt-4 flex flex-col gap-2">
+            <button
+              onClick={handleRecheck}
+              disabled={rechecking}
+              className="py-2.5 px-4 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-500 transition flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {rechecking ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Checking Authorization...
+                </>
+              ) : (
+                'Re-verify Admin Status'
+              )}
+            </button>
             <Link
               href="/app"
               className="py-2.5 px-4 rounded-lg bg-surface-dark-elevated border border-border-dark text-xs font-semibold hover:bg-border-dark transition text-white"
@@ -51,9 +75,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
             <Link
               href="/login"
-              className="py-2.5 px-4 rounded-lg bg-brand-blue text-white text-xs font-semibold hover:bg-brand-blue-hover transition"
+              className="py-2.5 px-4 rounded-lg border border-border-dark text-content-secondary-dark text-xs font-semibold hover:bg-surface-dark-elevated transition"
             >
-              Sign In with Authorized Admin Account
+              Sign In with Different Account
             </Link>
           </div>
         </div>

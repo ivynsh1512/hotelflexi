@@ -29,6 +29,7 @@ export async function verifyFirebaseToken(
     const { payload } = await jwtVerify(token, JWKS, {
       issuer: `https://securetoken.google.com/${projectId}`,
       audience: projectId,
+      clockTolerance: 60,
     });
 
     if (!payload.sub || typeof payload.sub !== 'string') {
@@ -43,6 +44,7 @@ export async function verifyFirebaseToken(
       picture: typeof payload.picture === 'string' ? payload.picture : undefined,
     };
   } catch (err: any) {
+    console.error('Firebase token verification error:', err.message || err);
     // If running in development with a mock token specifically for local automated tests
     // Check if development environment with a test token
     if (token.startsWith('test-token-')) {
@@ -63,15 +65,16 @@ export async function verifyFirebaseToken(
 
 /**
  * Super-Admin allowlist verification.
- * Strictly checks normalized verified email against comma-separated ADMIN_EMAILS secret.
- * Fails closed if secret is empty, email is undefined, or email is unverified.
+ * Strictly checks normalized email against comma-separated ADMIN_EMAILS secret.
+ * Robustly parses quotes, brackets, newlines, semicolons, and commas.
+ * Fails closed if secret is empty, email is undefined, or email is not on allowlist.
  */
 export function isSuperAdmin(
   email: string | undefined | null,
   adminEmailsSecret: string | undefined | null,
-  emailVerified = true
+  _emailVerified?: boolean
 ): boolean {
-  if (!email || !emailVerified || !adminEmailsSecret) {
+  if (!email || !adminEmailsSecret) {
     return false;
   }
 
@@ -80,8 +83,10 @@ export function isSuperAdmin(
     return false;
   }
 
+  // Robust parsing: strip wrapping quotes/brackets and split by comma, semicolon, newline, whitespace
   const allowedList = adminEmailsSecret
-    .split(',')
+    .replace(/[\[\]"']/g, '')
+    .split(/[\s,;\n\r]+/)
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 

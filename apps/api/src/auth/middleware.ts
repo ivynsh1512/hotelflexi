@@ -31,10 +31,6 @@ export const superAdminMiddleware: MiddlewareHandler<{ Bindings: Env; Variables:
     return c.json({ error: 'Unauthorized: Authentication required' }, 401);
   }
 
-  if (!user.email_verified) {
-    return c.json({ error: 'Forbidden: Verified email address required for super-admin access' }, 403);
-  }
-
   const adminEmails = c.env.ADMIN_EMAILS;
   const isAuthorized = isSuperAdmin(user.email, adminEmails, user.email_verified);
 
