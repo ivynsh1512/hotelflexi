@@ -1,4 +1,26 @@
+# HotelFlexi Robots.txt
+# Domain: https://hotelflexi.novaxai.in
+# Company: NovaX AI
+
 User-agent: *
 Allow: /
+Allow: /features
+Allow: /hotel-management
+Allow: /channel-manager
+Allow: /booking-engine
+Allow: /ai-hotel-agent
+Allow: /pricing
+Allow: /about
+Allow: /contact
+Allow: /faq
+Allow: /privacy
+Allow: /terms
+Allow: /refund-policy
+Allow: /book/*
 
-Sitemap: https://hotelflexi.com/sitemap.xml
+# Disallow private operational dashboards & super-admin
+Disallow: /app/
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://hotelflexi.novaxai.in/sitemap.xml

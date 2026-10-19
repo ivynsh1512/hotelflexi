@@ -211,16 +211,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Sidebar Footer */}
         <div className="p-3 border-t border-border-light bg-surface-light">
-          {isPlatformAdmin && (
-            <Link
-              href="/admin"
-              className="w-full mb-2 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-purple-50 text-purple-700 text-xs font-semibold hover:bg-purple-100 transition"
-            >
-              <Shield className="w-3.5 h-3.5" />
-              Platform Super-Admin
-            </Link>
-          )}
-
           <div className="flex items-center justify-between pt-1">
             <div className="truncate pr-2">
               <div className="text-xs font-semibold text-content-primary-light truncate">

@@ -9,14 +9,13 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-10 pb-12 border-b border-border-dark">
           {/* Brand Info */}
           <div className="md:col-span-2 space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-brand-blue flex items-center justify-center text-white">
-                <Hotel className="w-4 h-4" />
-              </div>
-              <span className="font-extrabold text-xl tracking-tight text-white">
-                Hotel<span className="text-brand-blue">Flexi</span>
-              </span>
-            </div>
+            <Link href="/" className="inline-block">
+              <img
+                src="/dark-logo.png"
+                alt="HotelFlexi by NovaX AI"
+                className="h-10 w-auto max-w-[190px] object-contain"
+              />
+            </Link>
             <p className="text-sm text-content-secondary-dark max-w-sm leading-relaxed">
               Your Hotel. One Intelligent System. Complete PMS, channel manager, direct booking engine,
               Indian GST billing, and bilingual AI business agent for hospitality businesses.

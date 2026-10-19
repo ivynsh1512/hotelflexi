@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "in.novaxai.hotelflexi",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:EB:BF:15:AE:CD:8A:2F:5C:38:64:3B:5A:F5:DF:B6:3B:DB:17:F1:1A:1D:90:3A:AE:22:90:32:04:95"
+      ]
+    }
+  }
+]

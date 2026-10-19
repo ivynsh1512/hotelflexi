@@ -12,19 +12,13 @@ export const Navbar: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border-light">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand Logo Wordmark */}
+        {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-brand-blue flex items-center justify-center text-white shadow-sm font-bold">
-            <Hotel className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-extrabold text-xl tracking-tight text-content-primary-light">
-              Hotel<span className="text-brand-blue">Flexi</span>
-            </span>
-            <span className="text-[10px] uppercase tracking-wider text-content-secondary-light font-semibold -mt-1">
-              by NovaX AI
-            </span>
-          </div>
+          <img
+            src="/light-logo.png"
+            alt="HotelFlexi by NovaX AI"
+            className="h-10 w-auto max-w-[180px] object-contain"
+          />
         </Link>
 
         {/* Desktop Navigation */}
@@ -54,15 +48,6 @@ export const Navbar: React.FC = () => {
         <div className="hidden md:flex items-center gap-3">
           {user ? (
             <div className="flex items-center gap-2.5">
-              {isPlatformAdmin && (
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Super-Admin
-                </Link>
-              )}
               <Link
                 href="/app"
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand-blue text-white hover:bg-brand-blue-hover shadow-sm transition"

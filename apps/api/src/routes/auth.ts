@@ -33,6 +33,36 @@ authRoutes.post('/sync', authMiddleware, async (c) => {
     .bind(user.uid, user.email, fullName, phone, avatarUrl, verifiedInt, adminAllowed, now, now)
     .run();
 
+  // Auto-accept any pending team invitations for this user's email
+  if (user.email) {
+    try {
+      const pendingInvites = await c.env.DB.prepare(
+        `SELECT * FROM team_invitations WHERE LOWER(email) = LOWER(?) AND status = 'pending'`
+      )
+        .bind(user.email)
+        .all();
+
+      for (const inv of (pendingInvites.results || []) as any[]) {
+        const memId = `mem_${crypto.randomUUID()}`;
+        await c.env.DB.prepare(
+          `INSERT INTO tenant_memberships (id, tenant_id, user_id, role, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT(tenant_id, user_id) DO UPDATE SET role = excluded.role, updated_at = excluded.updated_at`
+        )
+          .bind(memId, inv.tenant_id, user.uid, inv.role, now, now)
+          .run();
+
+        await c.env.DB.prepare(
+          `UPDATE team_invitations SET status = 'accepted', accepted_at = ?, updated_at = ? WHERE id = ?`
+        )
+          .bind(now, now, inv.id)
+          .run();
+      }
+    } catch (e) {
+      console.error('[Auth Sync] Failed to auto-accept invitations:', e);
+    }
+  }
+
   return c.json({
     success: true,
     user: {
@@ -48,11 +78,42 @@ authRoutes.post('/sync', authMiddleware, async (c) => {
 // Get current user profile & tenants
 authRoutes.get('/me', authMiddleware, async (c) => {
   const user = c.get('user')!;
+  const now = Math.floor(Date.now() / 1000);
   const dbUser: any = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?')
     .bind(user.uid)
     .first();
 
   const isPlatformAdmin = isSuperAdmin(user.email, c.env.ADMIN_EMAILS, user.email_verified);
+
+  // Auto-accept any pending invitations if user hasn't synced yet
+  if (user.email) {
+    try {
+      const pendingInvites = await c.env.DB.prepare(
+        `SELECT * FROM team_invitations WHERE LOWER(email) = LOWER(?) AND status = 'pending'`
+      )
+        .bind(user.email)
+        .all();
+
+      for (const inv of (pendingInvites.results || []) as any[]) {
+        const memId = `mem_${crypto.randomUUID()}`;
+        await c.env.DB.prepare(
+          `INSERT INTO tenant_memberships (id, tenant_id, user_id, role, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT(tenant_id, user_id) DO UPDATE SET role = excluded.role, updated_at = excluded.updated_at`
+        )
+          .bind(memId, inv.tenant_id, user.uid, inv.role, now, now)
+          .run();
+
+        await c.env.DB.prepare(
+          `UPDATE team_invitations SET status = 'accepted', accepted_at = ?, updated_at = ? WHERE id = ?`
+        )
+          .bind(now, now, inv.id)
+          .run();
+      }
+    } catch (e) {
+      console.error('[Auth Me] Failed to auto-accept invitations:', e);
+    }
+  }
 
   // Fetch tenants user is member of
   const memberships = await c.env.DB.prepare(

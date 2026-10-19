@@ -3,21 +3,33 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
-import { ClipboardList, PlusCircle, CheckCircle2, Clock, Loader2, AlertCircle } from 'lucide-react';
+import {
+  ClipboardList,
+  PlusCircle,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  AlertCircle,
+  User,
+  UserCheck,
+} from 'lucide-react';
 
 export default function HousekeepingPage() {
   const { currentTenant } = useAuth();
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
   const [propertyId, setPropertyId] = useState('');
 
   // New task modal
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [assignedToUserId, setAssignedToUserId] = useState('');
   const [taskType, setTaskType] = useState('cleaning');
   const [priority, setPriority] = useState('medium');
   const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -26,13 +38,17 @@ export default function HousekeepingPage() {
       const activeProp = propData.properties?.[0];
       if (activeProp) {
         setPropertyId(activeProp.id);
-        const [tData, rData] = await Promise.all([
+        const [tData, rData, teamData] = await Promise.all([
           apiClient(`/operations/housekeeping?property_id=${activeProp.id}`),
           apiClient(`/rooms?property_id=${activeProp.id}`),
+          apiClient('/team/members').catch(() => ({ members: [] })),
         ]);
         setTasks(tData.tasks || []);
         setRooms(rData.rooms || []);
-        if (rData.rooms?.length > 0) setSelectedRoomId(rData.rooms[0].id);
+        setStaffList(teamData.members || []);
+        if (rData.rooms?.length > 0 && !selectedRoomId) {
+          setSelectedRoomId(rData.rooms[0].id);
+        }
       }
     } catch (e) {
       console.error('Failed to load housekeeping tasks:', e);
@@ -59,7 +75,12 @@ export default function HousekeepingPage() {
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedRoomId) {
+      alert('Please select a room.');
+      return;
+    }
     try {
+      setSubmitting(true);
       await apiClient('/operations/housekeeping', {
         method: 'POST',
         body: JSON.stringify({
@@ -68,13 +89,17 @@ export default function HousekeepingPage() {
           taskType,
           priority,
           notes,
+          assignedToUserId: assignedToUserId || undefined,
         }),
       });
       setModalOpen(false);
       setNotes('');
+      setAssignedToUserId('');
       await fetchTasks();
     } catch (e: any) {
       alert(e.message || 'Task creation failed.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -86,7 +111,7 @@ export default function HousekeepingPage() {
             Housekeeping Tasks
           </h1>
           <p className="text-xs text-content-secondary-light">
-            Assign room cleaning, deep sanitation, and inspect room readiness
+            Assign room cleaning, deep sanitation, and inspect room readiness with assigned staff
           </p>
         </div>
 
@@ -119,6 +144,7 @@ export default function HousekeepingPage() {
                 <tr>
                   <th className="p-3.5">Room</th>
                   <th className="p-3.5">Task Type</th>
+                  <th className="p-3.5">Assigned To</th>
                   <th className="p-3.5">Priority</th>
                   <th className="p-3.5">Scheduled</th>
                   <th className="p-3.5">Notes</th>
@@ -134,26 +160,42 @@ export default function HousekeepingPage() {
                     </td>
                     <td className="p-3.5 capitalize font-medium">{task.task_type?.replace('_', ' ')}</td>
                     <td className="p-3.5">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        task.priority === 'urgent'
-                          ? 'bg-red-100 text-red-700'
-                          : task.priority === 'high'
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-blue-100 text-brand-blue'
-                      }`}>
+                      {task.assigned_to_name ? (
+                        <div className="flex items-center gap-1.5 font-semibold text-content-primary-light">
+                          <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center text-[10px] font-bold">
+                            {task.assigned_to_name[0]}
+                          </div>
+                          <span>{task.assigned_to_name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-content-secondary-light italic">Unassigned</span>
+                      )}
+                    </td>
+                    <td className="p-3.5">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          task.priority === 'urgent'
+                            ? 'bg-red-100 text-red-700'
+                            : task.priority === 'high'
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-blue-100 text-brand-blue'
+                        }`}
+                      >
                         {task.priority}
                       </span>
                     </td>
                     <td className="p-3.5 text-content-secondary-light">{task.scheduled_date}</td>
                     <td className="p-3.5 text-content-secondary-light max-w-xs truncate">{task.notes || '—'}</td>
                     <td className="p-3.5">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        task.status === 'completed'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : task.status === 'in_progress'
-                          ? 'bg-blue-100 text-brand-blue'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          task.status === 'completed'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : task.status === 'in_progress'
+                            ? 'bg-blue-100 text-brand-blue'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
                         {task.status?.replace('_', ' ')}
                       </span>
                     </td>
@@ -199,13 +241,36 @@ export default function HousekeepingPage() {
                   value={selectedRoomId}
                   onChange={(e) => setSelectedRoomId(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  required
                 >
+                  <option value="" disabled>Choose a room...</option>
                   {rooms.map((r) => (
                     <option key={r.id} value={r.id}>
                       Room {r.room_number} ({r.room_type_name})
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1">Assign To (Staff Member / Housekeeper)</label>
+                <select
+                  value={assignedToUserId}
+                  onChange={(e) => setAssignedToUserId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                >
+                  <option value="">-- Unassigned / Any Available Staff --</option>
+                  {staffList.map((st) => (
+                    <option key={st.user_id} value={st.user_id}>
+                      {st.full_name || st.email} ({st.role})
+                    </option>
+                  ))}
+                </select>
+                {staffList.length === 0 && (
+                  <p className="text-[10px] text-content-secondary-light mt-1">
+                    No staff members registered yet. Add staff under Settings &gt; Staff &amp; Team.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -218,7 +283,7 @@ export default function HousekeepingPage() {
                   >
                     <option value="cleaning">Checkout Cleaning</option>
                     <option value="deep_cleaning">Deep Sanitization</option>
-                    <option value="linen_change">Linen & Towel Change</option>
+                    <option value="linen_change">Linen &amp; Towel Change</option>
                     <option value="inspection">Supervisor Inspection</option>
                   </select>
                 </div>
@@ -257,9 +322,10 @@ export default function HousekeepingPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-lg bg-brand-blue text-white font-semibold hover:bg-brand-blue-hover"
+                  disabled={submitting}
+                  className="flex-1 py-2 rounded-lg bg-brand-blue text-white font-semibold hover:bg-brand-blue-hover disabled:opacity-50"
                 >
-                  Assign Task
+                  {submitting ? 'Assigning...' : 'Assign Task'}
                 </button>
               </div>
             </form>
