@@ -73,10 +73,11 @@ export default function SubscriptionPage() {
   const comparisonRows = [
     { name: 'Room Inventory Capacity', starter: 'Up to 10 Rooms', essential: 'Up to 25 Rooms', growth: 'Up to 60 Rooms', pro: 'Up to 150 Rooms', enterprise: 'Unlimited' },
     { name: 'Staff User Logins', starter: '2 Users', essential: '5 Users', growth: '12 Users', pro: '25 Users', enterprise: 'Unlimited' },
+    { name: 'Channel Manager (OTAs)', starter: '2 Channels (Live Sync)', essential: '5 Channels', growth: '10 Channels', pro: 'Unlimited Channels', enterprise: 'Unlimited Channels' },
+    { name: 'Housekeeping Urgency Siren', starter: true, essential: true, growth: true, pro: true, enterprise: true },
     { name: 'Direct Booking Engine', starter: true, essential: true, growth: true, pro: true, enterprise: true },
     { name: 'Guest Portal (FlexiLink)', starter: true, essential: true, growth: true, pro: true, enterprise: true },
     { name: 'GST Billing & Invoicing (12%/18%)', starter: true, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'Channel Manager (OTAs)', starter: false, essential: '2 Channels', growth: '5 Channels', pro: '15 Channels', enterprise: 'Unlimited Channels' },
     { name: 'AI Business Agent Prompts', starter: '2 chats / day (Free)', essential: '50 / day', growth: '200 / day', pro: 'Unlimited', enterprise: 'Unlimited' },
     { name: 'Staff Siren Emergency Alarms', starter: false, essential: true, growth: true, pro: true, enterprise: true },
     { name: 'Housekeeping & Task Assignment', starter: true, essential: true, growth: true, pro: true, enterprise: true },

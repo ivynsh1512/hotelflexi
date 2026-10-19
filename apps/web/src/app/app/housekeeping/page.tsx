@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
+import { UrgencySirenAlert } from '@/components/UrgencySirenAlert';
 import {
   ClipboardList,
   PlusCircle,
@@ -123,6 +124,10 @@ export default function HousekeepingPage() {
           Assign Housekeeping Task
         </button>
       </div>
+
+      {propertyId && (
+        <UrgencySirenAlert propertyId={propertyId} onRefreshNeeded={fetchTasks} />
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-border-light">

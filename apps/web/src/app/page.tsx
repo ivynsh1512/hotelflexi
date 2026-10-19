@@ -26,7 +26,7 @@ export default function HomePage() {
       price: '₹499',
       interval: '/month',
       desc: 'Ideal for homestays, guesthouses & boutique stays.',
-      features: ['Up to 10 Rooms', '1 Property', 'Room Calendar & PMS', 'Direct Booking Engine', 'Basic AI Assistant', 'GST Invoicing'],
+      features: ['Up to 10 Rooms', '1 Property', '2-Way OTA Channel Manager (2 OTAs)', 'Housekeeping Urgency Siren', 'Room Calendar & PMS', 'Direct Booking Engine', 'Bilingual AI Assistant', 'GST Invoicing'],
       highlighted: false,
     },
     {
@@ -35,7 +35,7 @@ export default function HomePage() {
       price: '₹999',
       interval: '/month',
       desc: 'Perfect for growing budget hotels & serviced apartments.',
-      features: ['Up to 25 Rooms', '1 Property', 'PMS & Fast Check-in', 'Direct Booking Engine', '2 OTA Channel Connections', 'Housekeeping & Maintenance', 'Bilingual AI Agent'],
+      features: ['Up to 25 Rooms', '1 Property', 'PMS & Fast Check-in', 'Direct Booking Engine', '5 OTA Channel Connections', 'Housekeeping Urgency Siren', 'Bilingual AI Agent', 'Daily Collections Reports'],
       highlighted: true,
       badge: 'Most Popular',
     },
@@ -393,7 +393,147 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 6. FAQ SECTION */}
+      {/* 6. COMPETITOR COMPARISONS SPOTLIGHT */}
+      <section className="py-20 bg-white border-b border-border-light">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <span className="text-xs font-semibold uppercase tracking-wider text-brand-blue">Why Hoteliers Switch</span>
+            <h2 className="text-3xl font-extrabold text-content-primary-light mt-2">
+              See How HotelFlexi Outperforms Other Hotel PMS Platforms
+            </h2>
+            <p className="mt-3 text-content-secondary-light text-base">
+              Skip clunky legacy software and expensive USD subscriptions. Switch to autonomous AI, live 2-way OTA distribution, and emergency housekeeping sirens for ₹499/mo.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                name: 'StayFlexi',
+                slug: 'stayflexi',
+                badge: 'Cost & AI Advantage',
+                highlight: '₹499 flat INR pricing vs $30–$100+ USD subscription fees with autonomous bilingual AI front desk.',
+              },
+              {
+                name: 'Yojna Cloud',
+                slug: 'yojna-cloud',
+                badge: 'Zero AMC Upgrade',
+                highlight: 'Modern 2026 mobile PWA with zero Annual Maintenance Contracts (AMC) vs slow legacy desktop software.',
+              },
+              {
+                name: 'eZee Absolute',
+                slug: 'ezee-absolute',
+                badge: '15-Min Onboarding',
+                highlight: 'Intuitive zero-training interface vs complex multi-layered menus requiring days of staff training.',
+              },
+              {
+                name: 'Djubo',
+                slug: 'djubo',
+                badge: '0% Direct Commission',
+                highlight: 'PMS, Channel Manager, Booking Engine & AI in one single ₹499 package vs fragmented module bills.',
+              },
+            ].map((c) => (
+              <div key={c.slug} className="p-6 rounded-2xl bg-surface-light border border-border-light hover:border-brand-blue/40 transition flex flex-col justify-between">
+                <div>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-brand-blue uppercase tracking-wider">
+                    {c.badge}
+                  </span>
+                  <h3 className="text-lg font-black text-content-primary-light mt-3">
+                    HotelFlexi <span className="text-slate-400 font-normal">vs</span> {c.name}
+                  </h3>
+                  <p className="text-xs text-content-secondary-light mt-2 leading-relaxed">
+                    {c.highlight}
+                  </p>
+                </div>
+                <div className="mt-5 pt-3 border-t border-border-light">
+                  <Link
+                    href={`/compare/${c.slug}`}
+                    className="text-xs font-bold text-brand-blue hover:text-brand-blue-hover flex items-center justify-between"
+                  >
+                    <span>Read Comparison</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link
+              href="/compare"
+              className="inline-flex items-center gap-2 text-xs font-bold text-brand-blue hover:underline"
+            >
+              <span>Explore Complete Hotel PMS &amp; Channel Manager Comparison Matrix</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. HOSPITALITY BLOG INSIGHTS */}
+      <section className="py-20 bg-surface-light border-b border-border-light">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-brand-blue">Hospitality Knowledge Base</span>
+              <h2 className="text-3xl font-extrabold text-content-primary-light mt-2">
+                Latest Strategies &amp; Tech Playbooks
+              </h2>
+            </div>
+            <Link
+              href="/blog"
+              className="text-xs font-bold text-brand-blue hover:text-brand-blue-hover flex items-center gap-1 self-start md:self-auto"
+            >
+              <span>View All Articles</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                slug: 'how-to-automate-hotel-operations-with-ai',
+                title: 'How Indian Hoteliers Are Automating Operations with Autonomous AI',
+                category: 'AI & Automation',
+                readTime: '6 min read',
+              },
+              {
+                slug: 'best-hotel-channel-manager-india',
+                title: 'Best Hotel Channel Managers in India (2026): Live 2-Way Sync Guide',
+                category: 'Channel Management',
+                readTime: '8 min read',
+              },
+              {
+                slug: 'streamline-housekeeping-with-urgent-siren-alerts',
+                title: 'Why Urgent Siren Alerts Solve Guest Complaints in Under 7 Minutes',
+                category: 'Housekeeping & Front Desk',
+                readTime: '5 min read',
+              },
+            ].map((art) => (
+              <div key={art.slug} className="p-6 rounded-2xl bg-white border border-border-light shadow-sm flex flex-col justify-between hover:shadow-md transition">
+                <div>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
+                    {art.category}
+                  </span>
+                  <h3 className="text-base font-bold text-content-primary-light mt-3 leading-snug">
+                    <Link href={`/blog/${art.slug}`} className="hover:text-brand-blue transition">
+                      {art.title}
+                    </Link>
+                  </h3>
+                </div>
+                <div className="mt-5 pt-3 border-t border-border-light flex items-center justify-between text-xs text-content-secondary-light">
+                  <span>{art.readTime}</span>
+                  <Link href={`/blog/${art.slug}`} className="font-bold text-brand-blue flex items-center gap-1">
+                    Read <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 8. FAQ SECTION */}
       <section className="py-20 bg-white border-b border-border-light">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">

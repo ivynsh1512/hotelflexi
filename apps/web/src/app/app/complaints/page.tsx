@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
+import { UrgencySirenAlert } from '@/components/UrgencySirenAlert';
 import { AlertTriangle, PlusCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
 export default function ComplaintsPage() {
@@ -103,6 +104,10 @@ export default function ComplaintsPage() {
           Log Complaint
         </button>
       </div>
+
+      {propertyId && (
+        <UrgencySirenAlert propertyId={propertyId} onRefreshNeeded={fetchComplaints} />
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-border-light">

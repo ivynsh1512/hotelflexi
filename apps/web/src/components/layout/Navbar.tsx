@@ -42,6 +42,12 @@ export const Navbar: React.FC = () => {
           <Link href="/pricing" className="hover:text-brand-blue transition-colors">
             Pricing
           </Link>
+          <Link href="/compare" className="hover:text-brand-blue transition-colors">
+            Compare
+          </Link>
+          <Link href="/blog" className="hover:text-brand-blue transition-colors">
+            Blog
+          </Link>
         </nav>
 
         {/* Action Buttons */}
@@ -129,6 +135,20 @@ export const Navbar: React.FC = () => {
             className="block py-2 text-sm font-medium text-content-secondary-light"
           >
             Pricing
+          </Link>
+          <Link
+            href="/compare"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-medium text-content-secondary-light"
+          >
+            Compare
+          </Link>
+          <Link
+            href="/blog"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-medium text-content-secondary-light"
+          >
+            Blog
           </Link>
 
           <div className="pt-4 border-t border-border-light space-y-2">
