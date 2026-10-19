@@ -18,12 +18,24 @@ import {
   Loader2,
   AlertTriangle,
   Bell,
+  Monitor,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading, isPlatformAdmin, refreshUser } = useAuth();
   const [rechecking, setRechecking] = React.useState(false);
+  const [isStandaloneApp, setIsStandaloneApp] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.includes('android-app://');
+      setIsStandaloneApp(isStandalone);
+    }
+  }, []);
 
   const handleRecheck = async () => {
     setRechecking(true);
@@ -38,6 +50,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
       <div className="min-h-screen bg-surface-dark-bg text-white flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+      </div>
+    );
+  }
+
+  // Super-Admin is strictly for Desktop / Web browser only, not the mobile app
+  if (isStandaloneApp) {
+    return (
+      <div className="min-h-screen bg-surface-dark-bg text-white flex items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-surface-dark-surface border border-purple-900/50 space-y-5 shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-purple-950/60 border border-purple-700/60 text-purple-400 flex items-center justify-center mx-auto">
+            <Monitor className="w-8 h-8 text-purple-400" />
+          </div>
+          <h2 className="text-xl font-black text-white">Super-Admin is Web Portal Only</h2>
+          <p className="text-xs text-content-secondary-dark leading-relaxed">
+            Platform infrastructure, complaints, finances, and push broadcasts are managed exclusively via the desktop web portal to maintain security and operational oversight.
+          </p>
+          <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-800/40 text-[11px] text-purple-300 font-mono">
+            Open https://hotelflexi.novaxai.in/admin on your laptop or desktop browser.
+          </div>
+          <Link
+            href="/app"
+            className="inline-block w-full py-2.5 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition"
+          >
+            Return to Hotel PMS
+          </Link>
+        </div>
       </div>
     );
   }
