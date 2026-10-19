@@ -19,7 +19,6 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
   const postalCode = (body.postalCode || body.pincode || body.postcode || null)?.toString().trim() || null;
   const latitude = typeof body.latitude === 'number' ? body.latitude : (body.latitude ? parseFloat(body.latitude) : null);
   const longitude = typeof body.longitude === 'number' ? body.longitude : (body.longitude ? parseFloat(body.longitude) : null);
-  const totalRooms = Math.min(Math.max(parseInt(body.totalRooms, 10) || 6, 1), 50);
 
   if (!propertyName) {
     return c.json({ error: 'Property name is required' }, 400);
@@ -113,39 +112,7 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
     ) VALUES (?, ?, ?, 1200, 1800, 'HF-', 1001, 1, ?, ?)`
   ).bind(settingsId, propertyId, tenantId, now, now);
 
-  // 6. Default Room Types
-  const deluxeRoomTypeId = `rt_${crypto.randomUUID()}`;
-  const suiteRoomTypeId = `rt_${crypto.randomUUID()}`;
-
-  const stmtRoomType1 = c.env.DB.prepare(
-    `INSERT INTO room_types (
-      id, property_id, tenant_id, name, code, base_occupancy, max_occupancy,
-      base_price_paise, weekend_price_paise, extra_adult_price_paise, description, amenities, is_active, created_at, updated_at
-    ) VALUES (?, ?, ?, 'Deluxe Room', 'DLX', 2, 3, 250000, 280000, 60000, 'Comfortable king-bed room with city view and ensuite bathroom', ?, 1, ?, ?)`
-  ).bind(
-    deluxeRoomTypeId,
-    propertyId,
-    tenantId,
-    JSON.stringify(['King Bed', 'AC', 'Wi-Fi', 'TV', 'Ensuite Bathroom']),
-    now,
-    now
-  );
-
-  const stmtRoomType2 = c.env.DB.prepare(
-    `INSERT INTO room_types (
-      id, property_id, tenant_id, name, code, base_occupancy, max_occupancy,
-      base_price_paise, weekend_price_paise, extra_adult_price_paise, description, amenities, is_active, created_at, updated_at
-    ) VALUES (?, ?, ?, 'Executive Suite', 'STE', 2, 4, 450000, 500000, 80000, 'Spacious luxury suite with living area and premium amenities', ?, 1, ?, ?)`
-  ).bind(
-    suiteRoomTypeId,
-    propertyId,
-    tenantId,
-    JSON.stringify(['King Bed', 'Living Area', 'Mini Bar', 'Bathtub', 'High-speed Wi-Fi']),
-    now,
-    now
-  );
-
-  // 7. Default Rate Plans
+  // 6. Default Rate Plans (EP & CP meal structures)
   const epRatePlanId = `rp_${crypto.randomUUID()}`;
   const cpRatePlanId = `rp_${crypto.randomUUID()}`;
 
@@ -161,24 +128,7 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
     ) VALUES (?, ?, ?, 'Continental Plan (With Breakfast)', 'CP', 'CP', 100, 40000, 1, ?, ?)`
   ).bind(cpRatePlanId, propertyId, tenantId, now, now);
 
-  // 8. Generate sample rooms according to requested totalRooms
-  const roomStatements: any[] = [];
-  for (let i = 1; i <= totalRooms; i++) {
-    const floorNum = i <= 6 ? 1 : 2;
-    const roomNum = `${floorNum}0${i <= 6 ? i : i - 6}`;
-    const roomTypeId = i % 3 === 0 ? suiteRoomTypeId : deluxeRoomTypeId;
-    const roomId = `room_${crypto.randomUUID()}`;
-
-    roomStatements.push(
-      c.env.DB.prepare(
-        `INSERT INTO rooms (
-          id, property_id, tenant_id, room_type_id, room_number, floor, status, housekeeping_status, is_active, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, 'available', 'clean', 1, ?, ?)`
-      ).bind(roomId, propertyId, tenantId, roomTypeId, roomNum, `Floor ${floorNum}`, now, now)
-    );
-  }
-
-  // 9. Default Expense Categories
+  // 7. Default Expense Categories
   const catNames = ['Food & Beverages', 'Electricity & Water', 'Linen & Laundry', 'Repairs & Maintenance', 'Staff Salaries'];
   const catStatements = catNames.map((name) =>
     c.env.DB.prepare(
@@ -187,19 +137,35 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
     ).bind(`cat_${crypto.randomUUID()}`, propertyId, tenantId, name, now)
   );
 
-  // Execute all in batch
+  // 8. Real System Notifications
+  const notif1 = c.env.DB.prepare(
+    `INSERT INTO notifications (id, tenant_id, user_id, title, message, category, is_read, created_at)
+     VALUES (?, ?, ?, 'Welcome to HotelFlexi!', ?, 'system', 0, ?)`
+  ).bind(
+    `notif_${crypto.randomUUID()}`,
+    tenantId,
+    user.uid,
+    `Your property "${propertyName}" has been created. Start by configuring your room categories and adding room units.`,
+    now
+  );
+
+  const notif2 = c.env.DB.prepare(
+    `INSERT INTO notifications (id, tenant_id, user_id, title, message, category, is_read, created_at)
+     VALUES (?, ?, ?, '14-Day Free Trial Activated', 'All Starter modules including Front Desk PMS, Direct Booking Engine, and Invoicing are active.', 'billing', 0, ?)`
+  ).bind(`notif_${crypto.randomUUID()}`, tenantId, user.uid, now);
+
+  // Execute all in batch (NO mock rooms, pure hotel setup)
   await c.env.DB.batch([
     stmtTenant,
     stmtMembership,
     stmtEntitlements,
     stmtProperty,
     stmtSettings,
-    stmtRoomType1,
-    stmtRoomType2,
     stmtRatePlan1,
     stmtRatePlan2,
-    ...roomStatements,
     ...catStatements,
+    notif1,
+    notif2,
   ]);
 
   await recordAuditLog(c, {
@@ -208,7 +174,7 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
     action: 'tenant.onboarded',
     resourceType: 'tenant',
     resourceId: tenantId,
-    newValues: { tenantName: propertyName, totalRooms },
+    newValues: { tenantName: propertyName },
   });
 
   return c.json({

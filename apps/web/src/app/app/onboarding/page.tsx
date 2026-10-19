@@ -21,7 +21,6 @@ export default function OnboardingPage() {
   const [country, setCountry] = useState('India');
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
-  const [totalRooms, setTotalRooms] = useState(8);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +62,6 @@ export default function OnboardingPage() {
           country,
           latitude,
           longitude,
-          totalRooms,
         }),
       });
 
@@ -225,30 +223,11 @@ export default function OnboardingPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1">
-              Initial Room Count (Can be edited anytime)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min={2}
-                max={50}
-                value={totalRooms}
-                onChange={(e) => setTotalRooms(parseInt(e.target.value, 10) || 6)}
-                className="w-24 px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-bold"
-              />
-              <span className="text-xs text-content-secondary-light">
-                Generates Deluxe Rooms & Executive Suites with numbers 101, 102, 201...
-              </span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-surface-light border border-border-light text-xs space-y-1.5 text-content-secondary-light">
-            <div className="font-semibold text-content-primary-light mb-1">Default Configuration Included:</div>
+          <div className="p-4 rounded-xl bg-surface-light border border-border-light text-xs space-y-2 text-content-secondary-light">
+            <div className="font-semibold text-content-primary-light mb-1">Your Property Workspace Setup:</div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-brand-blue" />
-              <span>Standard Room Tariffs: ₹2,500 (Deluxe) & ₹4,500 (Suite)</span>
+              <span>Dedicated Direct Booking Engine & Commission-Free Guest Portal</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-brand-blue" />

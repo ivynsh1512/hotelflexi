@@ -334,3 +334,51 @@ operationsRoutes.patch('/complaints/:id/resolve', async (c) => {
 
   return c.json({ success: true, message: 'Complaint resolved' });
 });
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+operationsRoutes.get('/notifications', async (c) => {
+  const tenantId = c.get('tenantId')!;
+  const user = c.get('user')!;
+
+  const rows = await c.env.DB.prepare(
+    `SELECT * FROM notifications
+     WHERE tenant_id = ? AND (user_id = ? OR user_id IS NULL)
+     ORDER BY created_at DESC LIMIT 50`
+  )
+    .bind(tenantId, user.uid)
+    .all();
+
+  return c.json({ notifications: rows.results || [] });
+});
+
+operationsRoutes.patch('/notifications/:id/read', async (c) => {
+  const tenantId = c.get('tenantId')!;
+  const id = c.req.param('id');
+
+  await c.env.DB.prepare(
+    `UPDATE notifications SET is_read = 1 WHERE id = ? AND tenant_id = ?`
+  )
+    .bind(id, tenantId)
+    .run();
+
+  return c.json({ success: true });
+});
+
+// =============================================================================
+// AUDIT LOGS (TENANT SCOPED)
+// =============================================================================
+operationsRoutes.get('/audit-logs', async (c) => {
+  const tenantId = c.get('tenantId')!;
+
+  const rows = await c.env.DB.prepare(
+    `SELECT * FROM audit_logs
+     WHERE tenant_id = ?
+     ORDER BY created_at DESC LIMIT 100`
+  )
+    .bind(tenantId)
+    .all();
+
+  return c.json({ auditLogs: rows.results || [] });
+});

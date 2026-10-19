@@ -200,6 +200,25 @@ export default function CalendarPage() {
         <div className="flex items-center justify-center py-24 bg-white rounded-2xl border border-border-light">
           <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
         </div>
+      ) : rooms.length === 0 ? (
+        <div className="p-12 text-center bg-white rounded-2xl border border-border-light space-y-4">
+          <CalendarIcon className="w-12 h-12 text-content-secondary-light mx-auto" />
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-content-primary-light">No Rooms Available for Calendar</h3>
+            <p className="text-xs text-content-secondary-light max-w-md mx-auto">
+              The front desk calendar shows live room occupancy and reservation spans. Add your rooms to start seeing bookings here.
+            </p>
+          </div>
+          <div className="pt-2">
+            <a
+              href="/app/rooms"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-brand-blue text-white text-xs font-semibold hover:bg-brand-blue-hover shadow-sm transition"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Configure Rooms Now
+            </a>
+          </div>
+        </div>
       ) : (
         /* Calendar Grid Table */
         <div className="bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">

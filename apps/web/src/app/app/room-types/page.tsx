@@ -90,6 +90,25 @@ export default function RoomTypesPage() {
         <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-border-light">
           <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
         </div>
+      ) : roomTypes.length === 0 ? (
+        <div className="p-12 text-center bg-white rounded-2xl border border-border-light space-y-4">
+          <Tag className="w-12 h-12 text-content-secondary-light mx-auto" />
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-content-primary-light">No Room Categories Created Yet</h3>
+            <p className="text-xs text-content-secondary-light max-w-md mx-auto">
+              Configure your room categories (e.g. Deluxe Room, Executive Suite, Family Cottage) to define base tariffs, weekend rates, and occupancy limits.
+            </p>
+          </div>
+          <div className="pt-2">
+            <button
+              onClick={() => setModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-brand-blue text-white text-xs font-semibold hover:bg-brand-blue-hover shadow-sm transition"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Create Your First Room Category
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {roomTypes.map((rt) => (

@@ -14,7 +14,7 @@ export default function AppAuditLogPage() {
     async function loadLogs() {
       if (!currentTenant) return;
       try {
-        const data = await apiClient('/admin/audit-logs').catch(() => ({ auditLogs: [] }));
+        const data = await apiClient('/operations/audit-logs').catch(() => ({ auditLogs: [] }));
         setLogs(data.auditLogs || []);
       } catch (e) {
         console.error(e);

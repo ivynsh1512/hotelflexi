@@ -8,16 +8,11 @@ import {
   BedDouble,
   DollarSign,
   UserCheck,
-  UserX,
   PlusCircle,
   Sparkles,
-  Calendar,
   AlertCircle,
   Loader2,
-  ChevronRight,
   ClipboardList,
-  CheckCircle2,
-  Lock,
 } from 'lucide-react';
 
 export default function DashboardOverviewPage() {
@@ -73,12 +68,12 @@ export default function DashboardOverviewPage() {
     );
   }
 
-  const totalRooms = rooms.length || 1;
+  const totalRooms = rooms.length;
   const occupiedRooms = rooms.filter((r) => r.status === 'occupied').length;
   const dirtyRooms = rooms.filter((r) => r.housekeeping_status === 'dirty').length;
   const maintenanceRooms = rooms.filter((r) => r.status === 'maintenance').length;
   const availableRooms = rooms.filter((r) => r.status === 'available').length;
-  const occupancyRate = Math.round((occupiedRooms / totalRooms) * 100);
+  const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -118,6 +113,35 @@ export default function DashboardOverviewPage() {
         </div>
       )}
 
+      {/* Getting Started Banner when 0 rooms */}
+      {totalRooms === 0 && (
+        <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-brand-blue font-bold text-sm">
+              <Sparkles className="w-4 h-4 shrink-0" />
+              <span>Welcome to {property?.name || 'HotelFlexi'}! Complete Your Setup</span>
+            </div>
+            <p className="text-xs text-content-secondary-light max-w-xl">
+              No rooms configured yet. Add your room categories (e.g. Deluxe, Suite) and your room units (e.g. 101, 102) to begin accepting bookings and managing housekeeping.
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <Link
+              href="/app/room-types"
+              className="px-3.5 py-2 rounded-lg bg-white border border-border-light text-brand-blue text-xs font-semibold hover:bg-surface-light shadow-sm transition"
+            >
+              1. Add Categories
+            </Link>
+            <Link
+              href="/app/rooms"
+              className="px-3.5 py-2 rounded-lg bg-brand-blue text-white text-xs font-semibold hover:bg-brand-blue-hover shadow-sm transition"
+            >
+              2. Add Rooms →
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Occupancy */}
@@ -126,9 +150,11 @@ export default function DashboardOverviewPage() {
             <span>Occupancy Rate</span>
             <BedDouble className="w-4 h-4 text-brand-blue" />
           </div>
-          <div className="mt-2 text-2xl font-extrabold text-content-primary-light">{occupancyRate}%</div>
+          <div className="mt-2 text-2xl font-extrabold text-content-primary-light">
+            {totalRooms > 0 ? `${occupancyRate}%` : '—'}
+          </div>
           <div className="text-[11px] text-content-secondary-light mt-0.5">
-            {occupiedRooms} of {totalRooms} rooms occupied
+            {totalRooms > 0 ? `${occupiedRooms} of ${totalRooms} rooms occupied` : '0 rooms configured'}
           </div>
         </div>
 
@@ -170,7 +196,7 @@ export default function DashboardOverviewPage() {
             {dirtyRooms}
           </div>
           <div className="text-[11px] text-amber-600 font-medium mt-0.5">
-            {dirtyRooms === 0 ? 'All rooms inspected & clean' : 'Rooms requiring cleaning'}
+            {totalRooms === 0 ? 'No rooms assigned' : dirtyRooms === 0 ? 'All rooms inspected & clean' : 'Rooms requiring cleaning'}
           </div>
         </div>
       </div>
@@ -208,34 +234,53 @@ export default function DashboardOverviewPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-            {rooms.map((room) => {
-              const isOccupied = room.status === 'occupied';
-              const isDirty = room.housekeeping_status === 'dirty';
-              const isMaint = room.status === 'maintenance';
-
-              return (
-                <div
-                  key={room.id}
-                  className={`p-3 rounded-xl border text-center transition ${
-                    isMaint
-                      ? 'bg-red-50 border-red-200 text-red-700'
-                      : isOccupied
-                      ? 'bg-blue-50 border-blue-200 text-brand-blue'
-                      : isDirty
-                      ? 'bg-amber-50 border-amber-200 text-amber-700'
-                      : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                  }`}
+          {rooms.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center rounded-xl border border-dashed border-border-light bg-surface-light/40 space-y-3">
+              <BedDouble className="w-10 h-10 text-content-secondary-light mx-auto" />
+              <div className="font-bold text-sm text-content-primary-light">No Rooms Created Yet</div>
+              <p className="text-xs text-content-secondary-light max-w-sm mx-auto">
+                Add your actual room units (e.g. 101, 102, Villa 1) under Room Management to view your live room matrix.
+              </p>
+              <div className="pt-1">
+                <Link
+                  href="/app/rooms"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-blue text-white text-xs font-semibold hover:bg-brand-blue-hover shadow-sm transition"
                 >
-                  <div className="font-extrabold text-sm">{room.room_number}</div>
-                  <div className="text-[10px] font-medium opacity-80 truncate">{room.room_type_name || 'Room'}</div>
-                  <div className="text-[9px] uppercase font-bold mt-1">
-                    {isMaint ? 'Maint' : isOccupied ? 'Occupied' : isDirty ? 'Dirty' : 'Clean'}
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  Add Your Rooms
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              {rooms.map((room) => {
+                const isOccupied = room.status === 'occupied';
+                const isDirty = room.housekeeping_status === 'dirty';
+                const isMaint = room.status === 'maintenance';
+
+                return (
+                  <div
+                    key={room.id}
+                    className={`p-3 rounded-xl border text-center transition ${
+                      isMaint
+                        ? 'bg-red-50 border-red-200 text-red-700'
+                        : isOccupied
+                        ? 'bg-blue-50 border-blue-200 text-brand-blue'
+                        : isDirty
+                        ? 'bg-amber-50 border-amber-200 text-amber-700'
+                        : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    }`}
+                  >
+                    <div className="font-extrabold text-sm">{room.room_number}</div>
+                    <div className="text-[10px] font-medium opacity-80 truncate">{room.room_type_name || 'Room'}</div>
+                    <div className="text-[9px] uppercase font-bold mt-1">
+                      {isMaint ? 'Maint' : isOccupied ? 'Occupied' : isDirty ? 'Dirty' : 'Clean'}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Expected Arrivals Feed */}
@@ -251,8 +296,14 @@ export default function DashboardOverviewPage() {
           </div>
 
           {arrivals.length === 0 ? (
-            <div className="text-center py-8 text-xs text-content-secondary-light">
-              No pending arrivals for today.
+            <div className="text-center py-8 text-xs text-content-secondary-light space-y-2">
+              <div>No pending arrivals for today.</div>
+              <Link
+                href="/app/reservations/new"
+                className="inline-flex items-center gap-1 text-brand-blue font-semibold hover:underline"
+              >
+                <PlusCircle className="w-3.5 h-3.5" /> New Walk-in Booking
+              </Link>
             </div>
           ) : (
             <div className="space-y-2.5">

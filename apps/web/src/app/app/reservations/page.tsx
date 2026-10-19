@@ -154,8 +154,17 @@ export default function ReservationsListPage() {
           <BookOpen className="w-10 h-10 text-content-secondary-light mx-auto" />
           <h3 className="text-base font-bold text-content-primary-light">No Reservations Found</h3>
           <p className="text-xs text-content-secondary-light">
-            There are no bookings matching the selected query or status filters.
+            There are no bookings recorded yet. Walk-in bookings and online direct bookings will show up here.
           </p>
+          <div className="pt-2">
+            <Link
+              href="/app/reservations/new"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-blue text-white text-xs font-semibold hover:bg-brand-blue-hover shadow-sm transition"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Create First Walk-in Booking
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">

@@ -170,6 +170,26 @@ export default function NewReservationPage() {
         </div>
       )}
 
+      {roomTypes.length === 0 && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-3">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-1">
+            <div className="font-bold">No Room Categories Created</div>
+            <p className="text-[11px] text-amber-800">
+              You must configure at least one room category (e.g. Deluxe Room, Executive Suite) and add room units before recording reservations.
+            </p>
+            <div className="pt-1">
+              <a
+                href="/app/room-types"
+                className="inline-flex items-center gap-1 text-brand-blue font-semibold hover:underline"
+              >
+                Configure Room Categories →
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Section 1: Guest Information */}
         <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4">

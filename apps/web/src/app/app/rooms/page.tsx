@@ -126,6 +126,35 @@ export default function RoomsManagementPage() {
         <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-border-light">
           <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
         </div>
+      ) : rooms.length === 0 ? (
+        <div className="p-12 text-center bg-white rounded-2xl border border-border-light space-y-4">
+          <BedDouble className="w-12 h-12 text-content-secondary-light mx-auto" />
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-content-primary-light">No Rooms Created Yet</h3>
+            <p className="text-xs text-content-secondary-light max-w-md mx-auto">
+              Your property has no room inventory. Start by configuring your room categories (e.g. Deluxe Room, Suite), then add your room units (e.g. 101, 102).
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            {roomTypes.length === 0 ? (
+              <a
+                href="/app/room-types"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-brand-blue text-white text-xs font-semibold hover:bg-brand-blue-hover shadow-sm transition"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Step 1: Configure Room Categories
+              </a>
+            ) : (
+              <button
+                onClick={() => setAddModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-brand-blue text-white text-xs font-semibold hover:bg-brand-blue-hover shadow-sm transition"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Add Your First Room Unit
+              </button>
+            )}
+          </div>
+        </div>
       ) : (
         <div className="bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
@@ -227,62 +256,82 @@ export default function RoomsManagementPage() {
               </button>
             </div>
 
-            <form onSubmit={handleAddRoom} className="space-y-4 text-xs">
-              <div>
-                <label className="block font-semibold mb-1">Room Number *</label>
-                <input
-                  type="text"
-                  required
-                  value={roomNumber}
-                  onChange={(e) => setRoomNumber(e.target.value)}
-                  placeholder="205"
-                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
-                />
+            {roomTypes.length === 0 ? (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2">
+                <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  No Room Categories Configured
+                </div>
+                <p className="text-[11px] text-amber-700">
+                  You need to create at least one room category (e.g. Deluxe Room, Suite) before adding room units.
+                </p>
+                <div className="pt-2">
+                  <a
+                    href="/app/room-types"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-brand-blue text-white font-semibold text-xs hover:bg-brand-blue-hover"
+                  >
+                    Configure Room Categories →
+                  </a>
+                </div>
               </div>
+            ) : (
+              <form onSubmit={handleAddRoom} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-semibold mb-1">Room Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={roomNumber}
+                    onChange={(e) => setRoomNumber(e.target.value)}
+                    placeholder="205"
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  />
+                </div>
 
-              <div>
-                <label className="block font-semibold mb-1">Room Category *</label>
-                <select
-                  value={roomTypeId}
-                  onChange={(e) => setRoomTypeId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
-                >
-                  {roomTypes.map((rt) => (
-                    <option key={rt.id} value={rt.id}>
-                      {rt.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <div>
+                  <label className="block font-semibold mb-1">Room Category *</label>
+                  <select
+                    value={roomTypeId}
+                    onChange={(e) => setRoomTypeId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  >
+                    {roomTypes.map((rt) => (
+                      <option key={rt.id} value={rt.id}>
+                        {rt.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block font-semibold mb-1">Floor Level</label>
-                <input
-                  type="text"
-                  value={floor}
-                  onChange={(e) => setFloor(e.target.value)}
-                  placeholder="Floor 2"
-                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
-                />
-              </div>
+                <div>
+                  <label className="block font-semibold mb-1">Floor Level</label>
+                  <input
+                    type="text"
+                    value={floor}
+                    onChange={(e) => setFloor(e.target.value)}
+                    placeholder="Floor 2"
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  />
+                </div>
 
-              <div className="pt-2 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setAddModalOpen(false)}
-                  className="flex-1 py-2 rounded-lg border border-border-light font-semibold hover:bg-surface-light"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={modalLoading}
-                  className="flex-1 py-2 rounded-lg bg-brand-blue text-white font-semibold hover:bg-brand-blue-hover disabled:opacity-50"
-                >
-                  {modalLoading ? 'Adding...' : 'Add Room'}
-                </button>
-              </div>
-            </form>
+                <div className="pt-2 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAddModalOpen(false)}
+                    className="flex-1 py-2 rounded-lg border border-border-light font-semibold hover:bg-surface-light"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={modalLoading}
+                    className="flex-1 py-2 rounded-lg bg-brand-blue text-white font-semibold hover:bg-brand-blue-hover disabled:opacity-50"
+                  >
+                    {modalLoading ? 'Adding...' : 'Add Room'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
