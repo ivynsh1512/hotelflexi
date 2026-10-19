@@ -15,6 +15,10 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
   const address = (body.address || '').trim();
   const city = (body.city || 'New Delhi').trim();
   const state = (body.state || 'Delhi').trim();
+  const country = (body.country || 'India').trim();
+  const postalCode = (body.postalCode || body.pincode || body.postcode || null)?.toString().trim() || null;
+  const latitude = typeof body.latitude === 'number' ? body.latitude : (body.latitude ? parseFloat(body.latitude) : null);
+  const longitude = typeof body.longitude === 'number' ? body.longitude : (body.longitude ? parseFloat(body.longitude) : null);
   const totalRooms = Math.min(Math.max(parseInt(body.totalRooms, 10) || 6, 1), 50);
 
   if (!propertyName) {
@@ -76,10 +80,11 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
   // 4. Create Property
   const stmtProperty = c.env.DB.prepare(
     `INSERT INTO properties (
-      id, tenant_id, name, slug, address_line1, city, state, country,
+      id, tenant_id, name, slug, address_line1, city, state, country, postal_code,
+      latitude, longitude,
       phone, email, timezone, currency, check_in_time, check_out_time,
       description, amenities, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'India', ?, ?, 'Asia/Kolkata', 'INR', '14:00', '11:00', ?, ?, ?, ?)`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Asia/Kolkata', 'INR', '14:00', '11:00', ?, ?, ?, ?)`
   ).bind(
     propertyId,
     tenantId,
@@ -88,6 +93,10 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
     address,
     city,
     state,
+    country,
+    postalCode,
+    latitude,
+    longitude,
     phone,
     user.email,
     `Welcome to ${propertyName}. Experience unmatched hospitality.`,

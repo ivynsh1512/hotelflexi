@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
-import { Hotel, MapPin, Phone, BedDouble, CheckCircle2, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import AddressAutocomplete, { SelectedLocation } from '@/components/ui/AddressAutocomplete';
+import { Hotel, MapPin, Phone, BedDouble, CheckCircle2, ArrowRight, Loader2, AlertCircle, Compass } from 'lucide-react';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -16,9 +17,32 @@ export default function OnboardingPage() {
   const [city, setCity] = useState('New Delhi');
   const [state, setState] = useState('Delhi');
   const [address, setAddress] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [country, setCountry] = useState('India');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [totalRooms, setTotalRooms] = useState(8);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleLocationSelect = (loc: SelectedLocation) => {
+    // Only update fields if Photon returned a non-empty value,
+    // preserving any existing manual inputs if the specific field was not in the suggestion.
+    if (loc.city) {
+      setCity(loc.city);
+    }
+    if (loc.state) {
+      setState(loc.state);
+    }
+    if (loc.postalCode) {
+      setPostalCode(loc.postalCode);
+    }
+    if (loc.country) {
+      setCountry(loc.country);
+    }
+    setLatitude(loc.latitude);
+    setLongitude(loc.longitude);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +59,10 @@ export default function OnboardingPage() {
           city,
           state,
           address,
+          postalCode,
+          country,
+          latitude,
+          longitude,
           totalRooms,
         }),
       });
@@ -116,6 +144,31 @@ export default function OnboardingPage() {
             </div>
           </div>
 
+          {/* Address Autocomplete with Photon API */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider">
+                Address / Location *
+              </label>
+              <span className="text-[10px] text-content-secondary-light">
+                Autocomplete powered by Photon
+              </span>
+            </div>
+            <AddressAutocomplete
+              value={address}
+              onChange={setAddress}
+              onSelectLocation={handleLocationSelect}
+              hasCoordinates={latitude !== null && longitude !== null}
+              placeholder="Search hotel address or landmark (e.g. Connaught Place, New Delhi)..."
+            />
+            {latitude !== null && longitude !== null && (
+              <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>GPS coordinates captured: {latitude.toFixed(5)}° N, {longitude.toFixed(5)}° E</span>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1">
@@ -145,17 +198,31 @@ export default function OnboardingPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1">
-              Address
-            </label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Plot 12, Civil Lines, Near Railway Station"
-              className="w-full px-3.5 py-2.5 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1">
+                PIN / Postal Code
+              </label>
+              <input
+                type="text"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+                placeholder="e.g. 110001"
+                className="w-full px-3.5 py-2.5 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1">
+                Country
+              </label>
+              <input
+                type="text"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder="India"
+                className="w-full px-3.5 py-2.5 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              />
+            </div>
           </div>
 
           <div>

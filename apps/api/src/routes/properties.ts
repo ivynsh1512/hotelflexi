@@ -54,13 +54,28 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
   const now = Math.floor(Date.now() / 1000);
 
   // Update property details
-  if (body.name || body.address_line1 || body.phone || body.email || body.cancellation_policy) {
+  if (
+    body.name ||
+    body.address_line1 ||
+    body.city ||
+    body.state ||
+    body.postal_code ||
+    body.latitude !== undefined ||
+    body.longitude !== undefined ||
+    body.phone ||
+    body.email ||
+    body.cancellation_policy
+  ) {
     await c.env.DB.prepare(
       `UPDATE properties SET
          name = COALESCE(?, name),
          address_line1 = COALESCE(?, address_line1),
          city = COALESCE(?, city),
          state = COALESCE(?, state),
+         postal_code = COALESCE(?, postal_code),
+         country = COALESCE(?, country),
+         latitude = COALESCE(?, latitude),
+         longitude = COALESCE(?, longitude),
          phone = COALESCE(?, phone),
          email = COALESCE(?, email),
          cancellation_policy = COALESCE(?, cancellation_policy),
@@ -72,6 +87,10 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
         body.address_line1 || null,
         body.city || null,
         body.state || null,
+        body.postal_code || null,
+        body.country || null,
+        body.latitude ?? null,
+        body.longitude ?? null,
         body.phone || null,
         body.email || null,
         body.cancellation_policy || null,

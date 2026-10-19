@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
+import AddressAutocomplete, { SelectedLocation } from '@/components/ui/AddressAutocomplete';
 import { Settings, Save, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 
 export default function HotelSettingsPage() {
@@ -17,6 +18,12 @@ export default function HotelSettingsPage() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [country, setCountry] = useState('India');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [gstNumber, setGstNumber] = useState('');
   const [invoicePrefix, setInvoicePrefix] = useState('HF-');
   const [upiId, setUpiId] = useState('');
@@ -33,6 +40,12 @@ export default function HotelSettingsPage() {
           setPhone(activeProp.phone || '');
           setEmail(activeProp.email || '');
           setAddress(activeProp.address_line1 || '');
+          setCity(activeProp.city || '');
+          setState(activeProp.state || '');
+          setPostalCode(activeProp.postal_code || '');
+          setCountry(activeProp.country || 'India');
+          setLatitude(activeProp.latitude ?? null);
+          setLongitude(activeProp.longitude ?? null);
           setGstNumber(activeProp.gst_number || '');
           setInvoicePrefix(activeProp.invoice_prefix || 'HF-');
           setUpiId(activeProp.upi_id || '');
@@ -45,6 +58,15 @@ export default function HotelSettingsPage() {
     }
     loadSettings();
   }, [currentTenant]);
+
+  const handleLocationSelect = (loc: SelectedLocation) => {
+    if (loc.city) setCity(loc.city);
+    if (loc.state) setState(loc.state);
+    if (loc.postalCode) setPostalCode(loc.postalCode);
+    if (loc.country) setCountry(loc.country);
+    setLatitude(loc.latitude);
+    setLongitude(loc.longitude);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +82,12 @@ export default function HotelSettingsPage() {
           phone,
           email,
           address_line1: address,
+          city,
+          state,
+          postal_code: postalCode,
+          country,
+          latitude,
+          longitude,
           gst_number: gstNumber,
           invoice_prefix: invoicePrefix,
           upi_id: upiId,
@@ -136,14 +164,73 @@ export default function HotelSettingsPage() {
             </div>
           </div>
 
+          {/* Address Autocomplete with Photon */}
           <div>
-            <label className="block font-semibold mb-1">Property Address</label>
-            <input
-              type="text"
+            <div className="flex items-center justify-between mb-1">
+              <label className="block font-semibold">Property Address</label>
+              <span className="text-[10px] text-content-secondary-light">
+                Autocomplete powered by Photon
+              </span>
+            </div>
+            <AddressAutocomplete
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              onChange={setAddress}
+              onSelectLocation={handleLocationSelect}
+              hasCoordinates={latitude !== null && longitude !== null}
+              placeholder="Search property address or landmark..."
             />
+            {latitude !== null && longitude !== null && (
+              <div className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>GPS coordinates pinned: {latitude.toFixed(5)}° N, {longitude.toFixed(5)}° E</span>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-semibold mb-1">City</label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="City"
+                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold mb-1">State</label>
+              <input
+                type="text"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                placeholder="State"
+                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-semibold mb-1">PIN / Postal Code</label>
+              <input
+                type="text"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+                placeholder="PIN Code"
+                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold mb-1">Country</label>
+              <input
+                type="text"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder="Country"
+                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-border-light">
