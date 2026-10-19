@@ -148,27 +148,71 @@ export default function AddressAutocomplete({
       abortControllerRef.current = controller;
 
       try {
-        const res = await fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=5&lang=en`,
-          { signal: controller.signal }
-        );
+        // Photon with Indian geographical coordinate bias (lat 20.5937, lon 78.9629)
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=8&lang=en&lat=20.5937&lon=78.9629&location_bias_scale=1.0`;
+        const res = await fetch(photonUrl, { signal: controller.signal });
 
-        if (!res.ok) {
-          throw new Error(`Photon API HTTP ${res.status}`);
+        let features: PhotonFeature[] = [];
+
+        if (res.ok) {
+          const data = await res.json();
+          features = data.features || [];
+
+          // Sort Indian results to the top
+          features.sort((a, b) => {
+            const aIsIndia = a.properties?.countrycode === 'IN' || a.properties?.country === 'India';
+            const bIsIndia = b.properties?.countrycode === 'IN' || b.properties?.country === 'India';
+            if (aIsIndia && !bIsIndia) return -1;
+            if (!aIsIndia && bIsIndia) return 1;
+            return 0;
+          });
         }
 
-        const data = await res.json();
+        // If Photon returns 0 or poor results for Indian locality, fallback to OpenStreetMap Nominatim (India locked)
+        if (features.length === 0) {
+          try {
+            const osmRes = await fetch(
+              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&countrycodes=in&addressdetails=1&limit=5`,
+              {
+                signal: controller.signal,
+                headers: { 'Accept-Language': 'en' },
+              }
+            );
+            if (osmRes.ok) {
+              const osmData = await osmRes.json();
+              features = osmData.map((item: any) => ({
+                type: 'Feature',
+                properties: {
+                  name: item.display_name.split(',')[0],
+                  street: item.address?.road || item.address?.suburb,
+                  locality: item.address?.neighbourhood || item.address?.suburb || item.address?.colony,
+                  city: item.address?.city || item.address?.town || item.address?.village || item.address?.state_district,
+                  state: item.address?.state,
+                  postcode: item.address?.postcode,
+                  country: 'India',
+                  countrycode: 'IN',
+                },
+                geometry: {
+                  type: 'Point',
+                  coordinates: [parseFloat(item.lon), parseFloat(item.lat)],
+                },
+              }));
+            }
+          } catch (osmErr) {
+            console.warn('OSM fallback search skipped:', osmErr);
+          }
+        }
 
         // Prevent stale responses from overwriting newer search results
         if (currentRequestId === activeRequestIdRef.current) {
-          setSuggestions(data.features || []);
+          setSuggestions(features);
           setIsOpen(true);
           setHasSearched(true);
           setActiveIndex(-1);
         }
       } catch (err: any) {
         if (err.name !== 'AbortError') {
-          console.warn('Photon address search error:', err);
+          console.warn('Address search error:', err);
           if (currentRequestId === activeRequestIdRef.current) {
             setSuggestions([]);
             setHasSearched(true);

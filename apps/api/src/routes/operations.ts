@@ -270,6 +270,63 @@ operationsRoutes.get('/complaints', async (c) => {
   return c.json({ complaints: rows.results || [] });
 });
 
+// Real-time Siren Check for Staff Devices
+operationsRoutes.get('/complaints/active-sirens', async (c) => {
+  const tenantId = c.get('tenantId')!;
+
+  // Check subscription tier (Available on Essential, Growth, Pro, Enterprise)
+  const tenant: any = await c.env.DB.prepare(
+    'SELECT current_plan_id, subscription_status FROM tenants WHERE id = ?'
+  )
+    .bind(tenantId)
+    .first();
+
+  const isFree =
+    !tenant?.current_plan_id ||
+    tenant.current_plan_id === 'starter' ||
+    tenant.subscription_status === 'trial';
+
+  if (isFree) {
+    return c.json({ sirens: [], isFreeTier: true });
+  }
+
+  const urgentRows = await c.env.DB.prepare(
+    `SELECT * FROM complaints
+     WHERE tenant_id = ? AND priority = 'urgent' AND status = 'open'
+     ORDER BY created_at DESC LIMIT 5`
+  )
+    .bind(tenantId)
+    .all();
+
+  return c.json({
+    sirens: urgentRows.results || [],
+    isFreeTier: false,
+  });
+});
+
+// Acknowledge and Pick Complaint (Silences Siren on Staff Devices)
+operationsRoutes.patch('/complaints/:id/acknowledge', async (c) => {
+  const tenantId = c.get('tenantId')!;
+  const user = c.get('user')!;
+  const id = c.req.param('id');
+  const now = Math.floor(Date.now() / 1000);
+
+  await c.env.DB.prepare(
+    `UPDATE complaints SET
+       status = 'investigating',
+       resolved_by_user_id = ?,
+       updated_at = ?
+     WHERE id = ? AND tenant_id = ?`
+  )
+    .bind(user.uid, now, id, tenantId)
+    .run();
+
+  return c.json({
+    success: true,
+    message: 'Complaint acknowledged by staff. Siren alarm silenced.',
+  });
+});
+
 operationsRoutes.post('/complaints', async (c) => {
   const tenantId = c.get('tenantId')!;
   const body = await c.req.json();

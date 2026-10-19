@@ -76,6 +76,7 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
     body.cancellation_policy ||
     body.logo_url !== undefined ||
     body.gallery_images !== undefined ||
+    body.amenities !== undefined ||
     body.child_cutoff_age !== undefined ||
     body.child_rate_paise !== undefined
   ) {
@@ -83,6 +84,12 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
       ? JSON.stringify(body.gallery_images)
       : typeof body.gallery_images === 'string'
       ? body.gallery_images
+      : null;
+
+    const amenitiesStr = Array.isArray(body.amenities)
+      ? JSON.stringify(body.amenities)
+      : typeof body.amenities === 'string'
+      ? body.amenities
       : null;
 
     await c.env.DB.prepare(
@@ -100,6 +107,7 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
          cancellation_policy = COALESCE(?, cancellation_policy),
          logo_url = COALESCE(?, logo_url),
          gallery_images = COALESCE(?, gallery_images),
+         amenities = COALESCE(?, amenities),
          child_cutoff_age = COALESCE(?, child_cutoff_age),
          child_rate_paise = COALESCE(?, child_rate_paise),
          updated_at = ?
@@ -119,6 +127,7 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
         body.cancellation_policy || null,
         body.logo_url ?? null,
         galleryStr,
+        amenitiesStr,
         body.child_cutoff_age ?? null,
         body.child_rate_paise ?? null,
         now,
@@ -126,6 +135,13 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
         tenantId
       )
       .run();
+
+    // Sync property name with tenant name so top header instantly reflects it
+    if (body.name) {
+      await c.env.DB.prepare('UPDATE tenants SET name = ?, updated_at = ? WHERE id = ?')
+        .bind(body.name, now, tenantId)
+        .run();
+    }
   }
 
   // Update property settings

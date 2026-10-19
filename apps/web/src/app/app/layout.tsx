@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
+import { StaffSirenAlert } from '@/components/ui/StaffSirenAlert';
 import {
   Hotel,
   LayoutDashboard,
@@ -133,18 +134,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-border-light shrink-0 h-screen sticky top-0 overflow-y-auto">
         {/* Brand header */}
         <div className="p-4 border-b border-border-light flex items-center justify-between">
-          <Link href="/app" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brand-blue flex items-center justify-center text-white">
-              <Hotel className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <div className="font-extrabold text-base tracking-tight text-content-primary-light leading-none">
-                Hotel<span className="text-brand-blue">Flexi</span>
-              </div>
-              <div className="text-[9px] uppercase tracking-wider text-content-secondary-light font-semibold mt-0.5">
-                NovaX AI System
-              </div>
-            </div>
+          <Link href="/app" className="flex items-center gap-2">
+            <img
+              src="/light-logo.png"
+              alt="HotelFlexi by NovaX AI"
+              className="h-9 w-auto max-w-[170px] object-contain"
+            />
           </Link>
         </div>
 
@@ -231,6 +226,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Real-time Siren Alert on Staff Devices */}
+        <StaffSirenAlert />
+
         {/* Top Header */}
         <header className="bg-white border-b border-border-light h-14 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
           <div className="flex items-center gap-3">
@@ -298,15 +296,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* Mobile Sidebar Drawer */}
+      {/* Mobile Sidebar Drawer with Backdrop Auto-Close */}
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden bg-black/50 flex">
-          <div className="w-64 bg-white h-full flex flex-col p-4 space-y-4">
+        <div
+          onClick={() => setMobileSidebarOpen(false)}
+          className="fixed inset-0 z-50 md:hidden bg-black/60 backdrop-blur-sm flex transition-opacity"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-72 bg-white h-full flex flex-col p-4 space-y-4 shadow-2xl animate-in slide-in-from-left duration-200"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
-              <div className="font-extrabold text-base text-content-primary-light">
-                Hotel<span className="text-brand-blue">Flexi</span>
-              </div>
-              <button onClick={() => setMobileSidebarOpen(false)} className="p-1 text-content-secondary-light">
+              <Link href="/app" onClick={() => setMobileSidebarOpen(false)} className="inline-block">
+                <img
+                  src="/light-logo.png"
+                  alt="HotelFlexi"
+                  className="h-8 w-auto max-w-[150px] object-contain"
+                />
+              </Link>
+              <button
+                onClick={() => setMobileSidebarOpen(false)}
+                className="p-1 rounded-lg text-content-secondary-light hover:bg-surface-light"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>

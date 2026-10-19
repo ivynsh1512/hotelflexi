@@ -57,13 +57,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-surface-light flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link href="/" className="inline-flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-brand-blue flex items-center justify-center text-white shadow">
-            <Hotel className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-extrabold text-2xl tracking-tight text-content-primary-light">
-            Hotel<span className="text-brand-blue">Flexi</span>
-          </span>
+        <Link href="/" className="inline-flex items-center justify-center">
+          <img
+            src="/light-logo.png"
+            alt="HotelFlexi by NovaX AI"
+            className="h-12 sm:h-14 w-auto max-w-[220px] object-contain"
+          />
         </Link>
         <h2 className="mt-6 text-2xl font-bold text-content-primary-light">
           Sign in to your hotel

@@ -324,3 +324,138 @@ guestPortalRoutes.post('/:token/verify-payment', async (c) => {
     paymentStatus: newStatus,
   });
 });
+
+// -----------------------------------------------------------------------------
+// GUEST RAISES URGENT IN-STAY COMPLAINT (Triggers Siren Alert on Staff Devices)
+// -----------------------------------------------------------------------------
+guestPortalRoutes.post('/:token/complaints', async (c) => {
+  const token = c.req.param('token');
+  const body = await c.req.json();
+  const now = Math.floor(Date.now() / 1000);
+
+  const res: any = await c.env.DB.prepare(
+    `SELECT res.*, r.room_number
+     FROM reservations res
+     LEFT JOIN rooms r ON r.id = res.room_id
+     WHERE res.guest_portal_token = ?`
+  )
+    .bind(token)
+    .first();
+
+  if (!res) {
+    return c.json({ error: 'Reservation not found' }, 404);
+  }
+
+  const category = body.category || 'service';
+  const description = (body.description || '').trim() || 'Urgent guest assistance required in room';
+  const priority = body.isUrgent !== false ? 'urgent' : 'high';
+  const complaintId = `cmp_${crypto.randomUUID()}`;
+
+  // Get primary guest name
+  const guest: any = await c.env.DB.prepare(
+    `SELECT full_name FROM reservation_guests WHERE reservation_id = ? AND is_primary = 1 LIMIT 1`
+  )
+    .bind(res.id)
+    .first();
+
+  const guestName = guest?.full_name || 'In-House Guest';
+  const roomNumber = res.room_number || 'Room';
+
+  await c.env.DB.prepare(
+    `INSERT INTO complaints (
+       id, property_id, tenant_id, reservation_id, guest_name, room_number,
+       category, description, priority, status, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)`
+  )
+    .bind(
+      complaintId,
+      res.property_id,
+      res.tenant_id,
+      res.id,
+      guestName,
+      roomNumber,
+      category,
+      description,
+      priority,
+      now,
+      now
+    )
+    .run();
+
+  return c.json({
+    success: true,
+    message: 'Urgent request submitted. Staff alert has been dispatched to all active devices.',
+    complaintId,
+    sirenTriggered: true,
+  });
+});
+
+// -----------------------------------------------------------------------------
+// GUEST IN-STAY ROOM DINING & FOOD ORDER
+// -----------------------------------------------------------------------------
+guestPortalRoutes.post('/:token/food-orders', async (c) => {
+  const token = c.req.param('token');
+  const body = await c.req.json();
+  const now = Math.floor(Date.now() / 1000);
+
+  const res: any = await c.env.DB.prepare(
+    `SELECT res.*, r.room_number
+     FROM reservations res
+     LEFT JOIN rooms r ON r.id = res.room_id
+     WHERE res.guest_portal_token = ?`
+  )
+    .bind(token)
+    .first();
+
+  if (!res) {
+    return c.json({ error: 'Reservation not found' }, 404);
+  }
+
+  const items = Array.isArray(body.items) ? body.items : [];
+  const paymentMethod = body.paymentMethod || 'cash_on_delivery';
+  const notes = body.notes || '';
+  const totalPaise = items.reduce((sum: number, it: any) => sum + (it.pricePaise || 0) * (it.quantity || 1), 0);
+
+  const itemsSummary = items.map((it: any) => `${it.quantity || 1}x ${it.name}`).join(', ');
+  const orderDescription = `In-Stay Dining Order: ${itemsSummary}${notes ? ` (Notes: ${notes})` : ''} - Total: ₹${(totalPaise / 100).toFixed(2)} [Payment: ${paymentMethod === 'cash_on_delivery' ? 'Cash/Pay Staff' : 'Paid Online'}]`;
+
+  const ticketId = `ord_${crypto.randomUUID()}`;
+
+  // Get primary guest name
+  const guest: any = await c.env.DB.prepare(
+    `SELECT full_name FROM reservation_guests WHERE reservation_id = ? AND is_primary = 1 LIMIT 1`
+  )
+    .bind(res.id)
+    .first();
+
+  const guestName = guest?.full_name || 'In-House Guest';
+  const roomNumber = res.room_number || 'Room';
+
+  // Record as an operational service ticket so kitchen & front-desk can fulfill it
+  await c.env.DB.prepare(
+    `INSERT INTO complaints (
+       id, property_id, tenant_id, reservation_id, guest_name, room_number,
+       category, description, priority, status, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, 'room_service', ?, 'high', 'open', ?, ?)`
+  )
+    .bind(
+      ticketId,
+      res.property_id,
+      res.tenant_id,
+      res.id,
+      guestName,
+      roomNumber,
+      orderDescription,
+      now,
+      now
+    )
+    .run();
+
+  return c.json({
+    success: true,
+    message: 'Your room dining order has been received by the kitchen and is being prepared!',
+    ticketId,
+    orderSummary: itemsSummary,
+    totalPaise,
+  });
+});

@@ -38,11 +38,23 @@ roomRoutes.post('/types', requireRole(['owner', 'manager']), async (c) => {
     return c.json({ error: 'Property ID, name and base price are required' }, 400);
   }
 
+  const imagesStr = Array.isArray(body.images)
+    ? JSON.stringify(body.images)
+    : typeof body.images === 'string'
+    ? body.images
+    : '[]';
+
+  const amenitiesStr = Array.isArray(body.amenities)
+    ? JSON.stringify(body.amenities)
+    : typeof body.amenities === 'string'
+    ? body.amenities
+    : '[]';
+
   await c.env.DB.prepare(
     `INSERT INTO room_types (
       id, property_id, tenant_id, name, code, base_occupancy, max_occupancy,
-      base_price_paise, weekend_price_paise, extra_adult_price_paise, description, amenities, is_active, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
+      base_price_paise, weekend_price_paise, extra_adult_price_paise, description, amenities, images, is_active, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
   )
     .bind(
       id,
@@ -56,7 +68,8 @@ roomRoutes.post('/types', requireRole(['owner', 'manager']), async (c) => {
       body.weekendPricePaise ? Math.round(body.weekendPricePaise) : null,
       body.extraAdultPricePaise ? Math.round(body.extraAdultPricePaise) : 0,
       body.description || null,
-      body.amenities ? JSON.stringify(body.amenities) : '[]',
+      amenitiesStr,
+      imagesStr,
       now,
       now
     )
@@ -78,6 +91,14 @@ roomRoutes.patch('/types/:id', requireRole(['owner', 'manager']), async (c) => {
   const body = await c.req.json();
   const now = Math.floor(Date.now() / 1000);
 
+  const imagesStr = body.images !== undefined
+    ? (Array.isArray(body.images) ? JSON.stringify(body.images) : String(body.images))
+    : null;
+
+  const amenitiesStr = body.amenities !== undefined
+    ? (Array.isArray(body.amenities) ? JSON.stringify(body.amenities) : String(body.amenities))
+    : null;
+
   await c.env.DB.prepare(
     `UPDATE room_types SET
        name = COALESCE(?, name),
@@ -86,6 +107,8 @@ roomRoutes.patch('/types/:id', requireRole(['owner', 'manager']), async (c) => {
        base_occupancy = COALESCE(?, base_occupancy),
        max_occupancy = COALESCE(?, max_occupancy),
        description = COALESCE(?, description),
+       amenities = COALESCE(?, amenities),
+       images = COALESCE(?, images),
        updated_at = ?
      WHERE id = ? AND tenant_id = ?`
   )
@@ -96,6 +119,8 @@ roomRoutes.patch('/types/:id', requireRole(['owner', 'manager']), async (c) => {
       body.baseOccupancy ?? null,
       body.maxOccupancy ?? null,
       body.description ?? null,
+      amenitiesStr,
+      imagesStr,
       now,
       id,
       tenantId

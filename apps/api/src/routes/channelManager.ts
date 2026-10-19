@@ -48,6 +48,23 @@ channelManagerRoutes.post('/connections', requireRole(['owner', 'manager']), asy
     return c.json({ error: 'Property ID and Channel Name are required' }, 400);
   }
 
+  // Free / Starter plan restriction: Channel manager is locked
+  const entitlements: any = await c.env.DB.prepare(
+    'SELECT has_channel_manager, max_channel_connections FROM feature_entitlements WHERE tenant_id = ?'
+  )
+    .bind(tenantId)
+    .first();
+
+  if (!entitlements || !entitlements.has_channel_manager || entitlements.max_channel_connections <= 0) {
+    return c.json(
+      {
+        error: 'OTA Channel Manager is not included in the free Starter plan. Upgrade to Essential, Growth, or Pro to sync OTAs.',
+        requiresUpgrade: true,
+      },
+      403
+    );
+  }
+
   const id = `conn_${crypto.randomUUID()}`;
 
   await c.env.DB.prepare(

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
-import { Layers, RefreshCw, CheckCircle2, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { Layers, RefreshCw, CheckCircle2, Clock, AlertCircle, Loader2, Lock, Sparkles, ArrowRight } from 'lucide-react';
 
 function BookingComLogo({ className = "w-8 h-8" }: { className?: string }) {
   return (
@@ -64,6 +65,7 @@ export default function ChannelManagerAppPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [propertyId, setPropertyId] = useState('');
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
 
   const channels = [
     { id: 'booking_com', name: 'Booking.com', component: BookingComLogo, category: 'Global OTA' },
@@ -75,6 +77,14 @@ export default function ChannelManagerAppPage() {
 
   const fetchData = async () => {
     setLoading(true);
+    const plan = currentTenant?.current_plan_id || 'starter';
+    const subStatus = currentTenant?.subscription_status;
+    if (plan === 'starter' || subStatus === 'trial') {
+      setIsLocked(true);
+    } else {
+      setIsLocked(false);
+    }
+
     try {
       const propData = await apiClient('/properties');
       const activeProp = propData.properties?.[0];
@@ -87,8 +97,10 @@ export default function ChannelManagerAppPage() {
         setConnections(cData.connections || []);
         setHistory(hData.history || []);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      if (e.message?.includes('Channel Manager') || e.message?.includes('upgrade') || e.message?.includes('Plan')) {
+        setIsLocked(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -99,6 +111,10 @@ export default function ChannelManagerAppPage() {
   }, [currentTenant]);
 
   const handleConnect = async (channelName: string) => {
+    if (isLocked) {
+      alert('Channel Manager is a paid feature. Free trial includes the Booking Engine. Please upgrade to Essential or Growth to connect OTA channels.');
+      return;
+    }
     try {
       await apiClient('/channels/connections', {
         method: 'POST',
@@ -146,6 +162,35 @@ export default function ChannelManagerAppPage() {
         </div>
       ) : (
         <>
+          {/* Plan Lock Banner */}
+          {isLocked && (
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                    Channel Manager is Locked on Starter / Free Trial
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300">
+                      Paid Plan Feature
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-600 mt-0.5 max-w-xl leading-relaxed">
+                    Your current tier provides full access to your <strong>Direct Booking Engine, PMS Front Desk, and Guest Ledger</strong>. To enable 2-way live rate and inventory synchronization with Booking.com, Agoda, MakeMyTrip, and Airbnb, upgrade to an active Essential or Growth plan.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/app/subscription"
+                className="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition shadow flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                Upgrade Subscription <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          )}
+
           {/* Channel Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {channels.map((ch) => {
@@ -197,6 +242,13 @@ export default function ChannelManagerAppPage() {
                         <RefreshCw className={`w-3.5 h-3.5 ${syncingId === conn.id ? 'animate-spin' : ''}`} />
                         {syncingId === conn.id ? 'Syncing Rates & Inv...' : 'Sync Rates & Inventory'}
                       </button>
+                    ) : isLocked ? (
+                      <Link
+                        href="/app/subscription"
+                        className="w-full py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-slate-200 transition"
+                      >
+                        <Lock className="w-3.5 h-3.5 text-slate-400" /> Locked on Starter (Upgrade)
+                      </Link>
                     ) : (
                       <button
                         onClick={() => handleConnect(ch.id)}

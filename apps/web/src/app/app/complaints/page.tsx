@@ -38,6 +38,15 @@ export default function ComplaintsPage() {
     if (currentTenant) fetchComplaints();
   }, [currentTenant]);
 
+  const handleAcknowledge = async (id: string) => {
+    try {
+      await apiClient(`/operations/complaints/${id}/acknowledge`, { method: 'PATCH' });
+      await fetchComplaints();
+    } catch (e: any) {
+      alert(e.message || 'Acknowledge failed');
+    }
+  };
+
   const handleResolve = async (id: string) => {
     const notes = prompt('Enter resolution notes:', 'Resolved to guest satisfaction.');
     if (!notes) return;
@@ -121,33 +130,75 @@ export default function ComplaintsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light">
-                {complaints.map((c) => (
-                  <tr key={c.id} className="hover:bg-surface-light/40 transition">
-                    <td className="p-3.5">
-                      <div className="font-bold text-content-primary-light">{c.guest_name}</div>
-                      <div className="text-[10px] text-content-secondary-light">{c.room_number ? `Room ${c.room_number}` : 'No room'}</div>
-                    </td>
-                    <td className="p-3.5 capitalize font-medium">{c.category}</td>
-                    <td className="p-3.5 text-content-secondary-light max-w-sm truncate">{c.description}</td>
-                    <td className="p-3.5">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        c.status === 'resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="p-3.5 text-right">
-                      {c.status !== 'resolved' && (
-                        <button
-                          onClick={() => handleResolve(c.id)}
-                          className="px-2.5 py-1 rounded bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700 transition"
+                {complaints.map((c) => {
+                  const isUrgent = c.priority === 'urgent';
+                  const isOpenUrgent = isUrgent && c.status === 'open';
+
+                  return (
+                    <tr
+                      key={c.id}
+                      className={`transition ${
+                        isOpenUrgent
+                          ? 'bg-red-50/70 border-l-4 border-l-red-600'
+                          : 'hover:bg-surface-light/40'
+                      }`}
+                    >
+                      <td className="p-3.5">
+                        <div className="flex items-center gap-2">
+                          {isUrgent && <span className="text-sm animate-bounce">🚨</span>}
+                          <div>
+                            <div className="font-bold text-content-primary-light flex items-center gap-1.5">
+                              {c.guest_name}
+                              {isUrgent && (
+                                <span className="px-1.5 py-0.2 rounded bg-red-600 text-white text-[9px] font-extrabold uppercase">
+                                  Urgent Siren
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-content-secondary-light">
+                              {c.room_number ? `Room ${c.room_number}` : 'No room'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3.5 capitalize font-medium">{c.category?.replace('_', ' ')}</td>
+                      <td className="p-3.5 text-content-secondary-light max-w-sm truncate">{c.description}</td>
+                      <td className="p-3.5">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                            c.status === 'resolved'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : c.status === 'investigating'
+                              ? 'bg-blue-100 text-blue-800'
+                              : isOpenUrgent
+                              ? 'bg-red-600 text-white animate-pulse'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
                         >
-                          Mark Resolved
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                          {c.status === 'investigating' ? 'Picked / In Progress' : c.status}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right space-x-1.5">
+                        {isOpenUrgent && (
+                          <button
+                            onClick={() => handleAcknowledge(c.id)}
+                            className="px-2.5 py-1 rounded bg-red-600 text-white font-bold text-[11px] hover:bg-red-700 transition shadow-sm"
+                          >
+                            Pick & Silence
+                          </button>
+                        )}
+                        {c.status !== 'resolved' && (
+                          <button
+                            onClick={() => handleResolve(c.id)}
+                            className="px-2.5 py-1 rounded bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700 transition"
+                          >
+                            Mark Resolved
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

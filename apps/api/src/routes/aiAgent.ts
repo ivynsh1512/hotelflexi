@@ -132,6 +132,29 @@ aiAgentRoutes.post('/chat', async (c) => {
     return c.json({ error: 'Message cannot be empty' }, 400);
   }
 
+  // Quota enforcement: Free trial / Starter plan allows maximum 2 AI chats per day
+  const tenant: any = await c.env.DB.prepare('SELECT current_plan_id, subscription_status FROM tenants WHERE id = ?')
+    .bind(tenantId)
+    .first();
+
+  const isFreeOrStarter = !tenant?.current_plan_id || tenant.current_plan_id === 'starter' || tenant.subscription_status === 'trial';
+  if (isFreeOrStarter) {
+    const todayStart = Math.floor(new Date().setHours(0, 0, 0, 0) / 1000);
+    const dailyCountRow: any = await c.env.DB.prepare(
+      `SELECT COUNT(*) as count FROM ai_messages WHERE tenant_id = ? AND role = 'user' AND created_at >= ?`
+    ).bind(tenantId, todayStart).first();
+
+    const currentCount = dailyCountRow?.count || 0;
+    if (currentCount >= 2) {
+      return c.json({
+        error: 'Daily free AI limit reached (2 chats/day on Starter Trial). Please upgrade to Essential, Growth, or Pro plan for unlimited AI commands.',
+        requiresUpgrade: true,
+        currentCount,
+        maxAllowed: 2
+      }, 403);
+    }
+  }
+
   // Ensure conversation exists
   if (!conversationId) {
     conversationId = `conv_${crypto.randomUUID()}`;

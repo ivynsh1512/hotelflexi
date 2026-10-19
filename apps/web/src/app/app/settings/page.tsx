@@ -15,6 +15,11 @@ import {
   ShieldCheck,
   Headphones,
   Sparkles,
+  Image as ImageIcon,
+  Plus,
+  Trash2,
+  Wifi,
+  Baby,
 } from 'lucide-react';
 
 declare global {
@@ -23,8 +28,27 @@ declare global {
   }
 }
 
+const COMMON_AMENITIES = [
+  'Free High-Speed Wi-Fi',
+  'Swimming Pool',
+  'Multi-Cuisine Restaurant',
+  '24/7 Power Backup',
+  'Free Parking',
+  'Air Conditioning',
+  '24/7 Front Desk',
+  'CCTV Security',
+  'Room Service',
+  'Elevator / Lift',
+  'Banquet & Conference Hall',
+  'Spa & Wellness',
+  'Fitness Center / Gym',
+  'EV Charging Station',
+  'Pet Friendly',
+  'Doctor on Call',
+];
+
 export default function HotelSettingsPage() {
-  const { currentTenant, user } = useAuth();
+  const { currentTenant, setCurrentTenant, refreshUser, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [property, setProperty] = useState<any>(null);
   const [saving, setSaving] = useState(false);
@@ -44,6 +68,15 @@ export default function HotelSettingsPage() {
   const [gstNumber, setGstNumber] = useState('');
   const [invoicePrefix, setInvoicePrefix] = useState('HF-');
   const [upiId, setUpiId] = useState('');
+
+  // Branding, Amenities & Child Policy
+  const [logoUrl, setLogoUrl] = useState('');
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [customAmenity, setCustomAmenity] = useState('');
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const [childCutoffAge, setChildCutoffAge] = useState(10);
+  const [childRate, setChildRate] = useState(0);
 
   // Owner Razorpay Credentials
   const [razorpayKeyId, setRazorpayKeyId] = useState('');
@@ -87,8 +120,37 @@ export default function HotelSettingsPage() {
           setGstNumber(activeProp.gst_number || '');
           setInvoicePrefix(activeProp.invoice_prefix || 'HF-');
           setUpiId(activeProp.upi_id || '');
+          setLogoUrl(activeProp.logo_url || '');
           setRazorpayKeyId(activeProp.razorpay_key_id || '');
           setRazorpayEnabled(Boolean(activeProp.razorpay_enabled));
+          setChildCutoffAge(activeProp.child_cutoff_age ?? 10);
+          setChildRate(activeProp.child_rate_paise ? activeProp.child_rate_paise / 100 : 0);
+
+          // Parse amenities
+          let amList: string[] = [];
+          if (Array.isArray(activeProp.amenities)) {
+            amList = activeProp.amenities;
+          } else if (typeof activeProp.amenities === 'string') {
+            try {
+              amList = JSON.parse(activeProp.amenities);
+            } catch {
+              amList = [];
+            }
+          }
+          setAmenities(amList);
+
+          // Parse gallery images
+          let imgList: string[] = [];
+          if (Array.isArray(activeProp.gallery_images)) {
+            imgList = activeProp.gallery_images;
+          } else if (typeof activeProp.gallery_images === 'string') {
+            try {
+              imgList = JSON.parse(activeProp.gallery_images);
+            } catch {
+              imgList = [];
+            }
+          }
+          setGalleryImages(imgList);
 
           // Load developer setup status
           const devData = await apiClient(`/developer-setup/status?property_id=${activeProp.id}`);
@@ -110,6 +172,34 @@ export default function HotelSettingsPage() {
     if (loc.country) setCountry(loc.country);
     setLatitude(loc.latitude);
     setLongitude(loc.longitude);
+  };
+
+  const toggleAmenity = (item: string) => {
+    if (amenities.includes(item)) {
+      setAmenities(amenities.filter((a) => a !== item));
+    } else {
+      setAmenities([...amenities, item]);
+    }
+  };
+
+  const handleAddCustomAmenity = () => {
+    const trimmed = customAmenity.trim();
+    if (trimmed && !amenities.includes(trimmed)) {
+      setAmenities([...amenities, trimmed]);
+      setCustomAmenity('');
+    }
+  };
+
+  const handleAddGalleryImage = () => {
+    const trimmed = newImageUrl.trim();
+    if (trimmed && !galleryImages.includes(trimmed)) {
+      setGalleryImages([...galleryImages, trimmed]);
+      setNewImageUrl('');
+    }
+  };
+
+  const handleRemoveGalleryImage = (idx: number) => {
+    setGalleryImages(galleryImages.filter((_, i) => i !== idx));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -135,11 +225,26 @@ export default function HotelSettingsPage() {
           gst_number: gstNumber,
           invoice_prefix: invoicePrefix,
           upi_id: upiId,
+          logo_url: logoUrl || null,
+          gallery_images: galleryImages,
+          amenities: amenities,
+          child_cutoff_age: childCutoffAge,
+          child_rate_paise: Math.round(childRate * 100),
           razorpay_key_id: razorpayKeyId || null,
           razorpay_key_secret: razorpayKeySecret || undefined,
           razorpay_enabled: razorpayEnabled,
         }),
       });
+
+      // Synchronize property name immediately in AuthContext so header updates without refresh
+      if (currentTenant) {
+        setCurrentTenant({
+          ...currentTenant,
+          tenant_name: name,
+        });
+      }
+      await refreshUser();
+
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
@@ -371,7 +476,171 @@ export default function HotelSettingsPage() {
             </div>
           </div>
 
-          {/* Hotel Owner's Direct Razorpay Gateway Section */}
+          {/* Hotel Branding & Photo Gallery */}
+          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
+            <div className="flex items-center gap-2 border-b border-border-light pb-2">
+              <ImageIcon className="w-4 h-4 text-brand-blue" />
+              <h3 className="font-bold text-sm text-content-primary-light">
+                Property Branding & Photo Gallery
+              </h3>
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1 text-content-primary-light">Hotel Logo Image URL</label>
+              <div className="flex gap-3 items-center">
+                <input
+                  type="url"
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  placeholder="https://example.com/hotel-logo.png"
+                  className="flex-1 px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
+                {logoUrl && (
+                  <div className="w-10 h-10 rounded-lg border border-border-light bg-surface-light p-1 shrink-0 overflow-hidden flex items-center justify-center">
+                    <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-border-light">
+              <label className="block font-semibold text-content-primary-light">Property Gallery Photos (Shown on Booking Engine)</label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/... (Image URL)"
+                  className="flex-1 px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddGalleryImage}
+                  className="px-3.5 py-2 bg-brand-blue text-white rounded-lg font-bold hover:bg-brand-blue-hover transition shrink-0 flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Photo
+                </button>
+              </div>
+
+              {galleryImages.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  {galleryImages.map((url, idx) => (
+                    <div key={idx} className="relative group rounded-xl overflow-hidden aspect-video border border-border-light bg-surface-light">
+                      <img src={url} alt="Gallery" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGalleryImage(idx)}
+                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition shadow"
+                        title="Remove photo"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Property Amenities & Highlights */}
+          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
+            <div className="flex items-center gap-2 border-b border-border-light pb-2">
+              <Wifi className="w-4 h-4 text-brand-blue" />
+              <h3 className="font-bold text-sm text-content-primary-light">
+                Property Amenities & Facilities
+              </h3>
+            </div>
+            <p className="text-content-secondary-light">
+              Select all amenities available at your property. These will be highlighted on your public booking engine and OTA channel feeds.
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              {COMMON_AMENITIES.map((am) => {
+                const active = amenities.includes(am);
+                return (
+                  <button
+                    key={am}
+                    type="button"
+                    onClick={() => toggleAmenity(am)}
+                    className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition border flex items-center gap-1.5 ${
+                      active
+                        ? 'bg-brand-blue text-white border-brand-blue shadow-sm'
+                        : 'bg-surface-light text-content-primary-light border-border-light hover:border-brand-blue/50'
+                    }`}
+                  >
+                    {active && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    {am}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-border-light">
+              <input
+                type="text"
+                value={customAmenity}
+                onChange={(e) => setCustomAmenity(e.target.value)}
+                placeholder="Add custom amenity (e.g. Lawn, Bonfire, Helipad)..."
+                className="flex-1 px-3 py-1.5 rounded-lg border border-border-light focus:outline-none focus:ring-1 focus:ring-brand-blue text-xs"
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomAmenity}
+                className="px-3 py-1.5 bg-slate-800 text-white rounded-lg font-semibold hover:bg-slate-700 transition shrink-0"
+              >
+                Add Custom
+              </button>
+            </div>
+          </div>
+
+          {/* Child Policy & Tariff Settings */}
+          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
+            <div className="flex items-center gap-2 border-b border-border-light pb-2">
+              <Baby className="w-4 h-4 text-brand-blue" />
+              <h3 className="font-bold text-sm text-content-primary-light">
+                Child Policy & Tariffs
+              </h3>
+            </div>
+            <p className="text-content-secondary-light">
+              Define the age cutoff below which children qualify for the child rate. Children older than this cutoff will automatically be billed as extra adults.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">
+                  Child Cutoff Age (Years)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={17}
+                  value={childCutoffAge}
+                  onChange={(e) => setChildCutoffAge(parseInt(e.target.value, 10) || 10)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
+                <span className="text-[10px] text-content-secondary-light mt-1 block">
+                  Children up to {childCutoffAge} years qualify for child rates; above {childCutoffAge} are counted as adults.
+                </span>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1 text-content-primary-light">
+                  Child Extra Tariff per Night (₹)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={childRate}
+                  onChange={(e) => setChildRate(parseFloat(e.target.value) || 0)}
+                  placeholder="0 for complimentary"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-bold text-brand-blue"
+                />
+                <span className="text-[10px] text-content-secondary-light mt-1 block">
+                  Enter 0 if stay for children under {childCutoffAge} is complimentary.
+                </span>
+              </div>
+            </div>
+          </div>
           <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
             <div className="flex items-center justify-between border-b border-border-light pb-2">
               <div className="flex items-center gap-2">

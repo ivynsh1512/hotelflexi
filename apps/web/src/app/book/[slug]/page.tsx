@@ -177,6 +177,12 @@ export default function DirectBookingPage() {
     ? JSON.parse(property.gallery_images || '[]')
     : [];
 
+  const propertyAmenities: string[] = Array.isArray(property?.amenities)
+    ? property.amenities
+    : typeof property?.amenities === 'string'
+    ? JSON.parse(property.amenities || '[]')
+    : [];
+
   return (
     <div className="min-h-screen bg-surface-light text-content-primary-light">
       {/* Property Header */}
@@ -223,6 +229,29 @@ export default function DirectBookingPage() {
                 <img src={img} alt="Property" className="w-full h-full object-cover hover:scale-105 transition duration-300" />
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Property Amenities & Highlights */}
+        {propertyAmenities.length > 0 && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-border-light shadow-sm space-y-2.5">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-brand-blue" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-content-primary-light">
+                Property Amenities & Facilities
+              </h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {propertyAmenities.map((am, i) => (
+                <span
+                  key={i}
+                  className="px-3 py-1 rounded-lg bg-surface-light border border-border-light text-xs font-medium text-content-primary-light flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  {am}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 
@@ -329,57 +358,85 @@ export default function DirectBookingPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {roomTypes.map((rt) => (
-                <div key={rt.id} className="p-5 rounded-2xl bg-white border border-border-light shadow-sm flex flex-col justify-between space-y-4 hover:border-brand-blue/40 transition">
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
+              {roomTypes.map((rt) => {
+                const rtImages: string[] = Array.isArray(rt.images)
+                  ? rt.images
+                  : typeof rt.images === 'string'
+                  ? JSON.parse(rt.images || '[]')
+                  : [];
+
+                const rtAmenities: string[] = Array.isArray(rt.amenities)
+                  ? rt.amenities
+                  : typeof rt.amenities === 'string'
+                  ? JSON.parse(rt.amenities || '[]')
+                  : [];
+
+                return (
+                  <div key={rt.id} className="rounded-2xl bg-white border border-border-light shadow-sm flex flex-col justify-between overflow-hidden hover:border-brand-blue/50 transition">
+                    {/* Room Category Photo */}
+                    {rtImages.length > 0 && (
+                      <div className="aspect-video w-full relative bg-surface-light overflow-hidden border-b border-border-light">
+                        <img src={rtImages[0]} alt={rt.name} className="w-full h-full object-cover hover:scale-105 transition duration-300" />
+                        {rtImages.length > 1 && (
+                          <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/70 text-white text-[10px] font-bold">
+                            +{rtImages.length - 1} photos
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                       <div>
-                        <h3 className="font-bold text-sm text-content-primary-light">{rt.name}</h3>
-                        <p className="text-xs text-content-secondary-light line-clamp-2 mt-0.5">
-                          {rt.description || 'Spacious, well-appointed room with modern amenities.'}
-                        </p>
-                      </div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                        {rt.availableCount} Available
-                      </span>
-                    </div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h3 className="font-bold text-sm text-content-primary-light">{rt.name}</h3>
+                            <p className="text-xs text-content-secondary-light line-clamp-2 mt-0.5">
+                              {rt.description || 'Spacious, well-appointed room with modern amenities.'}
+                            </p>
+                          </div>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                            {rt.availableCount} Available
+                          </span>
+                        </div>
 
-                    <div className="flex flex-wrap gap-1.5 mt-3">
-                      <span className="px-2 py-0.5 rounded bg-surface-light text-[10px] text-content-secondary-light">
-                        Max {rt.maxOccupancy} Guests
-                      </span>
-                      {rt.amenities?.slice(0, 4).map((am: string, i: number) => (
-                        <span key={i} className="px-2 py-0.5 rounded bg-surface-light text-[10px] text-content-secondary-light">
-                          {am}
-                        </span>
-                      ))}
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          <span className="px-2 py-0.5 rounded bg-surface-light text-[10px] font-semibold text-content-secondary-light border border-border-light">
+                            Max {rt.maxOccupancy} Guests
+                          </span>
+                          {rtAmenities.map((am: string, i: number) => (
+                            <span key={i} className="px-2 py-0.5 rounded bg-blue-50/60 text-blue-900 border border-blue-100 text-[10px]">
+                              {am}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-border-light flex items-center justify-between">
+                        <div>
+                          <div className="text-base font-extrabold text-brand-blue">
+                            {formatINR(rt.nightlyPricePaise)}
+                            <span className="text-[10px] text-content-secondary-light font-normal"> / night</span>
+                          </div>
+                          <div className="text-[10px] text-content-secondary-light">
+                            Total {formatINR(rt.totalPaise)} (incl. GST)
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setSelectedRoom(rt);
+                            setAppliedCoupon(null);
+                            setCouponCode('');
+                          }}
+                          className="px-4 py-2 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shadow-sm"
+                        >
+                          Book Room &rarr;
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="pt-3 border-t border-border-light flex items-center justify-between">
-                    <div>
-                      <div className="text-base font-extrabold text-brand-blue">
-                        {formatINR(rt.nightlyPricePaise)}
-                        <span className="text-[10px] text-content-secondary-light font-normal"> / night</span>
-                      </div>
-                      <div className="text-[10px] text-content-secondary-light">
-                        Total {formatINR(rt.totalPaise)} (incl. GST)
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setSelectedRoom(rt);
-                        setAppliedCoupon(null);
-                        setCouponCode('');
-                      }}
-                      className="px-4 py-2 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shadow-sm"
-                    >
-                      Book Room &rarr;
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
