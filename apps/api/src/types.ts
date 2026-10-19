@@ -18,6 +18,8 @@ export interface AuthUser {
   email_verified: boolean;
   name?: string;
   picture?: string;
+  phone?: string;
+  is_platform_admin?: boolean;
 }
 
 export type TenantRole = 

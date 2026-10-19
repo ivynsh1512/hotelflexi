@@ -36,6 +36,8 @@ import {
   Lock,
   Percent,
   TrendingUp,
+  UtensilsCrossed,
+  HelpCircle,
 } from 'lucide-react';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -93,6 +95,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       items: [
         { label: 'Channel Manager', href: '/app/channels', icon: Layers },
         { label: 'Booking Engine', href: '/app/booking-engine', icon: Globe },
+        { label: 'Dine-Out & Restaurant', href: '/app/dining', icon: UtensilsCrossed, badge: 'New' },
       ],
     },
     {
@@ -119,10 +122,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { label: 'Staff & Team', href: '/app/team', icon: Users },
         { label: 'Subscription Plan', href: '/app/subscription', icon: Shield },
         { label: 'Hotel Settings', href: '/app/settings', icon: Settings },
+        { label: 'Support & Raise Bug', href: '/app/support', icon: HelpCircle },
         { label: 'Audit Log', href: '/app/audit-log', icon: FileText },
       ],
     },
   ];
+
+  const hotelCode =
+    (currentTenant as any)?.hotel_code ||
+    (currentTenant?.tenant_id
+      ? (
+          Math.abs(
+            currentTenant.tenant_id
+              .split('')
+              .reduce((acc: number, char: string) => ((acc << 5) - acc + char.charCodeAt(0)) | 0, 0)
+          ) % 90000 +
+          10000
+        ).toString()
+      : '58291');
 
   const isAccountRestricted =
     currentTenant?.account_access_status === 'suspended' ||
@@ -231,19 +248,37 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Top Header */}
         <header className="bg-white border-b border-border-light h-14 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
               className="md:hidden p-1.5 rounded text-content-secondary-light hover:text-content-primary-light"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="text-sm font-bold text-content-primary-light truncate">
-              {currentTenant?.tenant_name || 'Hotel Workspace'}
+            <div className="flex items-center gap-2 truncate">
+              <span className="text-sm font-bold text-content-primary-light truncate">
+                {currentTenant?.tenant_name || 'Hotel Workspace'}
+              </span>
+              <span
+                title="Your unique 5-Digit Property Code (Assigned to prevent miscommunication in staff & guest operations)"
+                className="px-2 py-0.5 rounded-md bg-slate-900 text-white font-mono font-bold text-[10px] tracking-wide shrink-0 shadow-sm"
+              >
+                Code: #{hotelCode}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Quick Support / Raise Complaint Link */}
+            <Link
+              href="/app/support"
+              className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition"
+              title="Raise technical bug or payment issue with 5-digit hotel code"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-red-600" />
+              Raise Bug / Help
+            </Link>
+
             {/* Quick AI Trigger */}
             <Link
               href="/app/ai-agent"

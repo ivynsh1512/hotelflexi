@@ -22,7 +22,24 @@ propertyRoutes.get('/', async (c) => {
     .bind(tenantId)
     .all();
 
-  return c.json({ properties: rows.results || [] });
+  const properties = (rows.results || []).map((p: any) => {
+    let code = p.hotel_code;
+    if (!code) {
+      let hash = 0;
+      for (let i = 0; i < (p.id || '').length; i++) {
+        hash = (hash << 5) - hash + p.id.charCodeAt(i);
+        hash |= 0;
+      }
+      code = (Math.abs(hash) % 90000 + 10000).toString();
+      c.env.DB.prepare(`UPDATE properties SET hotel_code = ? WHERE id = ?`).bind(code, p.id).run().catch(() => {});
+    }
+    return {
+      ...p,
+      hotel_code: code,
+    };
+  });
+
+  return c.json({ properties });
 });
 
 // Get property by ID
@@ -46,9 +63,21 @@ propertyRoutes.get('/:id', async (c) => {
     return c.json({ error: 'Property not found' }, 404);
   }
 
+  let code = property.hotel_code;
+  if (!code) {
+    let hash = 0;
+    for (let i = 0; i < (property.id || '').length; i++) {
+      hash = (hash << 5) - hash + property.id.charCodeAt(i);
+      hash |= 0;
+    }
+    code = (Math.abs(hash) % 90000 + 10000).toString();
+    c.env.DB.prepare(`UPDATE properties SET hotel_code = ? WHERE id = ?`).bind(code, property.id).run().catch(() => {});
+  }
+
   return c.json({
     property: {
       ...property,
+      hotel_code: code,
       amenities: property.amenities ? JSON.parse(property.amenities) : [],
       galleryImages: property.gallery_images ? JSON.parse(property.gallery_images) : [],
     }

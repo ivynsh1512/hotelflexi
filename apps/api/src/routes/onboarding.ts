@@ -77,18 +77,21 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
   ).bind(entitlementId, tenantId, now, now);
 
   // 4. Create Property
+  const hotelCode = Math.floor(10000 + Math.random() * 90000).toString();
+
   const stmtProperty = c.env.DB.prepare(
     `INSERT INTO properties (
-      id, tenant_id, name, slug, address_line1, city, state, country, postal_code,
+      id, tenant_id, name, slug, hotel_code, address_line1, city, state, country, postal_code,
       latitude, longitude,
       phone, email, timezone, currency, check_in_time, check_out_time,
       description, amenities, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Asia/Kolkata', 'INR', '14:00', '11:00', ?, ?, ?, ?)`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Asia/Kolkata', 'INR', '14:00', '11:00', ?, ?, ?, ?)`
   ).bind(
     propertyId,
     tenantId,
     propertyName,
     propertySlug,
+    hotelCode,
     address,
     city,
     state,

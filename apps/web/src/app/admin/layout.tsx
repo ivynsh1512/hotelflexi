@@ -16,6 +16,8 @@ import {
   ArrowLeft,
   Lock,
   Loader2,
+  AlertTriangle,
+  Bell,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -91,6 +93,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'SaaS Plans & Pricing', href: '/admin/subscriptions', icon: DollarSign },
     { label: 'Platform Finance', href: '/admin/finance', icon: PieChart },
     { label: 'Platform Expenses', href: '/admin/finance/expenses', icon: DollarSign },
+    { label: 'Hotelier Complaints & Bugs', href: '/admin/complaints', icon: AlertTriangle },
+    { label: 'Push Broadcast Center', href: '/admin/broadcast', icon: Bell },
     { label: 'Administrative Audit Log', href: '/admin/audit-log', icon: FileText },
     { label: 'Admin Settings', href: '/admin/settings', icon: Settings },
   ];

@@ -105,3 +105,58 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 });
+
+// ------------------------------------------------------------------------------
+// 5. Firebase Cloud Messaging & Web Push Handler
+// ------------------------------------------------------------------------------
+self.addEventListener('push', (event) => {
+  let title = 'HotelFlexi Alert';
+  let options = {
+    body: 'New operational update received.',
+    icon: '/icon-192.png',
+    badge: '/favicon.png',
+    vibrate: [200, 100, 200, 100, 200],
+    data: { url: '/app' },
+    tag: 'hotelflexi-push',
+    renotify: true,
+  };
+
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      const notification = data.notification || data;
+      title = notification.title || title;
+      options.body = notification.body || options.body;
+      if (notification.icon) options.icon = notification.icon;
+      if (data.data?.url || data.action_url) {
+        options.data.url = data.data?.url || data.action_url;
+      }
+    } catch (e) {
+      options.body = event.data.text() || options.body;
+    }
+  }
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// ------------------------------------------------------------------------------
+// 6. Notification Click Handler
+// ------------------------------------------------------------------------------
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/app';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});

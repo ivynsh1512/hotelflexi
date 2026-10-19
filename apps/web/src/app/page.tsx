@@ -2,6 +2,9 @@ import React from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { HospitalityOSShowcase } from '@/components/HospitalityOSShowcase';
+import { WhyHotelsChooseUs } from '@/components/WhyHotelsChooseUs';
+import { DineOutFeatureShowcase } from '@/components/DineOutFeatureShowcase';
 import {
   Calendar,
   Sparkles,
@@ -205,6 +208,15 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* 2.5 THE HOSPITALITY OPERATING SYSTEM (Interactive Tabs Showcase) */}
+      <HospitalityOSShowcase />
+
+      {/* 2.6 WHY HOTELS CHOOSE HOTELFLEXI (6 Feature Pillars) */}
+      <WhyHotelsChooseUs />
+
+      {/* 2.7 DINE-OUT RESORT RESTAURANT PLATFORM */}
+      <DineOutFeatureShowcase />
 
       {/* 3. AI AGENT DEMONSTRATION SECTION */}
       <section className="py-20 bg-surface-light border-b border-border-light">

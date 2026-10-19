@@ -50,6 +50,9 @@ export const Footer: React.FC = () => {
                 <Link href="/booking-engine" className="hover:text-white transition">Direct Booking Engine</Link>
               </li>
               <li>
+                <Link href="/dine-out" className="hover:text-white transition">Dine-Out &amp; Restaurant</Link>
+              </li>
+              <li>
                 <Link href="/ai-hotel-agent" className="hover:text-white transition">AI Business Agent</Link>
               </li>
               <li>

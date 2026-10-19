@@ -345,9 +345,20 @@ export default function HotelSettingsPage() {
         <form onSubmit={handleSave} className="space-y-6">
           {/* Property Identity & Contact */}
           <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
-            <h3 className="font-bold text-sm text-content-primary-light border-b border-border-light pb-2">
-              Property Identity & Contact
-            </h3>
+            <div className="flex items-center justify-between border-b border-border-light pb-2">
+              <h3 className="font-bold text-sm text-content-primary-light">
+                Property Identity &amp; Contact
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-content-secondary-light">Assigned 5-Digit Hotel Code:</span>
+                <span
+                  title="Your permanent 5-digit hotel code. Use when communicating with NovaX support and staff."
+                  className="px-2.5 py-0.5 rounded-lg bg-slate-900 text-amber-400 font-mono font-black text-xs shadow-sm"
+                >
+                  #{property?.hotel_code || '58291'}
+                </span>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>

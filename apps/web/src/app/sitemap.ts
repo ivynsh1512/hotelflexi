@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/hotel-management`, priority: 0.9, changeFrequency: 'weekly' as const },
     { url: `${baseUrl}/channel-manager`, priority: 0.9, changeFrequency: 'weekly' as const },
     { url: `${baseUrl}/booking-engine`, priority: 0.9, changeFrequency: 'weekly' as const },
+    { url: `${baseUrl}/dine-out`, priority: 0.9, changeFrequency: 'weekly' as const },
     { url: `${baseUrl}/ai-hotel-agent`, priority: 0.9, changeFrequency: 'weekly' as const },
     { url: `${baseUrl}/pricing`, priority: 0.9, changeFrequency: 'weekly' as const },
 
