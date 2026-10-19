@@ -71,19 +71,21 @@ export default function SubscriptionPage() {
   const activePlanId = currentPlan?.current_plan_id || 'starter';
 
   const comparisonRows = [
-    { name: 'Room Inventory Capacity', starter: 'Up to 10 Rooms', essential: 'Up to 25 Rooms', growth: 'Up to 60 Rooms', pro: 'Up to 150 Rooms', enterprise: 'Unlimited' },
-    { name: 'Staff User Logins', starter: '2 Users', essential: '5 Users', growth: '12 Users', pro: '25 Users', enterprise: 'Unlimited' },
-    { name: 'Channel Manager (OTAs)', starter: '2 Channels (Live Sync)', essential: '5 Channels', growth: '10 Channels', pro: 'Unlimited Channels', enterprise: 'Unlimited Channels' },
-    { name: 'Housekeeping Urgency Siren', starter: true, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'Direct Booking Engine', starter: true, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'Guest Portal (FlexiLink)', starter: true, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'GST Billing & Invoicing (12%/18%)', starter: true, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'AI Business Agent Prompts', starter: '2 chats / day (Free)', essential: '50 / day', growth: '200 / day', pro: 'Unlimited', enterprise: 'Unlimited' },
-    { name: 'Staff Siren Emergency Alarms', starter: false, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'Housekeeping & Task Assignment', starter: true, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'Financial P&L & Cash Flow', starter: false, essential: false, growth: true, pro: true, enterprise: true },
-    { name: 'Multi-Property Management', starter: false, essential: false, growth: '2 Properties', pro: '5 Properties', enterprise: 'Unlimited' },
-    { name: 'Support SLA', starter: 'Email Support', essential: 'Email & WhatsApp', growth: 'Priority WhatsApp', pro: 'Dedicated Manager', enterprise: '24/7 Phone SLA' },
+    { name: 'Monthly Tariff (INR)', starter: '₹0 (Free)', essential: '₹499 / mo', growth: '₹1,499 / mo', enterprise: '₹3,999 / mo' },
+    { name: 'Room Inventory Capacity', starter: 'Up to 10 Rooms', essential: 'Up to 30 Rooms', growth: 'Up to 75 Rooms', enterprise: 'Unlimited' },
+    { name: 'Staff User Logins', starter: '2 Users', essential: '5 Users', growth: '15 Users', enterprise: 'Unlimited' },
+    { name: '2-Way Live Channel Manager (OTAs)', starter: 'No (Manual only)', essential: '4 Live Channels', growth: '10 Live Channels', enterprise: 'Unlimited Channels' },
+    { name: 'Housekeeping Urgency Siren', starter: false, essential: true, growth: true, enterprise: true },
+    { name: 'Direct Booking Engine', starter: true, essential: true, growth: true, enterprise: true },
+    { name: 'Guest Portal (FlexiLink)', starter: 'Basic link', essential: 'Full (ID & Child proof)', growth: 'Full (ID & Child proof)', enterprise: 'Full + Custom domain' },
+    { name: 'In-Stay Room Service Orders', starter: false, essential: true, growth: true, enterprise: true },
+    { name: 'Dine-Out Table Bookings (Non-Guests)', starter: false, essential: true, growth: true, enterprise: true },
+    { name: 'Custom Hotel Website + Annual AMC', starter: false, essential: false, growth: 'Included Free', enterprise: 'Included Free' },
+    { name: 'GST Billing & Invoicing (12%/18%)', starter: true, essential: true, growth: true, enterprise: true },
+    { name: 'AI Business Agent Prompts', starter: '2 / day', essential: '200 / mo', growth: '600 / mo', enterprise: 'Unlimited' },
+    { name: 'Financial P&L & Cash Flow', starter: false, essential: true, growth: true, enterprise: true },
+    { name: 'Multi-Property Management', starter: false, essential: false, growth: '3 Properties', enterprise: 'Unlimited' },
+    { name: 'Support SLA', starter: 'Community / Email', essential: 'WhatsApp & Email', growth: 'Priority WhatsApp & Phone', enterprise: '24/7 Dedicated Manager' },
   ];
 
   return (
@@ -288,7 +290,6 @@ export default function SubscriptionPage() {
                     <th className="p-3.5 text-center">Starter</th>
                     <th className="p-3.5 text-center">Essential</th>
                     <th className="p-3.5 text-center">Growth</th>
-                    <th className="p-3.5 text-center">Pro</th>
                     <th className="p-3.5 text-center">Enterprise</th>
                   </tr>
                 </thead>
@@ -306,7 +307,6 @@ export default function SubscriptionPage() {
                         <td className="p-3.5 text-center">{renderVal(row.starter)}</td>
                         <td className="p-3.5 text-center">{renderVal(row.essential)}</td>
                         <td className="p-3.5 text-center">{renderVal(row.growth)}</td>
-                        <td className="p-3.5 text-center">{renderVal(row.pro)}</td>
                         <td className="p-3.5 text-center">{renderVal(row.enterprise)}</td>
                       </tr>
                     );

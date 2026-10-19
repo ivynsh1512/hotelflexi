@@ -53,12 +53,12 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
     .bind(user.uid, user.email, ownerName, phone, user.email_verified ? 1 : 0, now, now)
     .run();
 
-  // 1. Create Tenant
+  // 1. Create Tenant (Trial starts with Essential Plan)
   const stmtTenant = c.env.DB.prepare(
     `INSERT INTO tenants (
       id, name, slug, owner_user_id, account_access_status, subscription_status,
       current_plan_id, trial_ends_at, current_period_ends_at, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, 'active', 'trial', 'starter', ?, ?, ?, ?)`
+    ) VALUES (?, ?, ?, ?, 'active', 'trial', 'essential', ?, ?, ?, ?)`
   ).bind(tenantId, propertyName, tenantSlug, user.uid, trialEnds, trialEnds, now, now);
 
   // 2. Create Owner Membership
@@ -67,13 +67,13 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
      VALUES (?, ?, ?, 'owner', ?, ?)`
   ).bind(membershipId, tenantId, user.uid, now, now);
 
-  // 3. Create Feature Entitlements
+  // 3. Create Feature Entitlements (Essential Plan features)
   const stmtEntitlements = c.env.DB.prepare(
     `INSERT INTO feature_entitlements (
       id, tenant_id, max_properties, max_rooms, max_users, has_pms, has_booking_engine,
       has_channel_manager, max_channel_connections, has_ai_agent, ai_monthly_limit,
       has_advanced_reports, has_accounting, has_multi_property, created_at, updated_at
-    ) VALUES (?, ?, 1, 15, 5, 1, 1, 1, 2, 1, 200, 1, 1, 0, ?, ?)`
+    ) VALUES (?, ?, 1, 30, 5, 1, 1, 1, 4, 1, 200, 1, 1, 0, ?, ?)`
   ).bind(entitlementId, tenantId, now, now);
 
   // 4. Create Property

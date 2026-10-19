@@ -21,93 +21,106 @@ export default function PricingPage() {
   const plans = [
     {
       id: 'starter',
-      name: 'Starter',
-      price: '₹499',
-      annual: '₹4,990/year',
-      desc: 'Small homestays, guesthouses & boutique stays.',
+      name: 'Free Starter',
+      price: '₹0',
+      annual: 'Free Forever',
+      desc: 'Small homestays & boutique stays wanting direct bookings with zero upfront cost.',
       rooms: 'Up to 10 Rooms',
       properties: '1 Property',
       users: '2 Staff Accounts',
-      channels: '2 OTA Channels',
+      channels: 'None (Manual Updates Only)',
       features: [
-        '2-Way Live Channel Manager (2 OTAs)',
-        'Room Calendar & Fast Walk-ins',
-        'Direct Booking Engine & FlexiLink',
-        'GST Tax Folios (12% / 18%)',
-        'Housekeeping Urgency Siren Alerts',
-        'Bilingual AI Assistant (100 commands/mo)',
-        'Guest Directory & Ledger',
+        'Room Calendar & Fast Walk-in Bookings',
+        'Direct Booking Engine & FlexiLink (0% commission)',
+        'Basic SAC 9963 GST Billing Folios',
+        'Guest Directory & Master Ledger',
+        'AI Concierge (2 queries / day)',
+        'Limitations: No Live OTA Sync, No Siren',
       ],
       highlighted: false,
     },
     {
       id: 'essential',
       name: 'Essential',
-      price: '₹999',
-      annual: '₹9,990/year',
-      desc: 'Budget hotels, bed & breakfasts, and serviced apartments.',
-      rooms: 'Up to 25 Rooms',
+      price: '₹499',
+      annual: '₹4,990/year (2 Months Free)',
+      desc: 'Mid-scale boutique hotels & apartments wanting full automation & OTA reach.',
+      rooms: 'Up to 30 Rooms',
       properties: '1 Property',
       users: '5 Staff Accounts',
-      channels: '5 OTA Channels',
-      features: ['Full PMS & Fast Check-in/out', 'Direct Booking Engine', '5 Active OTA Channels', 'Housekeeping Urgency Siren & Tickets', '200 AI Assistant commands/mo', 'Daily Collections Reports'],
+      channels: '4 Live OTA Channels',
+      features: [
+        '2-Way Live Channel Manager (MMT, Agoda, Booking.com, Airbnb)',
+        'FlexiLink Digital Self Check-in & In-Stay Room Service Orders',
+        'Dine-Out Table Bookings with 100% Pure Veg Badge',
+        'Housekeeping Urgency Siren Alert System (<7m resolution)',
+        'Bilingual FlexiAI Concierge (200 commands/mo)',
+        'Real-Time FCM Push Notifications & Google Play Store App',
+        'Tiered 12% & 18% GST Compliance Invoices',
+      ],
       highlighted: true,
-      badge: 'Recommended',
+      badge: 'Included in 14-Day Free Trial',
     },
     {
       id: 'growth',
       name: 'Growth',
-      price: '₹2,499',
-      annual: '₹24,990/year',
-      desc: 'Mid-scale resorts and boutique hotel groups.',
-      rooms: 'Up to 60 Rooms',
-      properties: '2 Properties',
-      users: '12 Staff Accounts',
-      channels: '10 OTA Channels',
-      features: ['Advanced Room Grid', '10 Active OTA Channels', 'Direct Booking Engine with Razorpay', 'Financial P&L & Cash Flow Reports', '500 AI Assistant commands/mo', 'Priority Phone & WhatsApp Support'],
+      price: '₹1,499',
+      annual: '₹14,990/year',
+      desc: 'Fast-growing resorts & boutique hotel groups scaling occupancy & direct brand.',
+      rooms: 'Up to 75 Rooms',
+      properties: 'Up to 3 Properties',
+      users: '15 Staff Accounts',
+      channels: '10 Live OTA Channels',
+      features: [
+        'Everything in Essential Plan',
+        'Custom Hotel Website with Free Domain, Hosting & Annual Maintenance Included',
+        'Multi-Property Dashboard & Inventory Switcher',
+        'Dynamic Pricing Rules & Competitor Price Tracking',
+        'Automated WhatsApp Review & Feedback Engine',
+        '600 AI Assistant commands/mo',
+        'Priority WhatsApp & Phone Support SLA',
+      ],
       highlighted: false,
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      price: '₹4,999',
-      annual: '₹49,990/year',
-      desc: 'Large independent hotels and multi-property operators.',
-      rooms: 'Up to 150 Rooms',
-      properties: '5 Properties',
-      users: '25 Staff Accounts',
-      channels: 'Unlimited Channels',
-      features: ['Multi-Property Switcher', 'Unlimited OTA Channels', 'Complete Accounting Ledger', '2,000 AI Assistant commands/mo', 'Custom Invoicing & Branding', 'Dedicated Account Manager'],
-      highlighted: false,
+      badge: 'Includes Custom Website',
     },
     {
       id: 'enterprise',
       name: 'Enterprise',
-      price: '₹9,999+',
-      annual: 'Custom Annual Billing',
-      desc: 'Hotel chains, management groups, and large heritage resorts.',
+      price: '₹3,999',
+      annual: '₹39,990/year',
+      desc: 'Hotel chains, luxury resort groups, and heritage properties.',
       rooms: 'Unlimited Rooms',
       properties: 'Unlimited Properties',
       users: 'Unlimited Staff',
-      channels: 'Unlimited Channels',
-      features: ['Tailored Cloudflare Architecture', 'Dedicated Database Isolation', 'Custom Channel Adapters', 'SLA 99.99% Guaranteed Uptime', 'On-premise / Custom Domain Integration'],
+      channels: 'Unlimited Live Channels',
+      features: [
+        'Everything in Growth Plan',
+        'Custom Multi-Property Central Reservation System (CRS)',
+        'White-Label Android Mobile App & Brand Integration',
+        'Custom Webhooks & REST API Integrations',
+        'Dedicated Technical Account Manager',
+        '99.99% Uptime Guarantee with Custom SLA',
+      ],
       highlighted: false,
     },
   ];
 
   const comparisonRows = [
-    { name: 'Room Inventory Capacity', starter: 'Up to 10 Rooms', essential: 'Up to 25 Rooms', growth: 'Up to 60 Rooms', pro: 'Up to 150 Rooms', enterprise: 'Unlimited' },
-    { name: 'Staff User Logins', starter: '2 Users', essential: '5 Users', growth: '12 Users', pro: '25 Users', enterprise: 'Unlimited' },
-    { name: 'Channel Manager (OTAs)', starter: '2 Channels (Live Sync)', essential: '5 Channels', growth: '10 Channels', pro: 'Unlimited Channels', enterprise: 'Unlimited Channels' },
-    { name: 'Housekeeping Urgency Siren', starter: true, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'Direct Booking Engine', starter: true, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'Guest Portal (FlexiLink)', starter: true, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'GST Billing & Invoicing (12%/18%)', starter: true, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'AI Business Agent Prompts', starter: '100 / mo', essential: '200 / mo', growth: '500 / mo', pro: '2,000 / mo', enterprise: 'Unlimited' },
-    { name: 'Housekeeping & Task Assignment', starter: true, essential: true, growth: true, pro: true, enterprise: true },
-    { name: 'Financial P&L & Cash Flow', starter: false, essential: false, growth: true, pro: true, enterprise: true },
-    { name: 'Multi-Property Management', starter: false, essential: false, growth: '2 Properties', pro: '5 Properties', enterprise: 'Unlimited' },
-    { name: 'Support SLA', starter: 'Email Support', essential: 'Email & WhatsApp', growth: 'Priority WhatsApp', pro: 'Dedicated Manager', enterprise: '24/7 Phone SLA' },
+    { name: 'Monthly Price (INR)', starter: '₹0 (Free)', essential: '₹499 / mo', growth: '₹1,499 / mo', enterprise: '₹3,999 / mo' },
+    { name: 'Room Inventory Capacity', starter: 'Up to 10 Rooms', essential: 'Up to 30 Rooms', growth: 'Up to 75 Rooms', enterprise: 'Unlimited' },
+    { name: 'Staff User Logins', starter: '2 Users', essential: '5 Users', growth: '15 Users', enterprise: 'Unlimited' },
+    { name: '2-Way Live Channel Manager (OTAs)', starter: 'No (Manual only)', essential: '4 Live Channels', growth: '10 Live Channels', enterprise: 'Unlimited Channels' },
+    { name: 'Direct Booking Engine (0% Fee)', starter: true, essential: true, growth: true, enterprise: true },
+    { name: 'FlexiLink Contactless Self Check-In', starter: 'Basic link', essential: 'Full (ID & Child proof)', growth: 'Full (ID & Child proof)', enterprise: 'Full + Custom domain' },
+    { name: 'In-Stay Room Service Food Ordering', starter: false, essential: true, growth: true, enterprise: true },
+    { name: 'Dine-Out Table Bookings (Non-Guests)', starter: false, essential: true, growth: true, enterprise: true },
+    { name: 'Housekeeping Urgency Siren System', starter: false, essential: true, growth: true, enterprise: true },
+    { name: 'Custom Hotel Website + Annual AMC', starter: false, essential: false, growth: 'Included Free', enterprise: 'Included Free' },
+    { name: 'Bilingual AI Assistant Commands', starter: '2 / day', essential: '200 / mo', growth: '600 / mo', enterprise: 'Unlimited' },
+    { name: 'Dynamic Pricing & Competitor Tracking', starter: false, essential: false, growth: true, enterprise: true },
+    { name: 'Mobile PWA & Google Play Store App', starter: true, essential: true, growth: true, enterprise: true },
+    { name: 'GST Billing (12% & 18% SAC 9963)', starter: true, essential: true, growth: true, enterprise: true },
+    { name: 'Support SLA', starter: 'Community / Email', essential: 'WhatsApp & Email', growth: 'Priority WhatsApp & Phone', enterprise: '24/7 Dedicated Manager' },
   ];
 
   return (
@@ -128,7 +141,7 @@ export default function PricingPage() {
 
       {/* Cards Section */}
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans.map((p) => (
             <div
               key={p.id}
@@ -196,10 +209,9 @@ export default function PricingPage() {
               <thead className="bg-surface-light border-b border-border-light font-bold text-content-primary-light uppercase text-[10px]">
                 <tr>
                   <th className="p-3.5">Feature / Capability</th>
-                  <th className="p-3.5 text-center">Starter</th>
-                  <th className="p-3.5 text-center">Essential</th>
-                  <th className="p-3.5 text-center">Growth</th>
-                  <th className="p-3.5 text-center">Pro</th>
+                  <th className="p-3.5 text-center">Free Starter</th>
+                  <th className="p-3.5 text-center bg-blue-50/50 text-brand-blue">Essential (Trial)</th>
+                  <th className="p-3.5 text-center">Growth (Website)</th>
                   <th className="p-3.5 text-center">Enterprise</th>
                 </tr>
               </thead>
@@ -215,9 +227,8 @@ export default function PricingPage() {
                     <tr key={row.name} className="hover:bg-surface-light/40">
                       <td className="p-3.5 font-medium text-content-primary-light">{row.name}</td>
                       <td className="p-3.5 text-center">{renderVal(row.starter)}</td>
-                      <td className="p-3.5 text-center">{renderVal(row.essential)}</td>
+                      <td className="p-3.5 text-center bg-blue-50/20">{renderVal(row.essential)}</td>
                       <td className="p-3.5 text-center">{renderVal(row.growth)}</td>
-                      <td className="p-3.5 text-center">{renderVal(row.pro)}</td>
                       <td className="p-3.5 text-center">{renderVal(row.enterprise)}</td>
                     </tr>
                   );

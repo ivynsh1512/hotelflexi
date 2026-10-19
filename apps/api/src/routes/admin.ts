@@ -237,23 +237,43 @@ adminRoutes.patch('/plans/:id', async (c) => {
   await c.env.DB.prepare(
     `UPDATE subscription_plans SET
        name = COALESCE(?, name),
+       description = COALESCE(?, description),
        monthly_price_paise = COALESCE(?, monthly_price_paise),
        annual_price_paise = COALESCE(?, annual_price_paise),
        max_rooms = COALESCE(?, max_rooms),
        max_properties = COALESCE(?, max_properties),
+       max_users = COALESCE(?, max_users),
        has_ai_agent = COALESCE(?, has_ai_agent),
+       ai_monthly_limit = COALESCE(?, ai_monthly_limit),
        has_channel_manager = COALESCE(?, has_channel_manager),
+       max_channel_connections = COALESCE(?, max_channel_connections),
+       has_custom_website = COALESCE(?, has_custom_website),
+       has_website_maintenance = COALESCE(?, has_website_maintenance),
+       has_advanced_reports = COALESCE(?, has_advanced_reports),
+       has_accounting = COALESCE(?, has_accounting),
+       has_multi_property = COALESCE(?, has_multi_property),
+       is_active = COALESCE(?, is_active),
        updated_at = ?
      WHERE id = ?`
   )
     .bind(
       body.name || null,
-      body.monthlyPricePaise || null,
-      body.annualPricePaise || null,
+      body.description || null,
+      body.monthlyPricePaise !== undefined ? body.monthlyPricePaise : null,
+      body.annualPricePaise !== undefined ? body.annualPricePaise : null,
       body.maxRooms || null,
       body.maxProperties || null,
+      body.maxUsers || null,
       body.hasAiAgent !== undefined ? (body.hasAiAgent ? 1 : 0) : null,
+      body.aiMonthlyLimit || null,
       body.hasChannelManager !== undefined ? (body.hasChannelManager ? 1 : 0) : null,
+      body.maxChannelConnections || null,
+      body.hasCustomWebsite !== undefined ? (body.hasCustomWebsite ? 1 : 0) : null,
+      body.hasWebsiteMaintenance !== undefined ? (body.hasWebsiteMaintenance ? 1 : 0) : null,
+      body.hasAdvancedReports !== undefined ? (body.hasAdvancedReports ? 1 : 0) : null,
+      body.hasAccounting !== undefined ? (body.hasAccounting ? 1 : 0) : null,
+      body.hasMultiProperty !== undefined ? (body.hasMultiProperty ? 1 : 0) : null,
+      body.isActive !== undefined ? (body.isActive ? 1 : 0) : null,
       now,
       id
     )

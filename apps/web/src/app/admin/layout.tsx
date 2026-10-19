@@ -19,6 +19,8 @@ import {
   AlertTriangle,
   Bell,
   Monitor,
+  Menu,
+  X,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -26,6 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, loading, isPlatformAdmin, refreshUser } = useAuth();
   const [rechecking, setRechecking] = React.useState(false);
   const [isStandaloneApp, setIsStandaloneApp] = React.useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -139,11 +142,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-surface-dark-bg text-content-primary-dark flex flex-col md:flex-row">
-      {/* Super Admin Sidebar */}
-      <aside className="w-full md:w-64 bg-surface-dark-surface border-r border-border-dark shrink-0 flex flex-col h-auto md:h-screen sticky top-0 overflow-y-auto">
+      {/* Mobile Top Header */}
+      <header className="md:hidden bg-surface-dark-surface border-b border-border-dark px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center text-white font-bold shrink-0">
+            <ShieldCheck className="w-4 h-4 text-white" />
+          </div>
+          <div className="min-w-0">
+            <div className="font-extrabold text-xs text-white truncate">HotelFlexi Super-Admin</div>
+            <div className="text-[9px] uppercase font-bold text-purple-400 tracking-wider">Control Center</div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+          className="p-1.5 rounded-lg bg-surface-dark-elevated text-content-secondary-dark hover:text-white border border-border-dark"
+          aria-label="Toggle navigation menu"
+        >
+          {mobileSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </header>
+
+      {/* Mobile Drawer Backdrop */}
+      {mobileSidebarOpen && (
+        <div
+          onClick={() => setMobileSidebarOpen(false)}
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm transition-opacity"
+        />
+      )}
+
+      {/* Super Admin Sidebar (Desktop & Mobile Drawer) */}
+      <aside
+        className={`fixed md:sticky top-0 left-0 z-50 md:z-0 w-72 md:w-64 bg-surface-dark-surface border-r border-border-dark shrink-0 flex flex-col h-screen overflow-y-auto transition-transform duration-300 ease-in-out ${
+          mobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
         <div className="p-4 border-b border-border-dark flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-white font-bold">
+            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-white font-bold shrink-0">
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -151,6 +187,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div className="text-[10px] uppercase font-bold text-purple-400 tracking-wider">Super-Admin Panel</div>
             </div>
           </div>
+
+          <button
+            onClick={() => setMobileSidebarOpen(false)}
+            className="md:hidden p-1 text-content-secondary-dark hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
@@ -161,6 +204,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setMobileSidebarOpen(false)}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
                   active
                     ? 'bg-purple-600 text-white shadow-sm'

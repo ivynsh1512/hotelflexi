@@ -87,11 +87,20 @@ pushRoutes.post('/broadcast', authMiddleware, async (c) => {
   if (targetTenantId) {
     const notifId = `notif_${crypto.randomUUID()}`;
     await c.env.DB.prepare(
-      `INSERT INTO notifications (id, tenant_id, title, message, type, is_read, created_at)
-       VALUES (?, ?, ?, ?, ?, 0, ?)`
+      `INSERT INTO notifications (id, tenant_id, title, message, category, link_url, is_read, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?)`
     )
-      .bind(notifId, targetTenantId, title, message, priority === 'urgent' ? 'alert' : 'broadcast', now)
-      .run();
+      .bind(
+        notifId,
+        targetTenantId,
+        title,
+        message,
+        priority === 'urgent' ? 'alert' : 'broadcast',
+        actionUrl,
+        now
+      )
+      .run()
+      .catch((err: any) => console.warn('Could not insert in-app notification:', err));
   }
 
   return c.json({

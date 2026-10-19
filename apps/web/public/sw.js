@@ -54,6 +54,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 1.1 Bypass non-http/https schemes (e.g. chrome-extension://)
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
   // 2. Strict Bypass: Never cache API endpoints, Firebase Auth, Razorpay, or Cloudflare Worker calls
   if (
     url.pathname.startsWith('/api/') ||
