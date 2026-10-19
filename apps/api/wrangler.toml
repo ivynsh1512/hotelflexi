@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "hotelflexi-db"
-database_id = "PLACEHOLDER_D1_DATABASE_ID"
+database_id = "f742f4f6-b0c8-436f-9331-9cac7566e495"
 migrations_dir = "migrations"
 
 # Cron Triggers for scheduled OTA and accounting reconciliation
