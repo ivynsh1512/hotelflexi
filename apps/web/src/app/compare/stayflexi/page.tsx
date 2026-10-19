@@ -60,6 +60,21 @@ export default function StayFlexiComparePage() {
       stayflexi: 'Basic task lists without real-time staff siren escalation',
     },
     {
+      feature: 'FlexiLink Contactless Guest Experience',
+      hotelflexi: 'Automated guest portal link via WhatsApp & Email: Digital self check-in, Govt ID & child birth proof upload, in-stay food orders, 7-day auto-purge with archived ledger',
+      stayflexi: 'Generic web portal without native food ordering or automated proof expiration workflow',
+    },
+    {
+      feature: 'Dine-Out Table Bookings (Non-Guest Public Link)',
+      hotelflexi: 'Public discovery portal (/dine-out) & 5-digit hotel code: Outside resort guests & tourists can reserve tables, pre-order dishes (100% Pure Veg badge), and pay online or at counter',
+      stayflexi: 'Limited to registered room guests; no public non-resident resort dining portal',
+    },
+    {
+      feature: 'Mobile App & Push Notifications',
+      hotelflexi: 'Native Google Play Store App + Offline PWA with Firebase Cloud Messaging (FCM) push siren alerts',
+      stayflexi: 'Standard mobile browser view with basic push notifications',
+    },
+    {
       feature: 'Direct Booking Engine Commission',
       hotelflexi: '0% commission on direct bookings via FlexiLink',
       stayflexi: 'Often subject to percentage fees or tiered engine charges',

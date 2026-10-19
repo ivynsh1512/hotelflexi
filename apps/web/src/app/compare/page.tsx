@@ -100,14 +100,16 @@ export default function CompareHubPage() {
   ];
 
   const featureMatrix = [
-    { feature: 'Starting Monthly Price (INR)', hotelflexi: '₹499 / month', others: '₹3,000 – ₹10,000 / mo or $50+' },
+    { feature: 'Starting Monthly Price (INR)', hotelflexi: '₹499 / month flat', others: '₹3,000 – ₹10,000 / mo or $50+' },
     { feature: 'Channel Manager Included in Starter', hotelflexi: 'Yes (2 Live OTAs)', others: 'Extra Paid Add-on or Manual' },
-    { feature: 'Autonomous AI Concierge & Front Desk', hotelflexi: 'Yes (Bilingual Voice & Text)', others: 'No or 3rd Party Chatbot' },
-    { feature: 'Housekeeping Urgency Siren (Audio-Visual)', hotelflexi: 'Yes (Instant Staff Alert)', others: 'No (Phone / Manual notes only)' },
-    { feature: 'Direct Booking Engine (FlexiLink)', hotelflexi: '0% Commission Included', others: '2% - 5% Commission or Paid' },
-    { feature: 'Digital Self Check-In with Govt ID Proof', hotelflexi: 'Yes (Automated link to guest)', others: 'Manual paperwork or Extra app' },
+    { feature: 'FlexiLink Contactless Guest Portal', hotelflexi: 'Yes (Self Check-in, Govt ID & Child proof, In-Stay Food Orders, 7-Day Auto-Purge)', others: 'Paper forms or Expensive 3rd-party app' },
+    { feature: 'Dine-Out Table Bookings (Public Link for Non-Guests)', hotelflexi: 'Yes (5-Digit Code / Public URL, 100% Pure Veg Badge, In-App or Counter Pay)', others: 'No (In-house only, loses outside restaurant revenue)' },
+    { feature: 'Autonomous AI Concierge & Front Desk', hotelflexi: 'Yes (Bilingual Voice & Text 24/7)', others: 'No or Limited Chatbot' },
+    { feature: 'Housekeeping Urgency Siren System', hotelflexi: 'Yes (Instant Audio-Visual Siren Alert on all staff devices)', others: 'No (Manual register / phone calls only)' },
+    { feature: 'Real-Time FCM Push Notifications', hotelflexi: 'Yes (Instant booking & staff dispatch alerts)', others: 'Delayed SMS / Email only' },
+    { feature: 'Native Android App & Installable PWA', hotelflexi: 'Yes (Google Play Store + Offline PWA)', others: 'Desktop browser only or slow wrappers' },
+    { feature: 'Direct Booking Engine Commission', hotelflexi: '0% Commission Included', others: '2% - 5% Commission or Paid Engine' },
     { feature: 'Indian GST 12% & 18% Compliance (SAC 9963)', hotelflexi: 'Automated Tiered Folios', others: 'Manual Tally Export' },
-    { feature: 'Mobile PWA & Google Play Store App', hotelflexi: 'Yes (Installable on any device)', others: 'Desktop browser only or clunky' },
     { feature: 'Setup & Onboarding Time', hotelflexi: '5 Minutes', others: '1 – 3 Weeks with Paid Training' },
   ];
 

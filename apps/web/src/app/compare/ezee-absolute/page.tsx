@@ -65,9 +65,14 @@ export default function EzeeAbsoluteComparePage() {
       ezee: 'No autonomous conversational AI; relies on manual front-desk staff input',
     },
     {
-      feature: 'Digital Guest Check-In (FlexiLink)',
-      hotelflexi: 'Seamless WhatsApp/Email link with guest government ID photo capture & pre-arrival verification',
+      feature: 'Digital Guest Check-In & Food Orders (FlexiLink)',
+      hotelflexi: 'Automated WhatsApp/Email link: Contactless check-in, Govt ID & child birth proof, in-stay food orders, 7-day auto-purge with archived ledger',
       ezee: 'eZee iFeedback / self check-in add-ons sold separately with complex integration',
+    },
+    {
+      feature: 'Dine-Out Table Bookings (Non-Guest Public Link)',
+      hotelflexi: 'Public discovery portal (/dine-out) & 5-digit hotel code: Outside resort guests & tourists can reserve tables, view 100% Pure Veg badge, and pre-order food',
+      ezee: 'Requires standalone eZee Optimus POS license with separate billing',
     },
     {
       feature: 'Indian GST Compliance (SAC 9963)',

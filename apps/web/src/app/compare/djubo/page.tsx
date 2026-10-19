@@ -65,9 +65,14 @@ export default function DjuboComparePage() {
       djubo: 'Strong channel distribution, but locked behind expensive multi-product subscriptions',
     },
     {
-      feature: 'Digital Guest Check-In (FlexiLink)',
-      hotelflexi: 'Automated WhatsApp/Email link for pre-arrival verification & Aadhaar/passport ID upload',
-      djubo: 'Standard web check-in requiring complex custom setup',
+      feature: 'Digital Guest Check-In & Food Orders (FlexiLink)',
+      hotelflexi: 'Automated WhatsApp/Email link: Contactless check-in, Govt ID & child birth proof, in-stay food orders, 7-day auto-purge with archived ledger',
+      djubo: 'Standard web check-in requiring complex custom setup without integrated guest room service ordering',
+    },
+    {
+      feature: 'Dine-Out Table Bookings (Non-Guest Public Link)',
+      hotelflexi: 'Public discovery portal (/dine-out) & 5-digit hotel code: Outside resort guests & tourists can reserve tables, view 100% Pure Veg badge, and pre-order food',
+      djubo: 'No public dining reservation platform; strictly focused on room distribution',
     },
     {
       feature: 'Payment Settlements',

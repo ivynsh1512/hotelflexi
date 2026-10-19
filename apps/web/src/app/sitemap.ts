@@ -23,6 +23,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
     // Blog Knowledge Hub & High-Converting Articles
     { url: `${baseUrl}/blog`, priority: 0.9, changeFrequency: 'weekly' as const },
+    { url: `${baseUrl}/blog/hotel-dine-out-table-booking-restaurant-guide`, priority: 0.8, changeFrequency: 'monthly' as const },
+    { url: `${baseUrl}/blog/contactless-guest-portal-self-check-in-flexilink`, priority: 0.8, changeFrequency: 'monthly' as const },
     { url: `${baseUrl}/blog/how-to-automate-hotel-operations-with-ai`, priority: 0.8, changeFrequency: 'monthly' as const },
     { url: `${baseUrl}/blog/best-hotel-channel-manager-india`, priority: 0.8, changeFrequency: 'monthly' as const },
     { url: `${baseUrl}/blog/streamline-housekeeping-with-urgent-siren-alerts`, priority: 0.8, changeFrequency: 'monthly' as const },

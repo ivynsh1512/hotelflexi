@@ -13,6 +13,8 @@ import {
   Cpu,
   Receipt,
   Tag,
+  UtensilsCrossed,
+  Smartphone,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -37,6 +39,28 @@ export const metadata: Metadata = {
 
 export default function BlogHubPage() {
   const posts = [
+    {
+      slug: 'hotel-dine-out-table-booking-restaurant-guide',
+      title: 'How Hotels & Resorts Unlock 35%+ F&B Revenue With Dine-Out Table Bookings',
+      excerpt:
+        'Discover how Indian hotels and resort kitchens capture high-margin outside dining revenue from tourists and non-resident guests with public Dine-Out links, 100% Pure Veg certification, and instant staff notifications.',
+      category: 'F&B Revenue & Dining',
+      readTime: '6 min read',
+      date: 'Oct 20, 2026',
+      icon: UtensilsCrossed,
+      gradient: 'from-amber-600 to-orange-600',
+    },
+    {
+      slug: 'contactless-guest-portal-self-check-in-flexilink',
+      title: 'The Ultimate Guide to FlexiLink: Contactless Guest Self Check-In & In-Stay Orders',
+      excerpt:
+        'Eliminate lobby check-in queues, collect verified government IDs and child proofs, and empower guests to order food directly from their phones with automated WhatsApp/Email FlexiLinks.',
+      category: 'Guest Experience & Tech',
+      readTime: '5 min read',
+      date: 'Oct 20, 2026',
+      icon: Smartphone,
+      gradient: 'from-blue-600 to-cyan-600',
+    },
     {
       slug: 'how-to-automate-hotel-operations-with-ai',
       title: 'How Indian Hoteliers Are Automating Front Desk, Reservations & Check-Ins with Autonomous AI',

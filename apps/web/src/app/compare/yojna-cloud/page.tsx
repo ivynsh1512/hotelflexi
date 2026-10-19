@@ -70,9 +70,14 @@ export default function YojnaCloudComparePage() {
       yojna: 'Often requires third-party channel manager bridges with synchronization delays',
     },
     {
-      feature: 'Guest Self Check-In (FlexiLink)',
-      hotelflexi: 'Automated WhatsApp/Email link for digital check-in with government ID photo upload',
-      yojna: 'Physical paper forms and manual counter passport/Aadhaar photocopying',
+      feature: 'Guest Self Check-In & Room Service (FlexiLink)',
+      hotelflexi: 'Automated WhatsApp/Email link: Contactless check-in, Govt ID & child birth proof, in-stay food orders, 7-day auto-purge with archived ledger',
+      yojna: 'Physical paper forms, manual counter passport/Aadhaar photocopying, and paper kitchen chits',
+    },
+    {
+      feature: 'Dine-Out Table Bookings (Non-Guest Public Link)',
+      hotelflexi: 'Public discovery portal (/dine-out) & 5-digit hotel code: Outside resort guests & tourists can reserve tables, view 100% Pure Veg badge, and pre-order food',
+      yojna: 'No public restaurant booking link; restaurant module only bills room numbers',
     },
   ];
 
