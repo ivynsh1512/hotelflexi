@@ -1,0 +1,425 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/AuthContext';
+import { apiClient, formatINR } from '@/lib/api';
+import {
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  ShieldAlert,
+  Loader2,
+  Lock,
+  PlusCircle,
+  X,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react';
+
+export default function CalendarPage() {
+  const { currentTenant } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [propertyId, setPropertyId] = useState<string>('');
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [days, setDays] = useState(14);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [blocks, setBlocks] = useState<any[]>([]);
+
+  // Block Modal
+  const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [blockStart, setBlockStart] = useState('');
+  const [blockEnd, setBlockEnd] = useState('');
+  const [blockReason, setBlockReason] = useState('maintenance');
+  const [blockNotes, setBlockNotes] = useState('');
+  const [modalLoading, setModalLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchGrid = async (propId: string, start: string, numDays: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiClient(`/calendar/grid?property_id=${propId}&start_date=${start}&days=${numDays}`);
+      setRooms(data.rooms || []);
+      setReservations(data.reservations || []);
+      setBlocks(data.blocks || []);
+    } catch (err: any) {
+      console.error('Failed to fetch calendar:', err);
+      setError(err.message || 'Error loading calendar grid.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    async function init() {
+      if (!currentTenant) return;
+      try {
+        const propData = await apiClient('/properties');
+        const activeProp = propData.properties?.[0];
+        if (activeProp) {
+          setPropertyId(activeProp.id);
+          await fetchGrid(activeProp.id, startDate, days);
+        }
+      } catch (e: any) {
+        setError('Failed to fetch properties.');
+        setLoading(false);
+      }
+    }
+    init();
+  }, [currentTenant]);
+
+  // Generate array of day dates
+  const dateList: string[] = [];
+  const startObj = new Date(startDate);
+  for (let i = 0; i < days; i++) {
+    const cur = new Date(startObj);
+    cur.setDate(cur.getDate() + i);
+    dateList.push(cur.toISOString().split('T')[0]);
+  }
+
+  const shiftDates = (delta: number) => {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + delta);
+    const newStart = d.toISOString().split('T')[0];
+    setStartDate(newStart);
+    if (propertyId) fetchGrid(propertyId, newStart, days);
+  };
+
+  const handleCreateBlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalLoading(true);
+    setError(null);
+
+    try {
+      await apiClient('/calendar/blocks', {
+        method: 'POST',
+        body: JSON.stringify({
+          propertyId,
+          roomId: selectedRoomId,
+          startDate: blockStart,
+          endDate: blockEnd,
+          reason: blockReason,
+          notes: blockNotes,
+        }),
+      });
+
+      setBlockModalOpen(false);
+      await fetchGrid(propertyId, startDate, days);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create room block.');
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleReleaseBlock = async (blockId: string) => {
+    if (!confirm('Are you sure you want to release this room block?')) return;
+    try {
+      await apiClient(`/calendar/blocks/${blockId}`, { method: 'DELETE' });
+      if (propertyId) await fetchGrid(propertyId, startDate, days);
+    } catch (err: any) {
+      alert(err.message || 'Failed to release block');
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Calendar Header Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border-light">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-content-primary-light">
+            Room Calendar & Availability Grid
+          </h1>
+          <p className="text-xs text-content-secondary-light">
+            Room-wise booking matrix with real-time occupancy and block management
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-lg border border-border-light bg-white p-1">
+            <button
+              onClick={() => shiftDates(-7)}
+              className="p-1 rounded hover:bg-surface-light text-content-secondary-light"
+              title="Previous 7 Days"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-xs font-semibold px-2 text-content-primary-light font-mono">
+              {startDate}
+            </span>
+            <button
+              onClick={() => shiftDates(7)}
+              className="p-1 rounded hover:bg-surface-light text-content-secondary-light"
+              title="Next 7 Days"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <select
+            value={days}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              setDays(val);
+              if (propertyId) fetchGrid(propertyId, startDate, val);
+            }}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-border-light bg-white text-content-primary-light"
+          >
+            <option value={7}>7 Days View</option>
+            <option value={14}>14 Days View</option>
+            <option value={30}>30 Days View</option>
+          </select>
+
+          <button
+            onClick={() => {
+              if (rooms.length > 0) setSelectedRoomId(rooms[0].id);
+              setBlockStart(startDate);
+              const d = new Date(startDate);
+              d.setDate(d.getDate() + 2);
+              setBlockEnd(d.toISOString().split('T')[0]);
+              setBlockModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-light border border-border-light text-xs font-semibold text-content-primary-light hover:bg-white"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-600" />
+            Block Room
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-status-danger text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-24 bg-white rounded-2xl border border-border-light">
+          <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
+        </div>
+      ) : (
+        /* Calendar Grid Table */
+        <div className="bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead>
+                <tr className="bg-surface-light border-b border-border-light">
+                  <th className="p-3 font-bold text-content-primary-light w-44 sticky left-0 bg-surface-light z-10 border-r border-border-light">
+                    Room Details
+                  </th>
+                  {dateList.map((d) => {
+                    const dateObj = new Date(d);
+                    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                    const dayNum = dateObj.getDate();
+                    const isToday = d === new Date().toISOString().split('T')[0];
+                    return (
+                      <th
+                        key={d}
+                        className={`p-2 text-center border-r border-border-light min-w-[70px] ${
+                          isToday ? 'bg-blue-50 text-brand-blue font-bold' : 'text-content-secondary-light font-medium'
+                        }`}
+                      >
+                        <div className="text-[10px] uppercase">{dayName}</div>
+                        <div className="text-xs font-bold">{dayNum}</div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-light">
+                {rooms.map((room) => (
+                  <tr key={room.id} className="hover:bg-surface-light/40 transition">
+                    {/* Room Header Col */}
+                    <td className="p-3 sticky left-0 bg-white z-10 border-r border-border-light">
+                      <div className="font-extrabold text-content-primary-light text-sm flex items-center gap-1.5">
+                        <span>Room {room.room_number}</span>
+                        {room.housekeeping_status === 'dirty' && (
+                          <span className="w-2 h-2 rounded-full bg-amber-500" title="Dirty" />
+                        )}
+                      </div>
+                      <div className="text-[10px] text-content-secondary-light truncate">
+                        {room.room_type_name} • {formatINR(room.base_price_paise)}
+                      </div>
+                    </td>
+
+                    {/* Day Cells */}
+                    {dateList.map((dateStr) => {
+                      // Check active reservation
+                      const res = reservations.find(
+                        (r) => r.room_id === room.id && r.check_in_date <= dateStr && r.check_out_date > dateStr
+                      );
+
+                      // Check active room block
+                      const blk = blocks.find(
+                        (b) => b.room_id === room.id && b.start_date <= dateStr && b.end_date > dateStr
+                      );
+
+                      if (res) {
+                        return (
+                          <td
+                            key={dateStr}
+                            className="p-1 border-r border-border-light text-center bg-blue-100/70 border-b-2 border-b-brand-blue"
+                            title={`Reservation #${res.reservation_number} (${res.guest_name})`}
+                          >
+                            <div className="truncate text-[10px] font-bold text-brand-blue">
+                              {res.guest_name?.split(' ')[0] || 'Booked'}
+                            </div>
+                            <div className="text-[8px] font-mono text-content-secondary-light">
+                              {res.status === 'checked_in' ? 'In-House' : 'Confirmed'}
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      if (blk) {
+                        return (
+                          <td
+                            key={dateStr}
+                            onClick={() => handleReleaseBlock(blk.id)}
+                            className="p-1 border-r border-border-light text-center bg-amber-100/70 cursor-pointer hover:bg-amber-200"
+                            title={`Blocked for ${blk.reason}. Click to release.`}
+                          >
+                            <div className="text-[9px] font-bold text-amber-800 uppercase truncate">
+                              {blk.reason}
+                            </div>
+                            <div className="text-[8px] text-amber-700">Blocked</div>
+                          </td>
+                        );
+                      }
+
+                      // Free / Available
+                      return (
+                        <td
+                          key={dateStr}
+                          onClick={() => {
+                            setSelectedRoomId(room.id);
+                            setBlockStart(dateStr);
+                            const next = new Date(dateStr);
+                            next.setDate(next.getDate() + 1);
+                            setBlockEnd(next.toISOString().split('T')[0]);
+                            setBlockModalOpen(true);
+                          }}
+                          className="p-1 border-r border-border-light text-center hover:bg-emerald-50/50 cursor-pointer"
+                          title="Available. Click to block room."
+                        >
+                          <div className="text-[10px] text-emerald-600/50 font-bold">•</div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Block Room Modal */}
+      {blockModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light">
+            <div className="flex items-center justify-between pb-3 border-b border-border-light mb-4">
+              <h3 className="text-base font-bold text-content-primary-light flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-600" />
+                Block Room for Maintenance / Owner
+              </h3>
+              <button
+                onClick={() => setBlockModalOpen(false)}
+                className="text-xs text-content-secondary-light hover:text-content-primary-light"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateBlock} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-content-primary-light mb-1">Select Room *</label>
+                <select
+                  value={selectedRoomId}
+                  onChange={(e) => setSelectedRoomId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                >
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      Room {r.room_number} ({r.room_type_name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-content-primary-light mb-1">From (Inclusive) *</label>
+                  <input
+                    type="date"
+                    required
+                    value={blockStart}
+                    onChange={(e) => setBlockStart(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-content-primary-light mb-1">To (Exclusive) *</label>
+                  <input
+                    type="date"
+                    required
+                    min={blockStart}
+                    value={blockEnd}
+                    onChange={(e) => setBlockEnd(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-content-primary-light mb-1">Reason *</label>
+                <select
+                  value={blockReason}
+                  onChange={(e) => setBlockReason(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                >
+                  <option value="maintenance">Maintenance / Repair</option>
+                  <option value="owner_use">Owner Use</option>
+                  <option value="deep_cleaning">Deep Cleaning</option>
+                  <option value="renovation">Renovation</option>
+                  <option value="event">Private Event</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-content-primary-light mb-1">Notes (Optional)</label>
+                <input
+                  type="text"
+                  value={blockNotes}
+                  onChange={(e) => setBlockNotes(e.target.value)}
+                  placeholder="AC compressor repair, painting..."
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setBlockModalOpen(false)}
+                  className="flex-1 py-2 rounded-lg border border-border-light font-semibold hover:bg-surface-light"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={modalLoading}
+                  className="flex-1 py-2 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {modalLoading ? 'Blocking...' : 'Block Room'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

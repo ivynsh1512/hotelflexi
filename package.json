@@ -1,0 +1,29 @@
+{
+  "name": "hotelflexi-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HotelFlexi — All-in-one hospitality management SaaS by NovaX AI",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@hotelflexi/web",
+    "dev:api": "npm run dev --workspace=@hotelflexi/api",
+    "build": "npm run build --workspaces",
+    "build:api": "npm run build --workspace=@hotelflexi/api",
+    "build:web": "npm run build --workspace=@hotelflexi/web",
+    "test": "npm run test --workspace=@hotelflexi/api",
+    "deploy:api": "npm run deploy --workspace=@hotelflexi/api",
+    "db:migrate:local": "npm run db:migrate:local --workspace=@hotelflexi/api",
+    "db:migrate:remote": "npm run db:migrate:remote --workspace=@hotelflexi/api"
+  },
+  "keywords": [
+    "hotelflexi",
+    "hospitality",
+    "pms",
+    "channel-manager",
+    "saas"
+  ],
+  "author": "NovaX AI",
+  "license": "UNLICENSED"
+}

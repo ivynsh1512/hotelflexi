@@ -1,0 +1,28 @@
+name = "hotelflexi"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare D1 Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "hotelflexi-db"
+database_id = "PLACEHOLDER_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# Cron Triggers for scheduled OTA and accounting reconciliation
+[triggers]
+crons = ["0 2 * * *"]
+
+# Public environment variables
+[vars]
+ENVIRONMENT = "production"
+APP_NAME = "HotelFlexi"
+API_BASE = "https://hotelflexi.divyansh-shukla.workers.dev"
+
+# Secrets to be configured with `wrangler secret put <KEY>`:
+# ADMIN_EMAILS: "divyansh.shukla1512@gmail.com,info@novaxai.in"
+# RAZORPAY_KEY_ID: "rzp_test_..."
+# RAZORPAY_KEY_SECRET: "..."
+# RAZORPAY_WEBHOOK_SECRET: "..."
+# AI_PROVIDER_API_KEY: "..."
