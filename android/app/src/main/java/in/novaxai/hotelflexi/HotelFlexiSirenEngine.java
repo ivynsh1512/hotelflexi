@@ -47,7 +47,7 @@ public class HotelFlexiSirenEngine {
             sirenChan.setDescription("Loud acoustic alarm and hardware vibration for urgent room turnaround");
             sirenChan.enableLights(true);
             sirenChan.enableVibration(true);
-            sirenChan.setVibrationPattern(new long[]{0, 600, 250, 600, 250});
+            sirenChan.setVibrationPattern(new long[]{0, 800, 200, 800, 200, 800, 400});
             sirenChan.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
             nm.createNotificationChannel(sirenChan);
 
@@ -71,12 +71,12 @@ public class HotelFlexiSirenEngine {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     VibrationEffect effect = VibrationEffect.createWaveform(
-                            new long[]{0, 600, 250, 600, 250},
+                            new long[]{0, 800, 200, 800, 200, 800, 400},
                             0 // repeat from index 0
                     );
                     vibrator.vibrate(effect);
                 } else {
-                    vibrator.vibrate(new long[]{0, 600, 250, 600, 250}, 0);
+                    vibrator.vibrate(new long[]{0, 800, 200, 800, 200, 800, 400}, 0);
                 }
             } catch (Exception e) {
                 Log.w(TAG, "Vibrator error: " + e.getMessage());

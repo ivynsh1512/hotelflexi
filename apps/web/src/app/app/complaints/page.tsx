@@ -7,7 +7,14 @@ import { UrgencySirenAlert } from '@/components/UrgencySirenAlert';
 import { AlertTriangle, PlusCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
 export default function ComplaintsPage() {
-  const { currentTenant } = useAuth();
+  const { currentTenant, user } = useAuth();
+  const userRole = (currentTenant?.role || 'owner').toLowerCase();
+  const isOperatingStaff =
+    userRole === 'housekeeping' ||
+    userRole === 'receptionist' ||
+    userRole === 'manager' ||
+    userRole === 'staff';
+
   const [loading, setLoading] = useState(true);
   const [complaints, setComplaints] = useState<any[]>([]);
   const [propertyId, setPropertyId] = useState('');
@@ -183,22 +190,30 @@ export default function ComplaintsPage() {
                           {c.status === 'investigating' ? 'Picked / In Progress' : c.status}
                         </span>
                       </td>
-                      <td className="p-3.5 text-right space-x-1.5">
-                        {isOpenUrgent && (
+                      <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
+                        {c.status === 'open' && isOperatingStaff && (
                           <button
                             onClick={() => handleAcknowledge(c.id)}
-                            className="px-2.5 py-1 rounded bg-red-600 text-white font-bold text-[11px] hover:bg-red-700 transition shadow-sm"
+                            className="px-2.5 py-1 rounded bg-brand-blue text-white font-bold text-[11px] hover:bg-brand-blue-hover transition shadow-sm"
                           >
-                            Pick & Silence
+                            Pick Request
                           </button>
                         )}
-                        {c.status !== 'resolved' && (
+                        {c.status === 'open' && !isOperatingStaff && (
+                          <span className="text-[11px] text-amber-700 font-medium">Awaiting Staff</span>
+                        )}
+                        {c.status === 'investigating' && (
                           <button
                             onClick={() => handleResolve(c.id)}
-                            className="px-2.5 py-1 rounded bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700 transition"
+                            className="px-2.5 py-1 rounded bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700 transition shadow-sm"
                           >
-                            Mark Resolved
+                            Mark as Closed
                           </button>
+                        )}
+                        {c.status === 'resolved' && (
+                          <span className="text-[11px] text-emerald-700 font-semibold inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Resolved
+                          </span>
                         )}
                       </td>
                     </tr>

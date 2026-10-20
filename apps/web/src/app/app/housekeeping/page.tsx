@@ -16,7 +16,14 @@ import {
 } from 'lucide-react';
 
 export default function HousekeepingPage() {
-  const { currentTenant } = useAuth();
+  const { currentTenant, user } = useAuth();
+  const userRole = (currentTenant?.role || 'owner').toLowerCase();
+  const isOperatingStaff =
+    userRole === 'housekeeping' ||
+    userRole === 'receptionist' ||
+    userRole === 'manager' ||
+    userRole === 'staff';
+
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
@@ -211,21 +218,29 @@ export default function HousekeepingPage() {
                       </span>
                     </td>
                     <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
-                      {task.status === 'pending' && (
+                      {task.status === 'pending' && isOperatingStaff && (
                         <button
                           onClick={() => handleUpdateStatus(task.id, 'in_progress')}
-                          className="px-2.5 py-1 rounded bg-blue-50 text-brand-blue font-semibold text-[11px] hover:bg-blue-100 transition"
+                          className="px-2.5 py-1 rounded bg-brand-blue text-white font-semibold text-[11px] hover:bg-brand-blue-hover transition shadow-sm"
                         >
-                          Start
+                          Pick / Start
                         </button>
                       )}
-                      {task.status !== 'completed' && (
+                      {task.status === 'pending' && !isOperatingStaff && (
+                        <span className="text-[11px] text-amber-700 font-medium">Awaiting Staff</span>
+                      )}
+                      {task.status === 'in_progress' && (
                         <button
                           onClick={() => handleUpdateStatus(task.id, 'completed')}
-                          className="px-2.5 py-1 rounded bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700 transition"
+                          className="px-2.5 py-1 rounded bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700 transition shadow-sm"
                         >
-                          Complete Clean
+                          Mark Completed
                         </button>
+                      )}
+                      {task.status === 'completed' && (
+                        <span className="text-[11px] text-emerald-700 font-semibold inline-flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Cleaned
+                        </span>
                       )}
                     </td>
                   </tr>

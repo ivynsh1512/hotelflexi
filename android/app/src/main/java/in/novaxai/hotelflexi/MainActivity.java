@@ -547,57 +547,7 @@ public class MainActivity extends AppCompatActivity {
 
         mainContainer.addView(sirenAlertCard);
 
-        // 3. Native Test Siren & Vibration Bar
-        LinearLayout testBar = new LinearLayout(this);
-        testBar.setOrientation(LinearLayout.HORIZONTAL);
-        testBar.setGravity(Gravity.CENTER_VERTICAL);
-        testBar.setPadding(32, 28, 32, 28);
-
-        GradientDrawable tbb = new GradientDrawable();
-        tbb.setColor(Color.parseColor("#131B2E"));
-        tbb.setCornerRadius(24);
-        tbb.setStroke(1, Color.parseColor("#2563EB"));
-        testBar.setBackground(tbb);
-
-        TextView tvTestDesc = new TextView(this);
-        tvTestDesc.setText("Hardware Siren & Vibration Test");
-        tvTestDesc.setTextColor(Color.WHITE);
-        tvTestDesc.setTextSize(12);
-        tvTestDesc.setTypeface(null, Typeface.BOLD);
-        tvTestDesc.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
-
-        Button btnTest = new Button(this);
-        btnTest.setText("Test Alarm");
-        btnTest.setTextColor(Color.WHITE);
-        btnTest.setTextSize(11);
-        btnTest.setTypeface(null, Typeface.BOLD);
-
-        GradientDrawable btbg = new GradientDrawable();
-        btbg.setColor(Color.parseColor("#2563EB"));
-        btbg.setCornerRadius(16);
-        btnTest.setBackground(btbg);
-
-        btnTest.setOnClickListener(v -> {
-            btnTest.setEnabled(false);
-            btnTest.setText("Ringing...");
-            sirenEngine.testSiren(3500, () -> {
-                btnTest.setEnabled(true);
-                btnTest.setText("Test Alarm");
-            });
-        });
-
-        testBar.addView(tvTestDesc);
-        testBar.addView(btnTest);
-
-        LinearLayout.LayoutParams tblp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        tblp.setMargins(0, 0, 0, 36);
-        testBar.setLayoutParams(tblp);
-        mainContainer.addView(testBar);
-
-        // 4. Active In-App Notifications Section (Requirement 3)
+        // 3. Active In-App Notifications Section (Requirement 3)
         TextView tvNotifHeader = new TextView(this);
         tvNotifHeader.setText("ACTIVE NOTIFICATIONS");
         tvNotifHeader.setTextColor(Color.parseColor("#94A3B8"));
