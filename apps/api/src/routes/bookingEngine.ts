@@ -20,10 +20,16 @@ bookingEngineRoutes.get('/properties/:slug', async (c) => {
 
   const property: any = await c.env.DB.prepare(
     `SELECT p.id, p.tenant_id, p.name, p.slug, p.address_line1, p.city, p.state,
-            p.country, p.phone, p.email, p.timezone, p.currency, p.check_in_time,
+            p.country, p.postal_code, p.phone, p.email, p.timezone, p.currency, p.check_in_time,
             p.check_out_time, p.cancellation_policy, p.description, p.amenities,
-            p.logo_url, p.gallery_images, p.child_cutoff_age, p.child_rate_paise
+            p.logo_url, p.gallery_images, p.child_cutoff_age, p.child_rate_paise,
+            ps.enable_online_booking, ps.advance_payment_policy, ps.advance_payment_percent,
+            ps.advance_payment_fixed_paise, ps.booking_engine_terms, ps.upi_id,
+            ps.razorpay_enabled,
+            CASE WHEN ps.razorpay_enabled = 1 AND ps.razorpay_key_id IS NOT NULL AND LENGTH(ps.razorpay_key_id) > 0 THEN ps.razorpay_key_id ELSE NULL END as razorpay_key_id,
+            CASE WHEN ps.razorpay_enabled = 1 AND ps.razorpay_key_id IS NOT NULL AND ps.razorpay_key_secret IS NOT NULL AND LENGTH(ps.razorpay_key_secret) > 0 THEN 1 ELSE 0 END as razorpay_ready
      FROM properties p
+     LEFT JOIN property_settings ps ON ps.property_id = p.id
      WHERE p.slug = ?`
   )
     .bind(slug)
@@ -52,6 +58,11 @@ bookingEngineRoutes.get('/properties/:slug', async (c) => {
       galleryImages: property.gallery_images ? JSON.parse(property.gallery_images) : [],
       childCutoffAge: property.child_cutoff_age ?? 10,
       childRatePaise: property.child_rate_paise ?? 0,
+      advancePaymentPolicy: property.advance_payment_policy || 'full',
+      advancePaymentPercent: property.advance_payment_percent ?? 100,
+      advancePaymentFixedPaise: property.advance_payment_fixed_paise ?? 0,
+      bookingEngineTerms: property.booking_engine_terms || '',
+      razorpayReady: Boolean(property.razorpay_ready),
     },
     roomTypes: (roomTypes.results || []).map((rt: any) => ({
       ...rt,
@@ -217,7 +228,8 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
   }
 
   const property: any = await c.env.DB.prepare(
-    `SELECT p.*, ps.razorpay_key_id as prop_key_id, ps.razorpay_key_secret as prop_secret, ps.razorpay_enabled
+    `SELECT p.*, ps.razorpay_key_id as prop_key_id, ps.razorpay_key_secret as prop_secret, ps.razorpay_enabled,
+            ps.advance_payment_policy, ps.advance_payment_percent, ps.advance_payment_fixed_paise
      FROM properties p
      LEFT JOIN property_settings ps ON ps.property_id = p.id
      WHERE p.slug = ?`
@@ -359,14 +371,41 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
   const guestPortalExpiresAt = Math.floor(new Date(`${checkOutDate}T23:59:59Z`).getTime() / 1000) + (7 * 86400);
   const guestPortalUrl = `https://hotelflexi.vercel.app/guest/${guestPortalToken}`;
 
-  // Determine Razorpay Credentials (Property direct vs Superadmin Platform)
-  const usePropKey = property.razorpay_enabled && property.prop_key_id && property.prop_secret;
-  const razorpayKeyId = usePropKey ? property.prop_key_id : c.env.RAZORPAY_KEY_ID;
-  const razorpaySecret = usePropKey ? property.prop_secret : c.env.RAZORPAY_KEY_SECRET;
+  // Advance Payment Calculation based on Property Rules
+  const advancePolicy = property.advance_payment_policy || 'full';
+  let advanceAmountPaise = 0;
+
+  if (advancePolicy === 'full') {
+    advanceAmountPaise = totalAmountPaise;
+  } else if (advancePolicy === 'partial_percent') {
+    const pct = Math.min(100, Math.max(1, property.advance_payment_percent ?? 20));
+    advanceAmountPaise = Math.round((totalAmountPaise * pct) / 100);
+  } else if (advancePolicy === 'partial_fixed') {
+    const fixed = property.advance_payment_fixed_paise ?? 100000;
+    advanceAmountPaise = Math.min(totalAmountPaise, fixed);
+  } else if (advancePolicy === 'pay_at_hotel') {
+    advanceAmountPaise = 0;
+  } else {
+    advanceAmountPaise = totalAmountPaise;
+  }
+
+  const balanceAmountPaise = Math.max(0, totalAmountPaise - advanceAmountPaise);
+
+  // Determine Razorpay Credentials: MUST be the hotelier's own Razorpay keys
+  const hasOwnerRazorpay = Boolean(
+    property.razorpay_enabled &&
+    property.prop_key_id &&
+    property.prop_secret &&
+    String(property.prop_key_id).trim().startsWith('rzp_')
+  );
 
   let razorpayOrderId: string | null = null;
-  if (razorpayKeyId && razorpaySecret && razorpayKeyId !== 'rzp_test_placeholder_key_id') {
+  let razorpayKeyId: string | null = null;
+
+  if (hasOwnerRazorpay && advanceAmountPaise > 0) {
     try {
+      razorpayKeyId = String(property.prop_key_id).trim();
+      const razorpaySecret = String(property.prop_secret).trim();
       const basicAuth = btoa(`${razorpayKeyId}:${razorpaySecret}`);
       const rzpRes = await fetch('https://api.razorpay.com/v1/orders', {
         method: 'POST',
@@ -375,15 +414,18 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: totalAmountPaise,
+          amount: advanceAmountPaise,
           currency: 'INR',
           receipt: reservationNumber,
-          notes: { reservationId, guestName, propertySlug: slug, guestPortalToken },
+          notes: { reservationId, guestName, propertySlug: slug, guestPortalToken, advancePolicy },
         }),
       });
       if (rzpRes.ok) {
         const rzpData: any = await rzpRes.json();
         razorpayOrderId = rzpData.id;
+      } else {
+        const errJson = await rzpRes.json().catch(() => null);
+        console.error('[Razorpay Order Error]', errJson);
       }
     } catch (e) {
       console.error('Razorpay order creation error:', e);
@@ -499,17 +541,97 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
     reservationNumber,
     roomNumber: availableRoom.room_number,
     totalAmountPaise,
+    advanceAmountPaise,
+    balanceAmountPaise,
+    advancePolicy,
+    hasOwnerRazorpay,
     totalDiscountPaise: discountPaise,
     guestPortalToken,
     guestPortalUrl,
-    razorpay: razorpayOrderId
+    razorpay: razorpayOrderId && razorpayKeyId
       ? {
           orderId: razorpayOrderId,
           keyId: razorpayKeyId,
-          amount: totalAmountPaise,
+          amount: advanceAmountPaise,
           currency: 'INR',
         }
       : null,
     message: 'Booking successfully confirmed!',
+  });
+});
+
+// -----------------------------------------------------------------------------
+// VERIFY DIRECT BOOKING ADVANCE PAYMENT
+// -----------------------------------------------------------------------------
+bookingEngineRoutes.post('/properties/:slug/verify-payment', async (c) => {
+  const slug = c.req.param('slug');
+  const body = await c.req.json();
+  const { reservationId, razorpayPaymentId, razorpayOrderId, amountPaise } = body;
+
+  if (!reservationId || !razorpayPaymentId) {
+    return c.json({ error: 'Missing reservationId or razorpayPaymentId' }, 400);
+  }
+
+  const reservation: any = await c.env.DB.prepare(
+    `SELECT res.*, ps.razorpay_key_secret as prop_secret, ps.razorpay_enabled
+     FROM reservations res
+     JOIN properties p ON p.id = res.property_id
+     LEFT JOIN property_settings ps ON ps.property_id = p.id
+     WHERE res.id = ? AND p.slug = ?`
+  )
+    .bind(reservationId, slug)
+    .first();
+
+  if (!reservation) {
+    return c.json({ error: 'Reservation not found' }, 404);
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const paidIncrement = amountPaise || (reservation.total_amount_paise - reservation.balance_amount_paise > 0 ? reservation.total_amount_paise - reservation.balance_amount_paise : reservation.total_amount_paise);
+  const newPaidPaise = Math.min(reservation.total_amount_paise, (reservation.paid_amount_paise || 0) + paidIncrement);
+  const newBalancePaise = Math.max(0, reservation.total_amount_paise - newPaidPaise);
+  const newPaymentStatus = newBalancePaise === 0 ? 'paid' : (newPaidPaise > 0 ? 'partial' : 'pending');
+
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE reservations SET
+         paid_amount_paise = ?,
+         balance_amount_paise = ?,
+         payment_status = ?,
+         updated_at = ?
+       WHERE id = ?`
+    ).bind(newPaidPaise, newBalancePaise, newPaymentStatus, now, reservationId),
+    c.env.DB.prepare(
+      `INSERT INTO payments (
+         id, tenant_id, property_id, reservation_id, amount_paise, payment_method,
+         status, reference_id, transaction_id, notes, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, 'razorpay', 'completed', ?, ?, 'Direct Booking Advance Payment', ?, ?)`
+    ).bind(
+      `pay_${crypto.randomUUID()}`,
+      reservation.tenant_id,
+      reservation.property_id,
+      reservationId,
+      paidIncrement,
+      razorpayOrderId || null,
+      razorpayPaymentId,
+      now,
+      now
+    ),
+    c.env.DB.prepare(
+      `UPDATE invoices SET
+         paid_amount_paise = ?,
+         balance_amount_paise = ?,
+         status = ?,
+         updated_at = ?
+       WHERE reservation_id = ?`
+    ).bind(newPaidPaise, newBalancePaise, newBalancePaise === 0 ? 'paid' : 'issued', now, reservationId),
+  ]);
+
+  return c.json({
+    success: true,
+    paidAmountPaise: newPaidPaise,
+    balanceAmountPaise: newBalancePaise,
+    paymentStatus: newPaymentStatus,
+    message: 'Payment verified and reservation updated successfully!',
   });
 });

@@ -257,14 +257,23 @@ guestPortalRoutes.post('/:token/create-payment', async (c) => {
     return c.json({ error: 'No outstanding balance to pay' }, 400);
   }
 
-  // Determine which Razorpay key to use (Property direct or Platform)
-  const usePropKey = res.razorpay_enabled && res.prop_key_id && res.prop_secret;
-  const keyId = usePropKey ? res.prop_key_id : c.env.RAZORPAY_KEY_ID;
-  const keySecret = usePropKey ? res.prop_secret : c.env.RAZORPAY_KEY_SECRET;
+  // Must use the property's own Razorpay keys for direct payment collections
+  const usePropKey = Boolean(
+    res.razorpay_enabled &&
+    res.prop_key_id &&
+    res.prop_secret &&
+    String(res.prop_key_id).trim().startsWith('rzp_')
+  );
 
-  if (!keyId || !keySecret) {
-    return c.json({ error: 'Online payment gateway is currently not configured for this hotel.' }, 503);
+  if (!usePropKey) {
+    return c.json({
+      error: 'Direct online card payment is not configured yet by the hotel. Please settle your outstanding balance at the hotel front desk or scan the hotel UPI QR code.',
+      upiId: res.property_upi_id || null,
+    }, 400);
   }
+
+  const keyId = String(res.prop_key_id).trim();
+  const keySecret = String(res.prop_secret).trim();
 
   try {
     const basicAuth = btoa(`${keyId}:${keySecret}`);

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiClient } from '@/lib/api';
 import {
   UtensilsCrossed,
   Clock,
@@ -57,49 +58,14 @@ export default function GuestDineOutBookingPage() {
       setLoading(true);
       setError('');
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.hotelflexi.novaxai.in';
-        const res = await fetch(`${apiUrl}/api/v1/dining/public/${slugOrCode}`);
-        if (!res.ok) {
-          throw new Error('Restaurant details not found');
+        const json = await apiClient(`/dining/public/${slugOrCode}`);
+        if (!json || json.error) {
+          throw new Error(json?.error || 'Restaurant details not found');
         }
-        const json = await res.json();
         setData(json);
       } catch (err: any) {
-        // Fallback demo data if API is offline
-        setData({
-          property: {
-            id: 'prop_demo',
-            name: 'The Grand Heritage Palace & Spa',
-            hotel_code: slugOrCode || '58291',
-            city: 'Udaipur',
-            state: 'Rajasthan',
-            address: 'Lake Pichola Road, Udaipur',
-          },
-          restaurant: {
-            id: 'rest_demo',
-            name: 'The Royal Spice Courtyard',
-            description: 'Heritage fine dining featuring authentic Royal Rajasthani, Awadhi, and Tandoor delicacies. Open for outside resort guests and residents.',
-            cuisine_type: 'North Indian, Mughlai & Rajasthani',
-            is_pure_veg: 1,
-            open_time: '07:30',
-            close_time: '23:00',
-            meal_slots: [
-              { label: 'Breakfast', time: '07:30 - 10:30' },
-              { label: 'Lunch', time: '12:30 - 15:30' },
-              { label: 'High Tea', time: '16:30 - 18:30' },
-              { label: 'Dinner', time: '19:30 - 23:00' },
-            ],
-            seating_capacity: 60,
-          },
-          menu: [
-            { id: 'm1', name: 'Dal Baati Churma Royal Thali', category: 'Main Course', price_paise: 55000, is_veg: 1, description: 'Traditional five-lentil dal with ghee baati and dry-fruit churma.' },
-            { id: 'm2', name: 'Paneer Lababdar', category: 'Main Course', price_paise: 38000, is_veg: 1, description: 'Cottage cheese simmered in velvety tomato onion gravy.' },
-            { id: 'm3', name: 'Tandoori Soya Malai Chaap', category: 'Starters', price_paise: 32000, is_veg: 1, description: 'Charcoal grilled soya chaap marinated in fresh cream & cardamom.' },
-            { id: 'm4', name: 'Butter Garlic Naan', category: 'Breads & Rice', price_paise: 9000, is_veg: 1, description: 'Leavened flatbread brushed with garlic butter.' },
-            { id: 'm5', name: 'Gulab Jamun with Rabri', category: 'Desserts', price_paise: 18000, is_veg: 1, description: 'Warm khoya dumplings topped with thickened saffron milk.' },
-            { id: 'm6', name: 'Royal Kesar Badam Thandai', category: 'Beverages', price_paise: 16000, is_veg: 1, description: 'Chilled almond and saffron milk infused with fennel seeds.' },
-          ],
-        });
+        setData(null);
+        setError(err.message || `No active property or restaurant found for hotel code #${slugOrCode}. Please verify the code or contact front desk.`);
       } finally {
         setLoading(false);
       }
@@ -166,43 +132,18 @@ export default function GuestDineOutBookingPage() {
     };
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.hotelflexi.novaxai.in';
-      const res = await fetch(`${apiUrl}/api/v1/dining/public/${slugOrCode}/book`, {
+      const resData = await apiClient(`/dining/public/${slugOrCode}/book`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      const resData = await res.json();
-      if (res.ok && resData.success) {
+      if (resData && resData.success) {
         setConfirmedBooking(resData.booking);
       } else {
-        // Fallback for demo
-        setConfirmedBooking({
-          booking_number: `DINE-${Math.floor(10000 + Math.random() * 90000)}`,
-          guest_name: guestName,
-          booking_date: bookingDate,
-          booking_time: bookingTime,
-          guests_count: guestsCount,
-          hotel_name: data?.property?.name,
-          hotel_code: data?.property?.hotel_code,
-          payment_method: paymentMethod,
-          payment_status: paymentMethod === 'pay_online' ? 'paid' : 'pending',
-        });
+        alert(resData?.error || 'Failed to submit dining reservation. Please try again.');
       }
-    } catch (err) {
-      // Local fallback
-      setConfirmedBooking({
-        booking_number: `DINE-${Math.floor(10000 + Math.random() * 90000)}`,
-        guest_name: guestName,
-        booking_date: bookingDate,
-        booking_time: bookingTime,
-        guests_count: guestsCount,
-        hotel_name: data?.property?.name,
-        hotel_code: data?.property?.hotel_code,
-        payment_method: paymentMethod,
-        payment_status: paymentMethod === 'pay_online' ? 'paid' : 'pending',
-      });
+    } catch (err: any) {
+      alert(err.message || 'Failed to submit dining reservation.');
     } finally {
       setSubmitting(false);
     }
@@ -292,6 +233,30 @@ export default function GuestDineOutBookingPage() {
               Back to Home
             </Link>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data?.property) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 shadow-xl p-8 text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mx-auto">
+            <UtensilsCrossed className="w-7 h-7" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-slate-900">Dining Not Found</h2>
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+              {error || `No active property or dining venue found for hotel code #${slugOrCode}. Please verify the code or contact reception.`}
+            </p>
+          </div>
+          <Link
+            href="/"
+            className="inline-block px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition"
+          >
+            Back to Home
+          </Link>
         </div>
       </div>
     );

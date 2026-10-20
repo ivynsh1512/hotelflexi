@@ -78,10 +78,11 @@ diningRoutes.get('/public/:codeOrSlug', async (c) => {
 
   const menu = menuRows.results || [];
 
-  // Check if ALL menu items are vegetarian -> automatic Pure Veg indicator
+  // Check if any non-veg dish exists -> if yes, pure veg is strictly 0
   const hasDishes = menu.length > 0;
-  const allDishesVeg = hasDishes && menu.every((item: any) => item.is_veg === 1);
-  const isPureVeg = restaurant.is_pure_veg === 1 || allDishesVeg;
+  const hasNonVeg = menu.some((item: any) => item.is_veg === 0);
+  const allDishesVeg = hasDishes && !hasNonVeg;
+  const isPureVeg = hasNonVeg ? 0 : (restaurant.is_pure_veg === 1 || allDishesVeg ? 1 : 0);
 
   return c.json({
     property: {

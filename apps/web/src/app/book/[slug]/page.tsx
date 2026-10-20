@@ -79,6 +79,17 @@ export default function DirectBookingPage() {
   };
 
   useEffect(() => {
+    // Dynamically load Razorpay checkout script if needed
+    if (!document.getElementById('razorpay-checkout-script')) {
+      const script = document.createElement('script');
+      script.id = 'razorpay-checkout-script';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  useEffect(() => {
     async function loadProperty() {
       try {
         const propData = await apiClient(`/public/properties/${slug}`);
@@ -149,7 +160,56 @@ export default function DirectBookingPage() {
         body: JSON.stringify(payload),
       });
 
-      setBookingConfirmed(result);
+      if (result?.razorpay && (window as any).Razorpay) {
+        try {
+          const rzp = new (window as any).Razorpay({
+            key: result.razorpay.keyId,
+            amount: result.razorpay.amount,
+            currency: result.razorpay.currency || 'INR',
+            name: property?.name || 'HotelFlexi',
+            description: `Advance Deposit - ${result.reservationNumber}`,
+            order_id: result.razorpay.orderId,
+            prefill: {
+              name: guestName,
+              email: guestEmail,
+              contact: guestPhone,
+            },
+            theme: {
+              color: '#1e40af',
+            },
+            handler: async (response: any) => {
+              try {
+                await apiClient(`/public/properties/${slug}/verify-payment`, {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    reservationId: result.reservationId,
+                    razorpayPaymentId: response.razorpay_payment_id,
+                    razorpayOrderId: response.razorpay_order_id,
+                    amountPaise: result.razorpay.amount,
+                  }),
+                });
+                setBookingConfirmed({
+                  ...result,
+                  advancePaid: true,
+                  paymentStatus: 'paid_advance',
+                });
+              } catch (err) {
+                setBookingConfirmed(result);
+              }
+            },
+            modal: {
+              ondismiss: () => {
+                setBookingConfirmed(result);
+              },
+            },
+          });
+          rzp.open();
+        } catch (err) {
+          setBookingConfirmed(result);
+        }
+      } else {
+        setBookingConfirmed(result);
+      }
     } catch (e: any) {
       console.error('Booking failed:', e);
       setError(e.message || 'Booking submission failed.');
@@ -229,6 +289,19 @@ export default function DirectBookingPage() {
                 <img src={img} alt="Property" className="w-full h-full object-cover hover:scale-105 transition duration-300" />
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Property Overview / Description if available */}
+        {property?.description && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-border-light shadow-sm space-y-1.5">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-content-primary-light flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-brand-blue" />
+              About {property?.name}
+            </h2>
+            <p className="text-xs text-content-secondary-light leading-relaxed whitespace-pre-line">
+              {property.description}
+            </p>
           </div>
         )}
 
@@ -472,6 +545,24 @@ export default function DirectBookingPage() {
                     )}
                   </div>
 
+                  <div className="p-2.5 rounded-lg bg-white/80 border border-blue-200 text-[11px] text-slate-800 space-y-1">
+                    {bookingConfirmed.advancePaid || bookingConfirmed.paymentStatus === 'paid_advance' ? (
+                      <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Advance Paid: {formatINR(bookingConfirmed.advanceAmountPaise || bookingConfirmed.totalAmountPaise)} (Razorpay Direct)</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-blue-900 font-bold">
+                        <Hotel className="w-3.5 h-3.5 text-brand-blue" />
+                        <span>Payment Mode: Pay at Hotel upon Check-in</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-slate-600 text-[10px]">
+                      <span>Total Stay Tariff: {formatINR(bookingConfirmed.totalAmountPaise)}</span>
+                      <span>Balance Due at Check-in: {formatINR(bookingConfirmed.balanceAmountPaise || 0)}</span>
+                    </div>
+                  </div>
+
                   <p className="text-slate-700 leading-relaxed text-[11px]">
                     Use your personal FlexiLink portal for <strong>express self check-in</strong>, digital folio, and contactless payments.
                     We have also emailed this confirmation and link to <strong>{guestEmail || 'your email address'}</strong>.
@@ -624,43 +715,92 @@ export default function DirectBookingPage() {
                   />
                 </div>
 
-                {/* Pricing Summary */}
-                <div className="p-3.5 rounded-xl bg-surface-light border border-border-light space-y-1.5 text-xs">
-                  <div className="flex justify-between text-content-secondary-light">
-                    <span>Room Tariff</span>
-                    <span>{formatINR(selectedRoom.totalRoomChargePaise)}</span>
-                  </div>
-                  <div className="flex justify-between text-content-secondary-light">
-                    <span>Applicable GST</span>
-                    <span>{formatINR(selectedRoom.taxPaise)}</span>
-                  </div>
-                  {appliedCoupon && (
-                    <div className="flex justify-between text-emerald-700 font-semibold">
-                      <span>Promo Discount ({appliedCoupon.code})</span>
-                      <span>-{formatINR(appliedCoupon.discountPaise)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-extrabold text-content-primary-light text-sm pt-1.5 border-t border-border-light">
-                    <span>Total Amount Payable</span>
-                    <span className="text-brand-blue">
-                      {formatINR(Math.max(0, selectedRoom.totalPaise - (appliedCoupon?.discountPaise || 0)))}
-                    </span>
-                  </div>
-                </div>
+                {/* Dynamic Pricing & Advance Calculation */}
+                {(() => {
+                  const finalTotalPaise = Math.max(0, selectedRoom.totalPaise - (appliedCoupon?.discountPaise || 0));
+                  const advancePolicy = property?.advancePaymentPolicy || 'full';
+                  let advancePaise = finalTotalPaise;
+                  if (advancePolicy === 'partial_percent') {
+                    const pct = Math.min(100, Math.max(1, property?.advancePaymentPercent || 20));
+                    advancePaise = Math.round((finalTotalPaise * pct) / 100);
+                  } else if (advancePolicy === 'partial_fixed') {
+                    const fixed = property?.advancePaymentFixedPaise || 100000;
+                    advancePaise = Math.min(finalTotalPaise, fixed);
+                  } else if (advancePolicy === 'pay_at_hotel') {
+                    advancePaise = 0;
+                  }
+                  const balancePaise = Math.max(0, finalTotalPaise - advancePaise);
+                  const isOnlinePaymentAvailable = Boolean(property?.razorpayReady && advancePaise > 0);
 
-                <button
-                  type="submit"
-                  disabled={bookingLoading}
-                  className="w-full py-3 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shadow-sm flex items-center justify-center gap-2"
-                >
-                  {bookingLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Securing Reservation...
-                    </>
-                  ) : (
-                    'Confirm & Generate FlexiLink Pass'
-                  )}
-                </button>
+                  return (
+                    <div className="space-y-3">
+                      <div className="p-3.5 rounded-xl bg-surface-light border border-border-light space-y-1.5 text-xs">
+                        <div className="flex justify-between text-content-secondary-light">
+                          <span>Room Tariff</span>
+                          <span>{formatINR(selectedRoom.totalRoomChargePaise)}</span>
+                        </div>
+                        <div className="flex justify-between text-content-secondary-light">
+                          <span>Applicable GST</span>
+                          <span>{formatINR(selectedRoom.taxPaise)}</span>
+                        </div>
+                        {appliedCoupon && (
+                          <div className="flex justify-between text-emerald-700 font-semibold">
+                            <span>Promo Discount ({appliedCoupon.code})</span>
+                            <span>-{formatINR(appliedCoupon.discountPaise)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-extrabold text-content-primary-light text-sm pt-1.5 border-t border-border-light">
+                          <span>Total Stay Tariff</span>
+                          <span className="text-slate-900">{formatINR(finalTotalPaise)}</span>
+                        </div>
+
+                        {advancePolicy !== 'full' && (
+                          <div className="pt-2 border-t border-dashed border-border-light space-y-1">
+                            <div className="flex justify-between items-center text-xs font-bold text-brand-blue">
+                              <span>Advance Payable Now ({advancePolicy === 'partial_percent' ? `${property?.advancePaymentPercent}% Deposit` : advancePolicy === 'partial_fixed' ? 'Fixed Deposit' : 'Pay at Hotel'})</span>
+                              <span>{formatINR(advancePaise)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[11px] text-content-secondary-light">
+                              <span>Remaining Balance (Due at Check-in)</span>
+                              <span>{formatINR(balancePaise)}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {!isOnlinePaymentAvailable && advancePaise > 0 && (
+                        <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900 flex items-start gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                          <span>Direct online payment gateway is currently pending configuration by hotelier. You can confirm your booking with <strong>Pay at Hotel</strong> upon arrival.</span>
+                        </div>
+                      )}
+
+                      {property?.bookingEngineTerms && (
+                        <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] text-slate-600">
+                          <strong>House Rules &amp; Cancellation:</strong> {property.bookingEngineTerms}
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={bookingLoading}
+                        className="w-full py-3 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shadow-sm flex items-center justify-center gap-2"
+                      >
+                        {bookingLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" /> Securing Reservation...
+                          </>
+                        ) : isOnlinePaymentAvailable ? (
+                          <>
+                            <CreditCard className="w-4 h-4" /> Pay Advance ({formatINR(advancePaise)}) via Razorpay &amp; Confirm
+                          </>
+                        ) : (
+                          'Confirm Reservation (Pay at Hotel)'
+                        )}
+                      </button>
+                    </div>
+                  );
+                })()}
               </form>
             )}
           </div>

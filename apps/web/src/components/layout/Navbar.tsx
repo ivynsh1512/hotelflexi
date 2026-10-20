@@ -35,10 +35,6 @@ export const Navbar: React.FC = () => {
           <Link href="/booking-engine" className="hover:text-brand-blue transition-colors">
             Booking Engine
           </Link>
-          <Link href="/dine-out" className="flex items-center gap-1 hover:text-brand-blue transition-colors">
-            <UtensilsCrossed className="w-3.5 h-3.5 text-amber-600" />
-            Dine-Out
-          </Link>
           <Link href="/ai-hotel-agent" className="flex items-center gap-1.5 text-brand-blue font-semibold hover:text-brand-blue-hover transition-colors">
             <Sparkles className="w-3.5 h-3.5" />
             AI Agent
@@ -140,14 +136,6 @@ export const Navbar: React.FC = () => {
             className="block py-2 text-sm font-semibold text-brand-blue"
           >
             AI Agent
-          </Link>
-          <Link
-            href="/dine-out"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-1.5 py-2 text-sm font-semibold text-amber-700"
-          >
-            <UtensilsCrossed className="w-4 h-4 text-amber-600" />
-            Dine-Out &amp; Restaurant
           </Link>
           <Link
             href="/pricing"

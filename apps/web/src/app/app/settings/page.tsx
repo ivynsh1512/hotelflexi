@@ -20,6 +20,9 @@ import {
   Trash2,
   Wifi,
   Baby,
+  Upload,
+  FileText,
+  Percent,
 } from 'lucide-react';
 
 declare global {
@@ -56,6 +59,7 @@ export default function HotelSettingsPage() {
 
   // Form states
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
@@ -68,6 +72,12 @@ export default function HotelSettingsPage() {
   const [gstNumber, setGstNumber] = useState('');
   const [invoicePrefix, setInvoicePrefix] = useState('HF-');
   const [upiId, setUpiId] = useState('');
+
+  // Booking Engine Rules & Advance Payment Policy
+  const [advancePaymentPolicy, setAdvancePaymentPolicy] = useState<'full' | 'partial_percent' | 'partial_fixed' | 'pay_at_hotel'>('full');
+  const [advancePaymentPercent, setAdvancePaymentPercent] = useState('100');
+  const [advancePaymentFixed, setAdvancePaymentFixed] = useState('1000');
+  const [bookingEngineTerms, setBookingEngineTerms] = useState('');
 
   // Branding, Amenities & Child Policy
   const [logoUrl, setLogoUrl] = useState('');
@@ -108,6 +118,7 @@ export default function HotelSettingsPage() {
         if (activeProp) {
           setProperty(activeProp);
           setName(activeProp.name || '');
+          setDescription(activeProp.description || '');
           setPhone(activeProp.phone || '');
           setEmail(activeProp.email || '');
           setAddress(activeProp.address_line1 || '');
@@ -123,6 +134,10 @@ export default function HotelSettingsPage() {
           setLogoUrl(activeProp.logo_url || '');
           setRazorpayKeyId(activeProp.razorpay_key_id || '');
           setRazorpayEnabled(Boolean(activeProp.razorpay_enabled));
+          setAdvancePaymentPolicy(activeProp.advance_payment_policy || 'full');
+          setAdvancePaymentPercent(String(activeProp.advance_payment_percent ?? 100));
+          setAdvancePaymentFixed(String(activeProp.advance_payment_fixed_paise ? activeProp.advance_payment_fixed_paise / 100 : 1000));
+          setBookingEngineTerms(activeProp.booking_engine_terms || '');
           setChildCutoffAge(String(activeProp.child_cutoff_age ?? 10));
           setChildRate(activeProp.child_rate_paise ? String(activeProp.child_rate_paise / 100) : '0');
 
@@ -202,6 +217,42 @@ export default function HotelSettingsPage() {
     setGalleryImages(galleryImages.filter((_, i) => i !== idx));
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image file size should be less than 5MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setGalleryImages((prev) => [...prev, dataUrl]);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Logo file size should be less than 3MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setLogoUrl(dataUrl);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!property) return;
@@ -213,6 +264,7 @@ export default function HotelSettingsPage() {
         method: 'PATCH',
         body: JSON.stringify({
           name,
+          description,
           phone,
           email,
           address_line1: address,
@@ -228,6 +280,10 @@ export default function HotelSettingsPage() {
           logo_url: logoUrl || null,
           gallery_images: galleryImages,
           amenities: amenities,
+          advance_payment_policy: advancePaymentPolicy,
+          advance_payment_percent: parseInt(advancePaymentPercent, 10) || 100,
+          advance_payment_fixed_paise: Math.round((parseFloat(advancePaymentFixed) || 0) * 100),
+          booking_engine_terms: bookingEngineTerms || null,
           child_cutoff_age: parseInt(childCutoffAge, 10) || 10,
           child_rate_paise: Math.round((parseFloat(childRate) || 0) * 100),
           razorpay_key_id: razorpayKeyId || null,
@@ -445,6 +501,19 @@ export default function HotelSettingsPage() {
                 />
               </div>
             </div>
+
+            <div>
+              <label className="block font-semibold mb-1 text-content-primary-light">
+                Property Overview &amp; Description (Displayed on Booking Engine, OTA feeds &amp; Guest Vouchers)
+              </label>
+              <textarea
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Nestled in the heart of the city, our luxury boutique resort features opulent heritage rooms, scenic valley views, lush lawns, multi-cuisine dining, and 24/7 guest hospitality..."
+                className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue leading-relaxed"
+              />
+            </div>
           </div>
 
           {/* Billing & Tax Settings */}
@@ -492,20 +561,25 @@ export default function HotelSettingsPage() {
             <div className="flex items-center gap-2 border-b border-border-light pb-2">
               <ImageIcon className="w-4 h-4 text-brand-blue" />
               <h3 className="font-bold text-sm text-content-primary-light">
-                Property Branding & Photo Gallery
+                Property Branding &amp; Photo Gallery
               </h3>
             </div>
 
             <div>
-              <label className="block font-semibold mb-1 text-content-primary-light">Hotel Logo Image URL</label>
-              <div className="flex gap-3 items-center">
+              <label className="block font-semibold mb-1 text-content-primary-light">Hotel Logo</label>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                 <input
                   type="url"
                   value={logoUrl}
                   onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="https://example.com/hotel-logo.png"
-                  className="flex-1 px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  placeholder="Paste Logo URL or upload directly..."
+                  className="flex-1 px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue text-xs font-mono"
                 />
+                <label className="cursor-pointer px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg font-bold border border-border-light transition shrink-0 flex items-center justify-center gap-1.5 text-xs">
+                  <Upload className="w-3.5 h-3.5" />
+                  Upload Logo File
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                </label>
                 {logoUrl && (
                   <div className="w-10 h-10 rounded-lg border border-border-light bg-surface-light p-1 shrink-0 overflow-hidden flex items-center justify-center">
                     <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
@@ -515,8 +589,8 @@ export default function HotelSettingsPage() {
             </div>
 
             <div className="space-y-2 pt-2 border-t border-border-light">
-              <label className="block font-semibold text-content-primary-light">Property Gallery Photos (Shown on Booking Engine)</label>
-              <div className="flex gap-2">
+              <label className="block font-semibold text-content-primary-light">Property Gallery Photos (Shown on Booking Engine &amp; OTA Feeds)</label>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="url"
                   value={newImageUrl}
@@ -527,10 +601,15 @@ export default function HotelSettingsPage() {
                 <button
                   type="button"
                   onClick={handleAddGalleryImage}
-                  className="px-3.5 py-2 bg-brand-blue text-white rounded-lg font-bold hover:bg-brand-blue-hover transition shrink-0 flex items-center gap-1"
+                  className="px-3.5 py-2 bg-brand-blue text-white rounded-lg font-bold hover:bg-brand-blue-hover transition shrink-0 flex items-center justify-center gap-1"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Add Photo
+                  <Plus className="w-3.5 h-3.5" /> Add URL
                 </button>
+                <label className="cursor-pointer px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold transition shrink-0 flex items-center justify-center gap-1.5 text-xs">
+                  <Upload className="w-3.5 h-3.5" />
+                  Upload Photo File
+                  <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                </label>
               </div>
 
               {galleryImages.length > 0 && (
@@ -652,6 +731,134 @@ export default function HotelSettingsPage() {
               </div>
             </div>
           </div>
+
+          {/* Booking Engine Rules & Advance Payment Policy */}
+          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
+            <div className="flex items-center gap-2 border-b border-border-light pb-2">
+              <CreditCard className="w-4 h-4 text-brand-blue" />
+              <h3 className="font-bold text-sm text-content-primary-light">
+                Booking Engine Rules &amp; Advance Payment Policy
+              </h3>
+            </div>
+            <p className="text-content-secondary-light leading-relaxed">
+              Decide how guests are charged when reserving rooms through your direct booking engine. Choose between full advance payment, a percentage or fixed advance deposit, or zero advance (pay at hotel).
+            </p>
+
+            <div className="space-y-3">
+              <label className="block font-semibold text-content-primary-light">
+                Advance Payment Requirement
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className={`p-3 rounded-xl border cursor-pointer flex items-start gap-3 transition ${advancePaymentPolicy === 'full' ? 'border-brand-blue bg-blue-50/50 shadow-sm' : 'border-border-light bg-surface-light hover:bg-slate-50'}`}>
+                  <input
+                    type="radio"
+                    name="advance_policy"
+                    value="full"
+                    checked={advancePaymentPolicy === 'full'}
+                    onChange={() => setAdvancePaymentPolicy('full')}
+                    className="mt-0.5 text-brand-blue focus:ring-brand-blue"
+                  />
+                  <div>
+                    <span className="font-bold text-content-primary-light block">100% Full Advance Payment</span>
+                    <span className="text-[11px] text-content-secondary-light">Guest pays the entire room tariff + GST online upon reserving.</span>
+                  </div>
+                </label>
+
+                <label className={`p-3 rounded-xl border cursor-pointer flex items-start gap-3 transition ${advancePaymentPolicy === 'partial_percent' ? 'border-brand-blue bg-blue-50/50 shadow-sm' : 'border-border-light bg-surface-light hover:bg-slate-50'}`}>
+                  <input
+                    type="radio"
+                    name="advance_policy"
+                    value="partial_percent"
+                    checked={advancePaymentPolicy === 'partial_percent'}
+                    onChange={() => setAdvancePaymentPolicy('partial_percent')}
+                    className="mt-0.5 text-brand-blue focus:ring-brand-blue"
+                  />
+                  <div>
+                    <span className="font-bold text-content-primary-light block">Partial Percentage Advance</span>
+                    <span className="text-[11px] text-content-secondary-light">Guest pays a custom % advance deposit; balance is collected during check-in.</span>
+                  </div>
+                </label>
+
+                <label className={`p-3 rounded-xl border cursor-pointer flex items-start gap-3 transition ${advancePaymentPolicy === 'partial_fixed' ? 'border-brand-blue bg-blue-50/50 shadow-sm' : 'border-border-light bg-surface-light hover:bg-slate-50'}`}>
+                  <input
+                    type="radio"
+                    name="advance_policy"
+                    value="partial_fixed"
+                    checked={advancePaymentPolicy === 'partial_fixed'}
+                    onChange={() => setAdvancePaymentPolicy('partial_fixed')}
+                    className="mt-0.5 text-brand-blue focus:ring-brand-blue"
+                  />
+                  <div>
+                    <span className="font-bold text-content-primary-light block">Fixed Token Amount Advance</span>
+                    <span className="text-[11px] text-content-secondary-light">Guest pays a fixed token (e.g. ₹1,000) online; balance due at check-in.</span>
+                  </div>
+                </label>
+
+                <label className={`p-3 rounded-xl border cursor-pointer flex items-start gap-3 transition ${advancePaymentPolicy === 'pay_at_hotel' ? 'border-brand-blue bg-blue-50/50 shadow-sm' : 'border-border-light bg-surface-light hover:bg-slate-50'}`}>
+                  <input
+                    type="radio"
+                    name="advance_policy"
+                    value="pay_at_hotel"
+                    checked={advancePaymentPolicy === 'pay_at_hotel'}
+                    onChange={() => setAdvancePaymentPolicy('pay_at_hotel')}
+                    className="mt-0.5 text-brand-blue focus:ring-brand-blue"
+                  />
+                  <div>
+                    <span className="font-bold text-content-primary-light block">Pay at Hotel (0% Advance)</span>
+                    <span className="text-[11px] text-content-secondary-light">Instant reservation confirmed without online advance; full payment collected at check-in.</span>
+                  </div>
+                </label>
+              </div>
+
+              {advancePaymentPolicy === 'partial_percent' && (
+                <div className="p-3 bg-blue-50/60 border border-blue-200 rounded-xl space-y-1">
+                  <label className="block font-bold text-slate-800">Advance Deposit Percentage (%)</label>
+                  <div className="flex items-center gap-2 max-w-xs">
+                    <input
+                      type="number"
+                      min={5}
+                      max={95}
+                      value={advancePaymentPercent}
+                      onChange={(e) => setAdvancePaymentPercent(e.target.value)}
+                      className="w-28 px-3 py-1.5 rounded-lg border border-border-light bg-white font-bold text-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    />
+                    <span className="text-xs text-slate-600">% Advance required (Remaining {100 - (parseInt(advancePaymentPercent, 10) || 0)}% at check-in)</span>
+                  </div>
+                </div>
+              )}
+
+              {advancePaymentPolicy === 'partial_fixed' && (
+                <div className="p-3 bg-blue-50/60 border border-blue-200 rounded-xl space-y-1">
+                  <label className="block font-bold text-slate-800">Fixed Token Advance Amount (₹)</label>
+                  <div className="flex items-center gap-2 max-w-xs">
+                    <span className="font-bold text-slate-700">₹</span>
+                    <input
+                      type="number"
+                      min={100}
+                      value={advancePaymentFixed}
+                      onChange={(e) => setAdvancePaymentFixed(e.target.value)}
+                      className="w-32 px-3 py-1.5 rounded-lg border border-border-light bg-white font-bold text-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    />
+                    <span className="text-xs text-slate-600">per reservation</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-border-light">
+                <label className="block font-semibold mb-1 text-content-primary-light">
+                  Booking Engine Terms, House Rules &amp; Cancellation Policy
+                </label>
+                <textarea
+                  rows={2}
+                  value={bookingEngineTerms}
+                  onChange={(e) => setBookingEngineTerms(e.target.value)}
+                  placeholder="Free cancellation up to 48 hours before check-in. Valid Government ID required at front desk. Standard check-in 14:00, check-out 11:00..."
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
             <div className="flex items-center justify-between border-b border-border-light pb-2">
               <div className="flex items-center gap-2">
@@ -669,6 +876,13 @@ export default function HotelSettingsPage() {
                 />
                 Enable Direct Guest Collections
               </label>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-2">
+              <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <strong>Direct Settlement Notice:</strong> When you enter your Razorpay Key ID &amp; Key Secret and enable Direct Guest Collections, all booking engine advance deposits and guest portal balance payments will transfer directly into your own bank account via Razorpay. If left disabled, guests can reserve using <strong>Pay at Hotel</strong>.
+              </div>
             </div>
 
             <p className="text-content-secondary-light leading-relaxed">
