@@ -224,9 +224,9 @@ repositories {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    
-        implementation 'com.google.androidbrowserhelper:locationdelegation:1.1.2'
-    
-        implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
-    
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.core:core:1.12.0'
+    implementation 'com.google.androidbrowserhelper:locationdelegation:1.1.2'
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
 }

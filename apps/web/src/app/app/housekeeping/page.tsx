@@ -28,7 +28,7 @@ export default function HousekeepingPage() {
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [assignedToUserId, setAssignedToUserId] = useState('');
   const [taskType, setTaskType] = useState('cleaning');
-  const [priority, setPriority] = useState('medium');
+  const [priority, setPriority] = useState('urgent');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -69,6 +69,9 @@ export default function HousekeepingPage() {
         body: JSON.stringify({ status }),
       });
       await fetchTasks();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('hotelflexi:housekeeping-updated'));
+      }
     } catch (e: any) {
       alert(e.message || 'Status update failed.');
     }
@@ -97,6 +100,9 @@ export default function HousekeepingPage() {
       setNotes('');
       setAssignedToUserId('');
       await fetchTasks();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('hotelflexi:housekeeping-updated'));
+      }
     } catch (e: any) {
       alert(e.message || 'Task creation failed.');
     } finally {

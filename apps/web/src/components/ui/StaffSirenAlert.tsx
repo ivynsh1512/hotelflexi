@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
 import { Volume2, VolumeX, CheckCircle, Bell, X } from 'lucide-react';
@@ -21,7 +21,15 @@ interface UrgentSiren {
 export function StaffSirenAlert() {
   const { currentTenant, user, isPlatformAdmin } = useAuth();
   const [activeSirens, setActiveSirens] = useState<UrgentSiren[]>([]);
-  const [muted, setMuted] = useState(false);
+  
+  // Preserve user's configured mute preference across app restarts
+  const [muted, setMuted] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('hotelflexi_siren_muted') === 'true';
+    }
+    return false;
+  });
+
   const [acknowledgingId, setAcknowledgingId] = useState<string | null>(null);
   const notifiedIdsRef = useRef<Set<string>>(new Set());
 
@@ -32,15 +40,15 @@ export function StaffSirenAlert() {
     userRole === 'manager' ||
     userRole === 'staff';
 
-  // Poll for active urgent complaints, urgent housekeeping, and emergency alerts
-  const checkSirens = async () => {
+  // Poll and check active urgent complaints, urgent housekeeping, and emergency alerts
+  const checkSirens = useCallback(async () => {
     if (!currentTenant?.tenant_id || !user) return;
     try {
       const data = await apiClient('/operations/complaints/active-sirens');
       const sirens = (data.sirens || []) as UrgentSiren[];
       setActiveSirens(sirens);
 
-      // Trigger browser notification for newly arrived alerts
+      // Trigger native browser notification for newly arrived alerts
       if (sirens.length > 0 && typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'granted') {
           for (const s of sirens) {
@@ -61,28 +69,70 @@ export function StaffSirenAlert() {
     } catch {
       // Quiet fail if network glitch or permissions
     }
-  };
+  }, [currentTenant?.tenant_id, user]);
 
+  // Initial mount & event listeners for instantaneous synchronization
   useEffect(() => {
     setupAudioUnlock();
     if (!currentTenant?.tenant_id || !user) return;
 
+    // Check immediately on mount
     checkSirens();
-    const timer = setInterval(checkSirens, 6000);
-    return () => clearInterval(timer);
-  }, [currentTenant?.tenant_id, user]);
 
+    // 1. Listen for immediate local and cross-component housekeeping/room status events
+    const handleImmediateUpdate = () => {
+      checkSirens();
+    };
+
+    window.addEventListener('hotelflexi:housekeeping-updated', handleImmediateUpdate);
+    window.addEventListener('hotelflexi:siren-check', handleImmediateUpdate);
+
+    // 2. Handle foreground/background transitions (resume immediately upon returning)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkSirens();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleImmediateUpdate);
+
+    // 3. Periodic fallback polling every 4 seconds for remote device alerts
+    const timer = setInterval(checkSirens, 4000);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('hotelflexi:housekeeping-updated', handleImmediateUpdate);
+      window.removeEventListener('hotelflexi:siren-check', handleImmediateUpdate);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleImmediateUpdate);
+    };
+  }, [currentTenant?.tenant_id, user, checkSirens]);
+
+  // Siren audio synchronization with state & configured settings
   useEffect(() => {
-    // Only play audio alarm if there is an active urgent ticket
+    // Only activate audible siren if there are active urgent tickets AND siren is not configured as muted
     if (activeSirens.length > 0 && !muted) {
-      // For operating staff, ring audibly.
-      // For owner/admin, ring if they have unmuted or explicitly enabled alerts
       playSiren();
     } else {
       stopSiren();
     }
-    return () => stopSiren();
+    return () => {
+      stopSiren();
+    };
   }, [activeSirens.length, muted]);
+
+  const toggleMute = () => {
+    const nextMuted = !muted;
+    setMuted(nextMuted);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hotelflexi_siren_muted', String(nextMuted));
+    }
+    if (nextMuted) {
+      stopSiren();
+    } else if (activeSirens.length > 0) {
+      playSiren();
+    }
+  };
 
   const handleAcknowledge = async (id: string) => {
     try {
@@ -93,7 +143,13 @@ export function StaffSirenAlert() {
         body: JSON.stringify({ staffName }),
       });
       stopSiren();
+      // Remove locally immediately for zero-latency response
+      setActiveSirens((prev) => prev.filter((s) => s.id !== id));
       await checkSirens();
+      // Broadcast event so other components update their views
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('hotelflexi:housekeeping-updated'));
+      }
     } catch (err: any) {
       alert(err.message || 'Failed to acknowledge request');
     } finally {
@@ -113,7 +169,8 @@ export function StaffSirenAlert() {
   const isHkCurrent =
     (currentSiren.category || '').toLowerCase().includes('housekeeping') ||
     (currentSiren.description || '').toLowerCase().includes('housekeeping') ||
-    (currentSiren.description || '').toLowerCase().includes('bedsheet');
+    (currentSiren.description || '').toLowerCase().includes('bedsheet') ||
+    (currentSiren.description || '').toLowerCase().includes('dirty');
 
   return (
     <div className="bg-red-600 text-white shadow-2xl px-4 py-3 border-b-2 border-red-700 animate-pulse sticky top-0 z-50">
@@ -145,15 +202,7 @@ export function StaffSirenAlert() {
 
         <div className="flex items-center gap-2.5 self-end sm:self-auto shrink-0">
           <button
-            onClick={() => {
-              if (muted) {
-                setMuted(false);
-                playSiren();
-              } else {
-                setMuted(true);
-                stopSiren();
-              }
-            }}
+            onClick={toggleMute}
             title={muted ? 'Unmute Siren Alarm' : 'Mute Siren Alarm'}
             className="p-2 rounded-lg bg-red-700/80 hover:bg-red-800 text-white transition text-xs flex items-center gap-1 font-semibold"
           >

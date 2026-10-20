@@ -340,12 +340,12 @@ operationsRoutes.get('/complaints/active-sirens', async (c) => {
     });
   }
 
-  // 3. Check for open urgent housekeeping requests
+  // 3. Check for open urgent housekeeping requests (urgent, high, or cleaning)
   const urgentHkTasks = await c.env.DB.prepare(
     `SELECT hk.*, COALESCE(r.room_number, hk.room_id, 'Room') as room_number 
      FROM housekeeping_tasks hk
      LEFT JOIN rooms r ON r.id = hk.room_id
-     WHERE hk.tenant_id = ? AND hk.status = 'pending' AND hk.priority = 'urgent'
+     WHERE hk.tenant_id = ? AND hk.status = 'pending' AND (hk.priority IN ('urgent', 'high') OR hk.task_type IN ('urgent_sanitization', 'cleaning'))
      ORDER BY hk.created_at DESC LIMIT 5`
   )
     .bind(tenantId)
@@ -358,11 +358,39 @@ operationsRoutes.get('/complaints/active-sirens', async (c) => {
       guest_name: 'Room Housekeeping',
       room_number: (hk as any).room_number || 'Room',
       category: 'housekeeping',
-      description: (hk as any).notes || `Urgent ${(hk as any).task_type} required for Room ${(hk as any).room_number}`,
-      priority: 'urgent',
+      description: (hk as any).notes || `Housekeeping cleaning required for Room ${(hk as any).room_number}`,
+      priority: (hk as any).priority || 'urgent',
       status: 'pending',
       created_at: (hk as any).created_at,
     });
+  }
+
+  // 4. Also check for rooms marked dirty requiring active housekeeping
+  const dirtyRooms = await c.env.DB.prepare(
+    `SELECT r.id, r.room_number, r.updated_at
+     FROM rooms r
+     WHERE r.tenant_id = ? AND r.housekeeping_status = 'dirty' AND r.is_active = 1
+     ORDER BY r.updated_at DESC LIMIT 5`
+  )
+    .bind(tenantId)
+    .all()
+    .catch(() => ({ results: [] }));
+
+  for (const dr of (dirtyRooms.results || [])) {
+    const rNum = (dr as any).room_number || 'Room';
+    const alreadyIncluded = sirens.some(s => s.room_number === rNum || s.id === `room_dirty_${(dr as any).id}`);
+    if (!alreadyIncluded) {
+      sirens.push({
+        id: `room_dirty_${(dr as any).id}`,
+        guest_name: 'Room Dirty',
+        room_number: rNum,
+        category: 'housekeeping',
+        description: `Room ${rNum} marked dirty. Housekeeping required.`,
+        priority: 'urgent',
+        status: 'pending',
+        created_at: (dr as any).updated_at,
+      });
+    }
   }
 
   return c.json({
@@ -387,6 +415,17 @@ operationsRoutes.patch('/complaints/:id/acknowledge', async (c) => {
     return c.json({
       success: true,
       message: 'Urgent broadcast alert silenced.',
+    });
+  }
+
+  if (id.startsWith('room_dirty_')) {
+    const roomId = id.replace('room_dirty_', '');
+    await c.env.DB.prepare(
+      `UPDATE rooms SET housekeeping_status = 'clean', updated_at = ? WHERE id = ? AND tenant_id = ?`
+    ).bind(now, roomId, tenantId).run().catch(() => {});
+    return c.json({
+      success: true,
+      message: `Room housekeeping accepted by ${staffName}. Siren alarm silenced.`,
     });
   }
 
@@ -493,12 +532,18 @@ operationsRoutes.patch('/complaints/:id/resolve', async (c) => {
 operationsRoutes.get('/notifications', async (c) => {
   const tenantId = c.get('tenantId')!;
   const user = c.get('user')!;
+  const view = c.req.query('view') || 'active'; // 'active' (default: unread only) or 'history' / 'all'
 
-  const rows = await c.env.DB.prepare(
-    `SELECT * FROM notifications
-     WHERE tenant_id = ? AND (user_id = ? OR user_id IS NULL)
-     ORDER BY created_at DESC LIMIT 50`
-  )
+  let sql = `SELECT * FROM notifications
+     WHERE tenant_id = ? AND (user_id = ? OR user_id IS NULL)`;
+
+  if (view === 'active') {
+    sql += ` AND is_read = 0`;
+  }
+
+  sql += ` ORDER BY created_at DESC LIMIT 50`;
+
+  const rows = await c.env.DB.prepare(sql)
     .bind(tenantId, user.uid)
     .all();
 
@@ -515,7 +560,21 @@ operationsRoutes.patch('/notifications/:id/read', async (c) => {
     .bind(id, tenantId)
     .run();
 
-  return c.json({ success: true });
+  return c.json({ success: true, message: 'Notification marked read and removed from active list' });
+});
+
+operationsRoutes.patch('/notifications/read-all', async (c) => {
+  const tenantId = c.get('tenantId')!;
+  const user = c.get('user')!;
+
+  await c.env.DB.prepare(
+    `UPDATE notifications SET is_read = 1
+     WHERE tenant_id = ? AND (user_id = ? OR user_id IS NULL) AND is_read = 0`
+  )
+    .bind(tenantId, user.uid)
+    .run();
+
+  return c.json({ success: true, message: 'All active notifications marked as read' });
 });
 
 // =============================================================================

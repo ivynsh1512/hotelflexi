@@ -1,5 +1,5 @@
 // HotelFlexi Sound & Siren Audio Engine
-// Uses Web Audio API with auto-unlocking on first user interaction
+// Uses Web Audio API with auto-unlocking on first user interaction and visibility sync
 
 let audioCtx: AudioContext | null = null;
 let isAudioUnlocked = false;
@@ -51,6 +51,17 @@ export function setupAudioUnlock(): void {
   window.addEventListener('click', unlock, { passive: true });
   window.addEventListener('touchstart', unlock, { passive: true });
   window.addEventListener('keydown', unlock, { passive: true });
+
+  // Handle visibility change: resume audio if siren was active
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && isSirenPlaying && audioCtx) {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(() => {});
+        }
+      }
+    });
+  }
 }
 
 // 3. Play Urgent Siren (Smooth European Two-Tone 880Hz / 660Hz with Anti-Crack Filtering and Looping Vibration)
@@ -61,69 +72,79 @@ export function playSiren(): void {
   const ctx = getAudioContext();
   if (!ctx) return;
 
-  try {
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
+  const startSoundGraph = () => {
+    if (isSirenPlaying) return;
 
-    // Stop any existing sounds
+    // Stop any stale components
     stopSiren();
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
 
-    // Use triangle wave with a lowpass filter to remove any high-frequency digital crackle
-    osc.type = 'triangle';
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1600, ctx.currentTime);
+      // Use triangle wave with a lowpass filter to remove any high-frequency digital crackle
+      osc.type = 'triangle';
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1600, ctx.currentTime);
 
-    // Initial frequency: 880Hz (A5)
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
+      // Initial frequency: 880Hz (A5)
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
 
-    // Smooth soft-attack gain ramp to prevent initial click
-    gain.gain.setValueAtTime(0.01, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 0.06);
+      // Smooth soft-attack gain ramp to prevent initial click
+      gain.gain.setValueAtTime(0.01, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 0.06);
 
-    // Connect audio chain: osc -> filter -> gain -> destination
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
+      // Connect audio chain: osc -> filter -> gain -> destination
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
 
-    activeOscillator = osc;
-    activeGain = gain;
-    activeFilter = filter;
-    isSirenPlaying = true;
+      activeOscillator = osc;
+      activeGain = gain;
+      activeFilter = filter;
+      isSirenPlaying = true;
 
-    // Smooth European Hi-Lo siren modulation (880Hz high <-> 660Hz low alternating every 420ms)
-    let isHigh = false;
-    sirenInterval = setInterval(() => {
-      if (!activeOscillator || !audioCtx) return;
-      const now = audioCtx.currentTime;
-      const targetFreq = isHigh ? 880 : 660;
-      activeOscillator.frequency.cancelScheduledValues(now);
-      activeOscillator.frequency.linearRampToValueAtTime(targetFreq, now + 0.12);
-      isHigh = !isHigh;
-    }, 420);
+      // Smooth European Hi-Lo siren modulation (880Hz high <-> 660Hz low alternating every 420ms)
+      let isHigh = false;
+      sirenInterval = setInterval(() => {
+        if (!activeOscillator || !audioCtx) return;
+        const now = audioCtx.currentTime;
+        const targetFreq = isHigh ? 880 : 660;
+        activeOscillator.frequency.cancelScheduledValues(now);
+        activeOscillator.frequency.linearRampToValueAtTime(targetFreq, now + 0.12);
+        isHigh = !isHigh;
+      }, 420);
 
-    // Continuous Hardware Vibration on Mobile Devices (rhythmic looping pulse)
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      try {
-        navigator.vibrate([600, 250, 600, 250]);
-      } catch {}
-
-      if (vibrationInterval) clearInterval(vibrationInterval);
-      vibrationInterval = setInterval(() => {
+      // Continuous Hardware Vibration on Mobile Devices (rhythmic looping pulse)
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try {
-          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-            navigator.vibrate([600, 250, 600, 250]);
-          }
+          navigator.vibrate([600, 250, 600, 250]);
         } catch {}
-      }, 1700);
+
+        if (vibrationInterval) clearInterval(vibrationInterval);
+        vibrationInterval = setInterval(() => {
+          try {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+              navigator.vibrate([600, 250, 600, 250]);
+            }
+          } catch {}
+        }, 1700);
+      }
+    } catch (err) {
+      console.warn('Could not start siren audio graph:', err);
     }
-  } catch (err) {
-    console.warn('Could not start siren audio:', err);
+  };
+
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(() => {
+      startSoundGraph();
+    }).catch(() => {
+      startSoundGraph();
+    });
+  } else {
+    startSoundGraph();
   }
 }
 
@@ -170,40 +191,48 @@ export function stopSiren(): void {
   isSirenPlaying = false;
 }
 
+export function isSirenActive(): boolean {
+  return isSirenPlaying;
+}
+
 // 5. Play Standard Notification Chime (Clean 2-tone chime for non-emergency alerts)
 export function playNotificationChime(): void {
   if (typeof window === 'undefined') return;
   const ctx = getAudioContext();
   if (!ctx) return;
 
-  try {
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
+  const startChime = () => {
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      // Two-tone rising chime (880Hz -> 1320Hz)
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.setValueAtTime(1320, now + 0.12);
+
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.45);
+
+      if ('vibrate' in navigator) {
+        navigator.vibrate([150]);
+      }
+    } catch (err) {
+      console.warn('Could not play chime:', err);
     }
+  };
 
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'sine';
-    // Two-tone rising chime (880Hz -> 1320Hz)
-    osc.frequency.setValueAtTime(880, now);
-    osc.frequency.setValueAtTime(1320, now + 0.12);
-
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.45);
-
-    if ('vibrate' in navigator) {
-      navigator.vibrate([150]);
-    }
-  } catch (err) {
-    console.warn('Could not play chime:', err);
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(startChime).catch(startChime);
+  } else {
+    startChime();
   }
 }
 

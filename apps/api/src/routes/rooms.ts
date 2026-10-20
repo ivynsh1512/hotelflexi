@@ -289,6 +289,22 @@ roomRoutes.patch('/:id/status', async (c) => {
     .bind(body.status || null, body.housekeepingStatus || null, now, id, tenantId)
     .run();
 
+  if (body.housekeepingStatus === 'dirty') {
+    const hkId = `hk_${crypto.randomUUID()}`;
+    await c.env.DB.prepare(
+      `INSERT INTO housekeeping_tasks (
+        id, property_id, tenant_id, room_id, task_type, priority, status, notes, created_at, updated_at
+      )
+      SELECT ?, property_id, tenant_id, id, 'cleaning', 'urgent', 'pending', 'Room marked dirty for immediate cleaning', ?, ?
+      FROM rooms WHERE id = ? AND tenant_id = ?`
+    ).bind(hkId, now, now, id, tenantId).run().catch(() => {});
+  } else if (body.housekeepingStatus === 'clean') {
+    await c.env.DB.prepare(
+      `UPDATE housekeeping_tasks SET status = 'completed', completed_at = ?, updated_at = ?
+       WHERE room_id = ? AND tenant_id = ? AND status IN ('pending', 'in_progress')`
+    ).bind(now, now, id, tenantId).run().catch(() => {});
+  }
+
   await recordAuditLog(c, {
     action: 'room.status_updated',
     resourceType: 'room',

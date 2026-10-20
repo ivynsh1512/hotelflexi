@@ -117,6 +117,9 @@ export default function RoomsManagementPage() {
         body: JSON.stringify({ status, housekeepingStatus }),
       });
       await fetchData();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('hotelflexi:housekeeping-updated'));
+      }
     } catch (err: any) {
       alert(err.message || 'Status update failed.');
     }
@@ -157,6 +160,9 @@ export default function RoomsManagementPage() {
       setEditModalOpen(false);
       setEditingRoom(null);
       await fetchData();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('hotelflexi:housekeeping-updated'));
+      }
     } catch (err: any) {
       alert(err.message || 'Failed to update room.');
     } finally {

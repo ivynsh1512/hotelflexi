@@ -144,6 +144,9 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
         });
       }
       await fetchActiveUrgentTickets();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('hotelflexi:housekeeping-updated'));
+      }
       if (onRefreshNeeded) onRefreshNeeded();
     } catch (err: any) {
       alert(err.message || 'Failed to acknowledge request.');
@@ -167,6 +170,9 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
         });
       }
       await fetchActiveUrgentTickets();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('hotelflexi:housekeeping-updated'));
+      }
       if (onRefreshNeeded) onRefreshNeeded();
     } catch (err: any) {
       alert(err.message || 'Failed to resolve ticket.');
@@ -206,6 +212,9 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
       setReportingRoom('');
       setReportingNotes('');
       await fetchActiveUrgentTickets();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('hotelflexi:housekeeping-updated'));
+      }
       if (onRefreshNeeded) onRefreshNeeded();
       alert(`🚨 Urgent siren dispatched for Room ${reportingRoom}!`);
     } catch (err: any) {

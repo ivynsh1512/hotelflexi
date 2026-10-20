@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
+import { apiClient } from '@/lib/api';
 import { StaffSirenAlert } from '@/components/ui/StaffSirenAlert';
 import {
   Hotel,
@@ -49,6 +50,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, isPlatformAdmin, tenants, currentTenant, setCurrentTenant, logout } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [apiLockedReason, setApiLockedReason] = useState<string | null>(null);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+
+  const checkUnreadNotifs = useCallback(async () => {
+    if (!currentTenant?.tenant_id) return;
+    try {
+      const data = await apiClient('/operations/notifications?view=active');
+      setUnreadNotifCount(data.notifications?.length || 0);
+    } catch {}
+  }, [currentTenant?.tenant_id]);
+
+  useEffect(() => {
+    checkUnreadNotifs();
+    const handleRead = () => checkUnreadNotifs();
+    window.addEventListener('hotelflexi:notification-read', handleRead);
+    window.addEventListener('hotelflexi:housekeeping-updated', handleRead);
+    const timer = setInterval(checkUnreadNotifs, 10000);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('hotelflexi:notification-read', handleRead);
+      window.removeEventListener('hotelflexi:housekeeping-updated', handleRead);
+    };
+  }, [checkUnreadNotifs]);
 
   const userRole = (currentTenant?.role || 'owner').toLowerCase();
   const isAllowedForRole = isRouteAllowedForRole(userRole, pathname);
@@ -361,9 +384,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Link
               href="/app/notifications"
               className="p-2 rounded-lg text-content-secondary-light hover:text-content-primary-light hover:bg-surface-light relative"
+              title={unreadNotifCount > 0 ? `${unreadNotifCount} active notification(s)` : 'Notifications'}
             >
               <Bell className="w-4 h-4" />
-              <span className="w-2 h-2 rounded-full bg-brand-blue absolute top-1.5 right-1.5" />
+              {unreadNotifCount > 0 && (
+                <span className="w-2 h-2 rounded-full bg-brand-blue absolute top-1.5 right-1.5" />
+              )}
             </Link>
 
             {/* Booking Engine Preview Link */}
