@@ -24,6 +24,14 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
     return c.json({ error: 'Property name is required' }, 400);
   }
 
+  // Prevent spam/unverified onboardings: Require email verification
+  if (!user.email_verified) {
+    return c.json(
+      { error: 'Email verification required before onboarding your property. Please check your inbox and verify your email.' },
+      403
+    );
+  }
+
   // Generate tenant and property slugs
   const baseSlug = propertyName
     .toLowerCase()

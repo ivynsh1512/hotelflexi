@@ -22,6 +22,7 @@ export interface TenantSummary {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  tenantsLoaded: boolean;
   isPlatformAdmin: boolean;
   tenants: TenantSummary[];
   currentTenant: TenantSummary | null;
@@ -33,6 +34,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  tenantsLoaded: false,
   isPlatformAdmin: false,
   tenants: [],
   currentTenant: null,
@@ -44,6 +46,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tenantsLoaded, setTenantsLoaded] = useState(false);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [tenants, setTenants] = useState<TenantSummary[]>([]);
   const [currentTenant, setCurrentTenantState] = useState<TenantSummary | null>(null);
@@ -59,14 +62,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const syncAndFetchUser = async (fbUser: User) => {
     try {
-      // 1. Sync user to D1
+      // 1. Sync user to D1 (non-blocking if already synced)
       await apiClient('/auth/sync', {
         method: 'POST',
         body: JSON.stringify({
           name: fbUser.displayName,
           picture: fbUser.photoURL,
         }),
-      });
+      }).catch((e) => console.warn('User sync warning (non-fatal):', e));
 
       // 2. Fetch profile & memberships
       const data = await apiClient('/auth/me');
@@ -83,11 +86,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (e) {
       console.error('Error fetching user context from backend:', e);
+    } finally {
+      setTenantsLoaded(true);
     }
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      setLoading(true);
       setUser(fbUser);
       if (fbUser) {
         await syncAndFetchUser(fbUser);
@@ -95,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsPlatformAdmin(false);
         setTenants([]);
         setCurrentTenant(null);
+        setTenantsLoaded(true);
       }
       setLoading(false);
     });
@@ -104,6 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = async () => {
     if (auth.currentUser) {
+      await auth.currentUser.reload().catch(() => {});
+      setUser(auth.currentUser);
       await syncAndFetchUser(auth.currentUser);
     }
   };
@@ -113,6 +122,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('hotelflexi_tenant_id');
     setUser(null);
     setCurrentTenant(null);
+    setTenants([]);
+    setTenantsLoaded(true);
   };
 
   return (
@@ -120,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         loading,
+        tenantsLoaded,
         isPlatformAdmin,
         tenants,
         currentTenant,

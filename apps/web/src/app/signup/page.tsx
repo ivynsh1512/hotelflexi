@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { auth, googleProvider, signInWithPopup } from '@/lib/firebase';
-import { Hotel, Mail, Lock, User, AlertCircle, ArrowRight, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Hotel, Mail, Lock, User, AlertCircle, ArrowRight, Loader2, CheckCircle2, Eye, EyeOff, MailCheck, RefreshCw } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -16,6 +16,12 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Email verification gate state
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [verifiedCheckLoading, setVerifiedCheckLoading] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
 
   const handleGoogleSignUp = async () => {
     setError(null);
@@ -45,14 +51,15 @@ export default function SignupPage() {
         await updateProfile(userCredential.user, { displayName: fullName.trim() });
       }
 
-      // Send Firebase verification email
+      // Dispatch Firebase verification email immediately
       try {
         await sendEmailVerification(userCredential.user);
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Email verification send issue:', e);
       }
 
-      router.push('/app/onboarding');
+      // DO NOT onboard directly! Gate with email verification
+      setVerificationPending(true);
     } catch (err: any) {
       console.error('Registration error:', err);
       if (err.code === 'auth/email-already-in-use') {
@@ -65,6 +72,52 @@ export default function SignupPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCheckVerification = async () => {
+    setError(null);
+    setVerifiedCheckLoading(true);
+    try {
+      if (!auth.currentUser) {
+        setError('Session expired. Please sign in again.');
+        return;
+      }
+      await auth.currentUser.reload();
+      if (auth.currentUser.emailVerified) {
+        router.push('/app/onboarding');
+      } else {
+        setError('Email not verified yet. Please click the confirmation link sent to your inbox or spam folder.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to verify email status.');
+    } finally {
+      setVerifiedCheckLoading(false);
+    }
+  };
+
+  const handleResendEmail = async () => {
+    if (!auth.currentUser) return;
+    setResendingEmail(true);
+    setResendStatus(null);
+    setError(null);
+    try {
+      await sendEmailVerification(auth.currentUser);
+      setResendStatus('Verification link resent! Please check your inbox and spam folder.');
+      setTimeout(() => setResendStatus(null), 6000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend verification email.');
+    } finally {
+      setResendingEmail(false);
+    }
+  };
+
+  const handleResetSignup = async () => {
+    try {
+      await auth.signOut();
+    } catch {}
+    setVerificationPending(false);
+    setError(null);
+    setResendStatus(null);
   };
 
   return (
@@ -94,154 +147,237 @@ export default function SignupPage() {
             </div>
           )}
 
-          {/* Google Sign-in */}
-          <button
-            type="button"
-            onClick={handleGoogleSignUp}
-            disabled={loading || googleLoading}
-            className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg border border-border-light bg-white hover:bg-slate-50 text-content-primary-light font-semibold text-sm transition shadow-sm disabled:opacity-50"
-          >
-            {googleLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
-            ) : (
-              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
-            )}
-            <span>Sign up with Google</span>
-          </button>
-
-          <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border-light" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-content-secondary-light font-medium">Or continue with email</span>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1.5">
-                Full Name / Owner Name
-              </label>
-              <div className="relative">
-                <User className="w-5 h-5 absolute left-3 top-3 text-content-secondary-light" />
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Vikram Singh"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue text-sm"
-                />
+          {verificationPending ? (
+            /* Email Verification Gate: strictly prevents unverified users from reaching onboarding/dashboard */
+            <div className="text-center space-y-5">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-brand-blue mx-auto shadow-sm">
+                <MailCheck className="w-8 h-8 text-brand-blue" />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1.5">
-                Business Email Address
-              </label>
-              <div className="relative">
-                <Mail className="w-5 h-5 absolute left-3 top-3 text-content-secondary-light" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="vikram@grandheritage.com"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue text-sm"
-                />
+              <div>
+                <h3 className="text-xl font-bold text-content-primary-light">Verify Your Email Address</h3>
+                <p className="text-xs text-content-secondary-light mt-1.5 leading-relaxed">
+                  We've sent a verification link to{' '}
+                  <span className="font-semibold text-content-primary-light">{email}</span>.
+                  Please open your email and click the confirmation link to activate your hotel account.
+                </p>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="w-5 h-5 absolute left-3 top-3 text-content-secondary-light" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  minLength={6}
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 6 characters"
-                  className="w-full pl-10 pr-11 py-2.5 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue text-sm"
-                />
+              {resendStatus && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs text-left">
+                  {resendStatus}
+                </div>
+              )}
+
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-left text-xs text-slate-600 space-y-1">
+                <div className="font-semibold text-slate-800">Didn't see the email?</div>
+                <ul className="list-disc list-inside text-[11px] space-y-0.5 text-slate-600">
+                  <li>Check your Spam, Junk, or Promotions folder</li>
+                  <li>Verification links remain valid for 24 hours</li>
+                  <li>After clicking the link in your email, return here</li>
+                </ul>
+              </div>
+
+              <div className="space-y-2.5 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-content-secondary-light hover:text-content-primary-light p-0.5 rounded transition"
-                  title={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={handleCheckVerification}
+                  disabled={verifiedCheckLoading}
+                  className="w-full py-3 px-4 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {verifiedCheckLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Checking verification status...
+                    </>
+                  ) : (
+                    <>
+                      I Have Verified My Email - Continue
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResendEmail}
+                  disabled={resendingEmail}
+                  className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {resendingEmail ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Resending Link...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Resend Verification Link
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetSignup}
+                  className="w-full py-2 px-4 text-slate-500 hover:text-slate-800 text-xs font-medium transition"
+                >
+                  Change email address / Start over
                 </button>
               </div>
             </div>
+          ) : (
+            <>
+              {/* Google Sign-in */}
+              <button
+                type="button"
+                onClick={handleGoogleSignUp}
+                disabled={loading || googleLoading}
+                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg border border-border-light bg-white hover:bg-slate-50 text-content-primary-light font-semibold text-sm transition shadow-sm disabled:opacity-50"
+              >
+                {googleLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
+                ) : (
+                  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    />
+                  </svg>
+                )}
+                <span>Sign up with Google</span>
+              </button>
 
-            <div className="pt-2 text-xs text-content-secondary-light space-y-1">
-              <div className="flex items-center gap-1.5 text-status-success">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Instant 14-day free access to all modules</span>
+              <div className="relative my-5">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border-light" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-3 text-content-secondary-light font-medium">Or continue with email</span>
+                </div>
               </div>
-              <p>
-                By signing up, you agree to our{' '}
-                <Link href="/terms" className="text-brand-blue underline">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link href="/privacy" className="text-brand-blue underline">
-                  Privacy Policy
-                </Link>
-                .
-              </p>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg bg-brand-blue text-white font-semibold text-sm hover:bg-brand-blue-hover transition disabled:opacity-50 shadow-sm mt-4"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Creating Hotel Account...
-                </>
-              ) : (
-                <>
-                  Create Account & Setup Hotel
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </form>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1.5">
+                    Full Name / Owner Name
+                  </label>
+                  <div className="relative">
+                    <User className="w-5 h-5 absolute left-3 top-3 text-content-secondary-light" />
+                    <input
+                      type="text"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Vikram Singh"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue text-sm"
+                    />
+                  </div>
+                </div>
 
-          <div className="mt-6 pt-6 border-t border-border-light text-center">
-            <p className="text-xs text-content-secondary-light">
-              Already have an account?{' '}
-              <Link href="/login" className="text-brand-blue font-semibold hover:underline">
-                Sign In
-              </Link>
-            </p>
-          </div>
+                <div>
+                  <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1.5">
+                    Business Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-5 h-5 absolute left-3 top-3 text-content-secondary-light" />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="vikram@grandheritage.com"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-content-primary-light uppercase tracking-wider mb-1.5">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-5 h-5 absolute left-3 top-3 text-content-secondary-light" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Min 6 characters"
+                      className="w-full pl-10 pr-11 py-2.5 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-3 text-content-secondary-light hover:text-content-primary-light p-0.5 rounded transition"
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2 text-xs text-content-secondary-light space-y-1">
+                  <div className="flex items-center gap-1.5 text-status-success">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Instant 14-day free access to all modules</span>
+                  </div>
+                  <p>
+                    By signing up, you agree to our{' '}
+                    <Link href="/terms" className="text-brand-blue underline">
+                      Terms of Service
+                    </Link>{' '}
+                    and{' '}
+                    <Link href="/privacy" className="text-brand-blue underline">
+                      Privacy Policy
+                    </Link>
+                    .
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg bg-brand-blue text-white font-semibold text-sm hover:bg-brand-blue-hover transition disabled:opacity-50 shadow-sm mt-4"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creating Hotel Account...
+                    </>
+                  ) : (
+                    <>
+                      Create Account & Verify Email
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-6 pt-6 border-t border-border-light text-center">
+                <p className="text-xs text-content-secondary-light">
+                  Already have an account?{' '}
+                  <Link href="/login" className="text-brand-blue font-semibold hover:underline">
+                    Sign In
+                  </Link>
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

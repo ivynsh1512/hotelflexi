@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:name="Application"
@@ -28,13 +30,27 @@
             android:name="twa_generator"
             android:value="@string/generatorApp" />
 
-        <!-- Native Secondary / Emergency Activity -->
+        <!-- Native Primary Launcher Activity: 100% Native App Experience with ZERO URL Bar -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:alwaysRetainTaskState="true"
             android:label="@string/appName"
             android:theme="@style/AppTheme"
-            android:configChanges="orientation|screenSize|keyboardHidden">
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"
+                    android:host="@string/hostName" />
+            </intent-filter>
         </activity>
 
         <activity android:name="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
@@ -50,15 +66,11 @@
             </intent-filter>
         </activity>
 
-        <!-- Full PMS Browser / Console Activity (Primary Launcher) -->
+        <!-- Legacy Browser Helper Activity (Secondary) -->
         <activity android:name=".LauncherActivity"
             android:alwaysRetainTaskState="true"
             android:label="@string/launcherName"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            android:exported="false">
 
             <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL"
                 android:value="@string/launchUrl" />

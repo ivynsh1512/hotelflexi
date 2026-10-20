@@ -4,3 +4,11 @@
 
 -keep class in.novaxai.hotelflexi.** { *; }
 -dontwarn in.novaxai.hotelflexi.**
+
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+-keepattributes JavascriptInterface
+-keepclassmembers class in.novaxai.hotelflexi.MainActivity$HotelFlexiNativeBridge {
+    public *;
+}

@@ -49,7 +49,7 @@ import { isRouteAllowedForRole } from '@/lib/permissions';
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, isPlatformAdmin, tenants, currentTenant, setCurrentTenant, logout } = useAuth();
+  const { user, loading, tenantsLoaded, isPlatformAdmin, tenants, currentTenant, setCurrentTenant, logout } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [apiLockedReason, setApiLockedReason] = useState<string | null>(null);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
@@ -107,19 +107,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('hotelflexi:payment-locked', onPaymentLocked);
   }, []);
 
+  const isGoogleUser = user?.providerData?.some((p) => p.providerId === 'google.com');
+  const isEmailVerified = Boolean(user?.emailVerified || isGoogleUser);
+
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
-    } else if (!loading && user && tenants.length === 0 && pathname !== '/app/onboarding') {
+    } else if (!loading && tenantsLoaded && user && tenants.length === 0 && pathname !== '/app/onboarding') {
       router.push('/app/onboarding');
     } else if (!loading && user && currentTenant) {
       if (userRole === 'housekeeping' && pathname === '/app') {
         router.replace('/app/housekeeping');
       }
     }
-  }, [user, loading, tenants, pathname, router, userRole, currentTenant]);
+  }, [user, loading, tenantsLoaded, tenants, pathname, router, userRole, currentTenant]);
 
-  if (loading) {
+  if (loading || (!tenantsLoaded && user)) {
     return (
       <div className="min-h-screen bg-surface-light flex items-center justify-center">
         <div className="text-center space-y-3">
@@ -127,6 +130,63 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Hotel className="w-5 h-5 text-white" />
           </div>
           <p className="text-xs font-semibold text-content-secondary-light">Loading HotelFlexi Workspace...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Strict Email Verification Gate for non-Google accounts
+  if (user && !isEmailVerified) {
+    return (
+      <div className="min-h-screen bg-surface-light flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-border-light shadow-xl p-6 sm:p-8 text-center space-y-5">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mx-auto shadow-sm">
+            <MailCheck className="w-8 h-8" />
+          </div>
+
+          <div>
+            <h2 className="text-xl font-bold text-content-primary-light">Verify Your Email Address</h2>
+            <p className="text-xs text-content-secondary-light mt-1.5 leading-relaxed">
+              We've dispatched a verification link to <span className="font-semibold text-content-primary-light">{user.email}</span>. Please verify your email before accessing your hotel workspace and database.
+            </p>
+          </div>
+
+          {resendStatus && (
+            <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs text-left">
+              {resendStatus}
+            </div>
+          )}
+
+          <div className="space-y-2.5 pt-2">
+            <button
+              onClick={async () => {
+                await user.reload();
+                if (user.emailVerified) {
+                  window.location.reload();
+                } else {
+                  setResendStatus('Email not verified yet. Please check your inbox and click the verification link.');
+                }
+              }}
+              className="w-full py-2.5 px-4 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              I Have Verified My Email - Refresh
+            </button>
+
+            <button
+              onClick={handleResendVerification}
+              disabled={resendingEmail}
+              className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition disabled:opacity-50"
+            >
+              {resendingEmail ? 'Sending Link...' : 'Resend Verification Email'}
+            </button>
+
+            <button
+              onClick={() => logout()}
+              className="w-full py-2 px-4 text-slate-500 hover:text-slate-800 text-xs font-medium transition"
+            >
+              Sign out / Use different account
+            </button>
+          </div>
         </div>
       </div>
     );

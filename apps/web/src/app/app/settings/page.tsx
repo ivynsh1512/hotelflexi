@@ -579,12 +579,12 @@ export default function HotelSettingsPage() {
 
             {/* Address Autocomplete with Photon */}
             <div>
-              <label className="block font-semibold mb-1 text-content-primary-light">Address (Search Autocomplete)</label>
+              <label className="block font-semibold mb-1 text-content-primary-light">Hotel Street Address / Location *</label>
               <AddressAutocomplete
                 value={address}
                 onChange={setAddress}
                 onSelectLocation={handleLocationSelect}
-                placeholder="Search hotel location / landmark..."
+                placeholder="Search or enter Indian hotel address (e.g. Plot No. 42, Civil Lines, Near MG Road, Jaipur)..."
               />
             </div>
 
@@ -595,7 +595,7 @@ export default function HotelSettingsPage() {
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="City"
+                  placeholder="Jaipur"
                   className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 />
               </div>
@@ -605,7 +605,7 @@ export default function HotelSettingsPage() {
                   type="text"
                   value={state}
                   onChange={(e) => setState(e.target.value)}
-                  placeholder="State"
+                  placeholder="Rajasthan"
                   className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 />
               </div>
@@ -615,7 +615,7 @@ export default function HotelSettingsPage() {
                   type="text"
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
-                  placeholder="PIN"
+                  placeholder="302001"
                   className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 />
               </div>

@@ -9,20 +9,30 @@ import { Hotel, MapPin, Phone, BedDouble, CheckCircle2, ArrowRight, Loader2, Ale
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, refreshUser } = useAuth();
+  const { user, tenants, loading: authLoading, tenantsLoaded, refreshUser, logout } = useAuth();
 
   const [propertyName, setPropertyName] = useState('');
   const [ownerName, setOwnerName] = useState(user?.displayName || '');
   const [phone, setPhone] = useState('');
-  const [city, setCity] = useState('New Delhi');
-  const [state, setState] = useState('Delhi');
+  const [city, setCity] = useState('Jaipur');
+  const [state, setState] = useState('Rajasthan');
   const [address, setAddress] = useState('');
-  const [postalCode, setPostalCode] = useState('');
+  const [postalCode, setPostalCode] = useState('302001');
   const [country, setCountry] = useState('India');
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-redirect if property already exists (Resolves onboarding loop on login!)
+  React.useEffect(() => {
+    if (!authLoading && tenantsLoaded && tenants.length > 0) {
+      router.replace('/app');
+    }
+  }, [authLoading, tenantsLoaded, tenants, router]);
+
+  const isGoogleUser = user?.providerData?.some((p) => p.providerId === 'google.com');
+  const isEmailVerified = Boolean(user?.emailVerified || isGoogleUser);
 
   const handleLocationSelect = (loc: SelectedLocation) => {
     // Only update fields if Photon returned a non-empty value,
@@ -47,6 +57,12 @@ export default function OnboardingPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (!isEmailVerified) {
+      setError('Email verification is required before configuring your hotel property. Please check your inbox.');
+      setLoading(false);
+      return;
+    }
 
     try {
       await apiClient('/onboarding', {
@@ -75,6 +91,45 @@ export default function OnboardingPage() {
       setLoading(false);
     }
   };
+
+  if (user && !isEmailVerified) {
+    return (
+      <div className="max-w-md mx-auto py-12 px-4 text-center">
+        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-border-light shadow-sm space-y-5">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mx-auto shadow-sm">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-content-primary-light">Verify Your Email Address First</h2>
+            <p className="text-xs text-content-secondary-light mt-1.5 leading-relaxed">
+              To prevent unauthorized property registrations, you must verify your email <span className="font-semibold text-content-primary-light">{user.email}</span> before setting up your hotel workspace.
+            </p>
+          </div>
+          <div className="space-y-2 pt-2">
+            <button
+              onClick={async () => {
+                await user.reload();
+                if (user.emailVerified) {
+                  window.location.reload();
+                } else {
+                  setError('Email not verified yet. Please check your inbox / spam folder.');
+                }
+              }}
+              className="w-full py-2.5 px-4 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              I Have Verified My Email - Refresh
+            </button>
+            <button
+              onClick={() => logout()}
+              className="w-full py-2 px-4 text-slate-500 hover:text-slate-800 text-xs font-medium transition"
+            >
+              Sign out / Use different account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto py-10 px-4">
@@ -157,7 +212,7 @@ export default function OnboardingPage() {
               onChange={setAddress}
               onSelectLocation={handleLocationSelect}
               hasCoordinates={latitude !== null && longitude !== null}
-              placeholder="Search hotel address or landmark (e.g. Connaught Place, New Delhi)..."
+              placeholder="Search or enter Indian hotel address (e.g. Plot No. 42, Civil Lines, Near MG Road, Jaipur)..."
             />
             {latitude !== null && longitude !== null && (
               <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">

@@ -49,11 +49,32 @@ interface AddressAutocompleteProps {
   hasCoordinates?: boolean;
 }
 
+export function cleanIndianStreet(street?: string): string | undefined {
+  if (!street) return undefined;
+  const s = street.trim();
+  const lower = s.toLowerCase();
+  if (
+    lower === 'street road' ||
+    lower === 'street' ||
+    lower === 'road' ||
+    lower === 'unnamed road' ||
+    lower === 'unknown road' ||
+    lower === 'main st' ||
+    lower === 'main street' ||
+    lower === 'unknown'
+  ) {
+    return undefined;
+  }
+  return s;
+}
+
 export function formatPhotonFeature(feature: PhotonFeature) {
   const p = feature.properties || {};
   const [lon, lat] = feature.geometry.coordinates;
 
-  const streetWithNumber = [p.housenumber, p.street].filter(Boolean).join(' ');
+  const validStreet = cleanIndianStreet(p.street);
+  const houseNum = p.housenumber ? `Plot/Door No. ${p.housenumber}` : null;
+  const streetWithNumber = [houseNum, validStreet].filter(Boolean).join(', ');
   const primary = p.name || streetWithNumber || p.locality || p.district || p.city || 'Location';
 
   const contextParts = [
@@ -62,7 +83,7 @@ export function formatPhotonFeature(feature: PhotonFeature) {
     p.city || p.county,
     p.state,
     p.postcode,
-    p.country,
+    'India',
   ].filter(Boolean) as string[];
 
   const secondaryParts = Array.from(new Set(contextParts)).filter((part) => part !== primary);
@@ -79,10 +100,10 @@ export function formatPhotonFeature(feature: PhotonFeature) {
     primary,
     secondary,
     addressLine,
-    city: p.city || p.county || (p.type === 'city' ? p.name : undefined),
-    state: p.state,
-    postalCode: p.postcode,
-    country: p.country,
+    city: p.city || p.county || (p.type === 'city' ? p.name : undefined) || 'Jaipur',
+    state: p.state || 'Rajasthan',
+    postalCode: p.postcode || '302001',
+    country: 'India',
     latitude: lat,
     longitude: lon,
   };
@@ -92,7 +113,7 @@ export default function AddressAutocomplete({
   value,
   onChange,
   onSelectLocation,
-  placeholder = 'Start typing hotel address or landmark (e.g. Connaught Place)...',
+  placeholder = 'Type Indian address, landmark, or area (e.g. Plot 42, Civil Lines, MG Road, Jaipur)...',
   className = '',
   hasCoordinates = false,
 }: AddressAutocompleteProps) {
@@ -148,8 +169,8 @@ export default function AddressAutocomplete({
       abortControllerRef.current = controller;
 
       try {
-        // Photon with Indian geographical coordinate bias (lat 20.5937, lon 78.9629)
-        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=8&lang=en&lat=20.5937&lon=78.9629&location_bias_scale=1.0`;
+        // Photon with Indian geographical coordinate bias (lat 20.5937, lon 78.9629) & India bounding box
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=8&lang=en&lat=20.5937&lon=78.9629&location_bias_scale=1.5&bbox=68.1,6.7,97.4,35.5`;
         const res = await fetch(photonUrl, { signal: controller.signal });
 
         let features: PhotonFeature[] = [];
