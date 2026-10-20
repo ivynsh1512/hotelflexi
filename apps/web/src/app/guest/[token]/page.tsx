@@ -114,7 +114,14 @@ export default function GuestPortalPage() {
   };
 
   useEffect(() => {
-    fetchPortalData();
+    if (token) {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('hotelflexi_guest_token', token);
+        } catch {}
+      }
+      fetchPortalData();
+    }
   }, [token]);
 
   // Load Razorpay script dynamically
@@ -467,7 +474,7 @@ export default function GuestPortalPage() {
             </div>
 
             <a
-              href="https://play.google.com/store"
+              href="https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso"
               target="_blank"
               rel="noreferrer"
               className="px-4 py-2 rounded-xl bg-white text-slate-900 font-extrabold text-xs hover:bg-slate-100 transition shadow flex items-center gap-2 shrink-0 self-start sm:self-auto"
@@ -477,22 +484,26 @@ export default function GuestPortalPage() {
             </a>
           </div>
 
-          {/* Guest App Login Passcode */}
+          {/* Guest Direct Access & Passcode */}
           <div className="p-3 bg-white/10 rounded-xl border border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
-              <span className="text-slate-300">Your App Login Code:</span>
+              <span className="text-emerald-300 font-semibold text-[11px]">✨ Direct Guest Access:</span>
+              <span className="text-white text-[11px]">All logins skipped via your personal link</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-300">App Passcode:</span>
               <span className="font-mono font-bold text-white bg-blue-500/30 px-2 py-0.5 rounded border border-blue-400/40">
                 {appGuestCode}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-slate-300">Security PIN:</span>
+              <span className="text-slate-300">PIN:</span>
               <span className="font-mono font-bold text-white bg-blue-500/30 px-2 py-0.5 rounded border border-blue-400/40">
                 {appGuestPin}
               </span>
             </div>
             <span className="text-[10px] text-slate-400 italic">
-              (Also sent to {guest.email || 'your email'})
+              (Access expires 7 days after checkout)
             </span>
           </div>
         </div>
@@ -578,10 +589,12 @@ export default function GuestPortalPage() {
                   <span className="font-bold text-slate-900">{reservation.checkOutDate}</span>
                   <span className="text-[10px] text-slate-500 block">Until {property.checkOutTime}</span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl">
-                  <span className="text-[10px] text-slate-500 block">Room Category</span>
-                  <span className="font-bold text-slate-900 truncate block">{room.roomTypeName}</span>
-                  <span className="text-[10px] text-brand-blue font-semibold block">Room: {room.roomNumber}</span>
+                <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl">
+                  <span className="text-[10px] text-brand-blue uppercase font-bold block">Allocated Room Code</span>
+                  <span className="font-extrabold text-brand-blue text-sm truncate block font-mono">
+                    {room.roomNumber && room.roomNumber !== 'To be assigned on arrival' ? `Room ${room.roomNumber}` : 'Allocated On Arrival'}
+                  </span>
+                  <span className="text-[10px] text-slate-600 block truncate">{room.roomTypeName}</span>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl">
                   <span className="text-[10px] text-slate-500 block">Guests</span>

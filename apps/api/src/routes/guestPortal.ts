@@ -3,6 +3,16 @@ import { Env, AppVariables } from '../types';
 
 export const guestPortalRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
+// Helper to strictly enforce 7-day post checkout expiry rule
+function isPortalExpired(checkOutDate: string, guestPortalExpiresAt?: number): boolean {
+  const now = Math.floor(Date.now() / 1000);
+  const checkoutTimestamp = Math.floor(new Date(`${checkOutDate}T23:59:59Z`).getTime() / 1000);
+  const expiresAt = (guestPortalExpiresAt && guestPortalExpiresAt > 0)
+    ? guestPortalExpiresAt
+    : checkoutTimestamp + (7 * 86400);
+  return now > expiresAt;
+}
+
 // -----------------------------------------------------------------------------
 // GET GUEST PORTAL FOLIO BY TOKEN (Public with Token Expiry Validation)
 // -----------------------------------------------------------------------------
@@ -31,8 +41,8 @@ guestPortalRoutes.get('/:token', async (c) => {
     return c.json({ error: 'Guest portal link not found or invalid' }, 404);
   }
 
-  // Token Expiration Rule: 7 days after checkout date
-  if (res.guest_portal_expires_at && now > res.guest_portal_expires_at) {
+  // Token Expiration Rule: strictly 7 days after checkout date
+  if (isPortalExpired(res.check_out_date, res.guest_portal_expires_at)) {
     return c.json(
       {
         expired: true,
@@ -43,6 +53,35 @@ guestPortalRoutes.get('/:token', async (c) => {
       },
       410
     );
+  }
+
+  // Auto-allocate available room based on availability if not yet allocated
+  if (!res.room_id && res.room_type_id) {
+    const availableRoom: any = await c.env.DB.prepare(
+      `SELECT r.id, r.room_number, r.floor FROM rooms r
+       WHERE r.room_type_id = ? AND r.property_id = ? AND r.is_active = 1
+         AND r.id NOT IN (
+           SELECT res2.room_id FROM reservations res2
+           WHERE res2.room_id IS NOT NULL AND res2.status NOT IN ('cancelled', 'checked_out')
+             AND res2.check_in_date < ? AND res2.check_out_date > ?
+         )
+         AND r.id NOT IN (
+           SELECT rb.room_id FROM room_blocks rb
+           WHERE rb.is_active = 1 AND rb.start_date < ? AND rb.end_date > ?
+         )
+       ORDER BY r.room_number ASC LIMIT 1`
+    )
+      .bind(res.room_type_id, res.property_id, res.check_out_date, res.check_in_date, res.check_out_date, res.check_in_date)
+      .first();
+
+    if (availableRoom) {
+      await c.env.DB.prepare('UPDATE reservations SET room_id = ?, updated_at = ? WHERE id = ?')
+        .bind(availableRoom.id, now, res.id)
+        .run();
+      res.room_id = availableRoom.id;
+      res.room_number = availableRoom.room_number;
+      res.floor = availableRoom.floor;
+    }
   }
 
   // Primary Guest Details
@@ -128,7 +167,7 @@ guestPortalRoutes.post('/:token/self-checkin', async (c) => {
     return c.json({ error: 'Guest portal link not found or invalid' }, 404);
   }
 
-  if (res.guest_portal_expires_at && now > res.guest_portal_expires_at) {
+  if (isPortalExpired(res.check_out_date, res.guest_portal_expires_at)) {
     return c.json({ error: 'This FlexiLink has expired (7 days past checkout)' }, 410);
   }
 
@@ -209,6 +248,10 @@ guestPortalRoutes.post('/:token/create-payment', async (c) => {
     return c.json({ error: 'Guest portal link not found' }, 404);
   }
 
+  if (isPortalExpired(res.check_out_date, res.guest_portal_expires_at)) {
+    return c.json({ error: 'This guest portal link has expired (7 days past checkout)' }, 410);
+  }
+
   const amountPaise = body.amountPaise ? Math.round(body.amountPaise) : res.balance_amount_paise;
   if (amountPaise <= 0) {
     return c.json({ error: 'No outstanding balance to pay' }, 400);
@@ -276,6 +319,14 @@ guestPortalRoutes.post('/:token/verify-payment', async (c) => {
 
   if (!res) {
     return c.json({ error: 'Reservation not found' }, 404);
+  }
+
+  if (isPortalExpired(res.check_out_date, res.guest_portal_expires_at)) {
+    return c.json({ error: 'This guest portal link has expired (7 days past checkout)' }, 410);
+  }
+
+  if (isPortalExpired(res.check_out_date, res.guest_portal_expires_at)) {
+    return c.json({ error: 'This guest portal link has expired (7 days past checkout)' }, 410);
   }
 
   const paidAmount = Math.round(amountPaise || res.balance_amount_paise);
@@ -346,6 +397,10 @@ guestPortalRoutes.post('/:token/complaints', async (c) => {
     return c.json({ error: 'Reservation not found' }, 404);
   }
 
+  if (isPortalExpired(res.check_out_date, res.guest_portal_expires_at)) {
+    return c.json({ error: 'This guest portal link has expired (7 days past checkout)' }, 410);
+  }
+
   const category = body.category || 'service';
   const description = (body.description || '').trim() || 'Urgent guest assistance required in room';
   const priority = body.isUrgent !== false ? 'urgent' : 'high';
@@ -409,6 +464,10 @@ guestPortalRoutes.post('/:token/food-orders', async (c) => {
 
   if (!res) {
     return c.json({ error: 'Reservation not found' }, 404);
+  }
+
+  if (isPortalExpired(res.check_out_date, res.guest_portal_expires_at)) {
+    return c.json({ error: 'This guest portal link has expired (7 days past checkout)' }, 410);
   }
 
   const items = Array.isArray(body.items) ? body.items : [];

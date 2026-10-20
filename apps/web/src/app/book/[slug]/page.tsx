@@ -459,24 +459,47 @@ export default function DirectBookingPage() {
                   </p>
                 </div>
 
-                <div className="p-4 bg-blue-50/70 rounded-xl border border-blue-200 text-left space-y-2 text-xs">
-                  <div className="font-bold text-brand-blue flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4" />
-                    Your Digital FlexiLink Guest Pass
+                <div className="p-4 bg-blue-50/70 rounded-xl border border-blue-200 text-left space-y-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-brand-blue flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4" />
+                      Your Digital FlexiLink Guest Pass
+                    </div>
+                    {bookingConfirmed.roomNumber && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 font-mono font-bold text-[11px] border border-blue-300">
+                        Room {bookingConfirmed.roomNumber}
+                      </span>
+                    )}
                   </div>
+
                   <p className="text-slate-700 leading-relaxed text-[11px]">
                     Use your personal FlexiLink portal for <strong>express self check-in</strong>, digital folio, and contactless payments.
-                    We have also emailed this link to <strong>{guestEmail || 'your email address'}</strong>.
+                    We have also emailed this confirmation and link to <strong>{guestEmail || 'your email address'}</strong>.
                   </p>
-                  <div className="pt-2">
+
+                  <div className="space-y-2 pt-1">
                     <Link
                       href={`/guest/${bookingConfirmed.guestPortalToken}`}
                       target="_blank"
                       className="w-full py-2.5 rounded-lg bg-brand-blue text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-brand-blue-hover transition"
                     >
-                      Open FlexiLink Guest Portal <ExternalLink className="w-3.5 h-3.5" />
+                      Open Guest Portal (Direct Access &bull; No Login) <ExternalLink className="w-3.5 h-3.5" />
                     </Link>
+
+                    <a
+                      href="https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+                    >
+                      <span>📱 Download Guest Android App on Google Play</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
                   </div>
+
+                  <p className="text-[10px] text-slate-500 leading-tight pt-1">
+                    🔒 All login screens are skipped for guests using their link. Digital portal and room services access automatically expire 7 days after checkout.
+                  </p>
                 </div>
 
                 <button

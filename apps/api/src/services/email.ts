@@ -24,7 +24,9 @@ interface BookingNotificationData {
 
 export async function sendBookingEmails(env: Env, data: BookingNotificationData) {
   const apiKey = env.RESEND_API_KEY;
-  const fromEmail = env.RESEND_FROM_EMAIL || 'HotelFlexi Bookings <bookings@hotelflexi.app>';
+  const fromEmail = env.RESEND_FROM_EMAIL || 'HotelFlexi <info@novaxai.in>';
+  const playStoreUrl = env.PLAY_STORE_APP_URL || 'https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso';
+  const adminEmail = env.ADMIN_NOTIFICATION_EMAIL || 'info@novaxai.in';
 
   const guestHtml = `
     <!DOCTYPE html>
@@ -35,7 +37,10 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
       .header { background: #1e40af; color: #ffffff; padding: 32px 24px; text-align: center; }
       .content { padding: 28px 24px; }
       .card { background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; margin: 20px 0; }
-      .btn { display: inline-block; background: #1e40af; color: #ffffff !important; font-weight: 600; text-decoration: none; padding: 14px 28px; border-radius: 10px; margin: 20px 0; }
+      .room-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; margin: 18px 0; text-align: center; }
+      .btn { display: inline-block; background: #1e40af; color: #ffffff !important; font-weight: 700; text-decoration: none; padding: 14px 28px; border-radius: 10px; margin: 12px 0; font-size: 14px; }
+      .app-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px; margin: 20px 0; text-align: center; }
+      .app-btn { display: inline-block; background: #15803d; color: #ffffff !important; font-weight: 700; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 13px; }
       .footer { padding: 20px; text-align: center; font-size: 12px; color: #64748b; background: #f1f5f9; }
       .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; background: #dcfce7; color: #166534; font-weight: 700; font-size: 12px; }
     </style></head>
@@ -47,8 +52,17 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
         </div>
         <div class="content">
           <p>Dear <strong>${data.guestName}</strong>,</p>
-          <p>Namaste! Your stay at <strong>${data.propertyName}</strong> is confirmed. We look forward to hosting you.</p>
+          <p>Namaste! Your stay at <strong>${data.propertyName}</strong> has been successfully booked. We look forward to welcoming you.</p>
           
+          <!-- ALLOCATED ROOM CODE BOX -->
+          <div class="room-box">
+            <div style="font-size:11px;color:#1e40af;text-transform:uppercase;font-weight:700;letter-spacing:0.8px;">Allocated Room Code</div>
+            <div style="font-size:24px;font-weight:800;color:#1e3a8a;margin:4px 0;font-family:monospace;">
+              ${data.roomNumber ? `Room ${data.roomNumber}` : 'Allocated On Check-In'}
+            </div>
+            <div style="font-size:12px;color:#3b82f6;font-weight:600;">Category: ${data.roomTypeName}</div>
+          </div>
+
           <div class="card">
             <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
               <span style="font-size:12px;color:#64748b;">Booking Reference:</span>
@@ -64,11 +78,35 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
             </div>
           </div>
 
+          <!-- DIRECT GUEST ACCESS (NO LOGIN REQUIRED) -->
           <div style="text-align:center;padding:10px 0;">
-            <p style="font-size:13px;color:#475569;margin-bottom:8px;">Access your personal <strong>FlexiLink Guest Portal</strong> for express self check-in and digital billing:</p>
-            <a href="${data.guestPortalUrl}" class="btn" target="_blank">Open Guest Portal & Self Check-In &rarr;</a>
-            <p style="font-size:11px;color:#94a3b8;margin:0;">(Link expires 7 days after your scheduled checkout date)</p>
+            <p style="font-size:13px;color:#475569;margin-bottom:6px;">
+              Tap the link below to access your <strong>FlexiLink Guest Portal</strong> with zero login or signup required:
+            </p>
+            <a href="${data.guestPortalUrl}" class="btn" target="_blank">
+              Open Guest Portal (Direct Access &bull; No Login) &rarr;
+            </a>
+            <p style="font-size:11px;color:#64748b;margin:6px 0 0 0;">
+              Express self check-in, Aadhaar/ID upload, food ordering & digital folio.
+            </p>
           </div>
+
+          <!-- GOOGLE PLAY STORE APP DOWNLOAD -->
+          <div class="app-box">
+            <div style="font-size:14px;font-weight:800;color:#166534;margin-bottom:4px;">
+              📱 Download HotelFlexi Guest Android App
+            </div>
+            <p style="font-size:12px;color:#15803d;margin:0 0 12px 0;line-height:1.5;">
+              Download the app from Google Play Store. When opened via your link, all login screens are skipped, giving you direct access to your room services and billing.
+            </p>
+            <a href="${playStoreUrl}" class="app-btn" target="_blank">
+              Download on Google Play Store &rarr;
+            </a>
+          </div>
+
+          <p style="font-size:11px;color:#64748b;margin:18px 0 0 0;text-align:center;line-height:1.5;">
+            🔒 <em>Security &amp; Privacy: Your digital guest portal access is securely active during your stay and will be automatically removed 7 days after checkout (${data.checkOutDate}).</em>
+          </p>
 
           <div style="margin-top:24px;padding:16px;background:#eff6ff;border-radius:10px;font-size:12px;color:#1e40af;">
             <strong>Hotel Contact:</strong><br/>
@@ -108,7 +146,7 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
             <div style="margin-bottom:8px;"><strong>Booking Reference:</strong> <span style="color:#1e40af;font-family:monospace;">${data.reservationNumber}</span></div>
             <div><strong>Guest:</strong> ${data.guestName} (${data.guestPhone || 'No phone'} &bull; ${data.guestEmail || 'No email'})</div>
             <div><strong>Stay:</strong> ${data.checkInDate} to ${data.checkOutDate}</div>
-            <div><strong>Room Category:</strong> ${data.roomTypeName} ${data.roomNumber ? `(Room ${data.roomNumber})` : '(Unassigned)'}</div>
+            <div><strong>Allocated Room:</strong> ${data.roomNumber ? `Room ${data.roomNumber}` : 'Auto-allocated on arrival'} (${data.roomTypeName})</div>
             <div><strong>Occupancy:</strong> ${data.adults} Adults ${data.children > 0 ? `, ${data.children} Children` : ''}</div>
             <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #cbd5e1;">
               <div>Total Tariff: <strong>${data.totalAmountRupees}</strong></div>
@@ -117,7 +155,8 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
             </div>
           </div>
           <p style="font-size:12px;color:#64748b;">
-            Guest FlexiLink: <a href="${data.guestPortalUrl}">${data.guestPortalUrl}</a>
+            Guest Direct FlexiLink: <a href="${data.guestPortalUrl}">${data.guestPortalUrl}</a><br/>
+            <em>(Access automatically expires 7 days after checkout)</em>
           </p>
         </div>
       </div>
@@ -147,7 +186,7 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
         body: JSON.stringify({
           from: fromEmail,
           to: [data.guestEmail],
-          subject: `Reservation Confirmed at ${data.propertyName} (Ref: ${data.reservationNumber})`,
+          subject: `Booking Confirmed at ${data.propertyName} - Room ${data.roomNumber || ''} (Ref: ${data.reservationNumber})`,
           html: guestHtml,
         }),
       });
@@ -181,5 +220,62 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
     }
   }
 
+  // 3. Send Platform Admin Notification (to info@novaxai.in)
+  if (adminEmail && adminEmail !== data.ownerEmail && adminEmail !== data.guestEmail) {
+    try {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [adminEmail],
+          subject: `[Platform Notification] New Reservation: ${data.reservationNumber} at ${data.propertyName}`,
+          html: ownerHtml,
+        }),
+      });
+    } catch (err) {
+      console.warn('[Resend Warning] Admin notification copy failed:', err);
+    }
+  }
+
   return { success: true, results };
+}
+
+// Generic transactional email sender for platform alerts, password resets, subscriptions
+export async function sendEmail(
+  env: Env,
+  params: { to: string | string[]; subject: string; html: string; from?: string }
+) {
+  const apiKey = env.RESEND_API_KEY;
+  const fromEmail = params.from || env.RESEND_FROM_EMAIL || 'HotelFlexi <info@novaxai.in>';
+
+  if (!apiKey) {
+    console.log('[Resend Email Service] RESEND_API_KEY not configured. Simulating email:', params.to, params.subject);
+    return { success: false, simulated: true };
+  }
+
+  try {
+    const toRecipients = Array.isArray(params.to) ? params.to : [params.to];
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: toRecipients,
+        subject: params.subject,
+        html: params.html,
+      }),
+    });
+    const data = await resp.json();
+    return { success: resp.ok, data };
+  } catch (err: any) {
+    console.error('[Resend Error] sendEmail failed:', err);
+    return { success: false, error: err.message };
+  }
 }

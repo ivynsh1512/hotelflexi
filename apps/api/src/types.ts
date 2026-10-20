@@ -7,6 +7,8 @@ export interface Env {
   AI_PROVIDER_API_KEY?: string;
   RESEND_API_KEY?: string;
   RESEND_FROM_EMAIL?: string;
+  ADMIN_NOTIFICATION_EMAIL?: string;
+  PLAY_STORE_APP_URL?: string;
   ENVIRONMENT?: string;
   API_BASE?: string;
   APP_NAME?: string;

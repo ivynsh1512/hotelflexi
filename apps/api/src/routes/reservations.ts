@@ -149,14 +149,17 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
   }
 
   // If specific room requested, perform strict conflict checks
-  if (roomId) {
+  let assignedRoomId: string | null = roomId || null;
+  let assignedRoomNumber: string | undefined = undefined;
+
+  if (assignedRoomId) {
     const resConflict: any = await c.env.DB.prepare(
       `SELECT id, reservation_number FROM reservations
        WHERE room_id = ? AND tenant_id = ?
          AND status NOT IN ('cancelled', 'checked_out')
          AND check_in_date < ? AND check_out_date > ?`
     )
-      .bind(roomId, tenantId, checkOutDate, checkInDate)
+      .bind(assignedRoomId, tenantId, checkOutDate, checkInDate)
       .first();
 
     if (resConflict) {
@@ -174,7 +177,7 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
        WHERE room_id = ? AND tenant_id = ? AND is_active = 1
          AND start_date < ? AND end_date > ?`
     )
-      .bind(roomId, tenantId, checkOutDate, checkInDate)
+      .bind(assignedRoomId, tenantId, checkOutDate, checkInDate)
       .first();
 
     if (blockConflict) {
@@ -185,6 +188,32 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
         },
         409
       );
+    }
+
+    const roomRow: any = await c.env.DB.prepare('SELECT room_number FROM rooms WHERE id = ?').bind(assignedRoomId).first();
+    assignedRoomNumber = roomRow?.room_number;
+  } else {
+    // Auto-allocate available room based on availability
+    const availableRoom: any = await c.env.DB.prepare(
+      `SELECT r.id, r.room_number FROM rooms r
+       WHERE r.room_type_id = ? AND r.property_id = ? AND r.is_active = 1
+         AND r.id NOT IN (
+           SELECT res.room_id FROM reservations res
+           WHERE res.room_id IS NOT NULL AND res.status NOT IN ('cancelled', 'checked_out')
+             AND res.check_in_date < ? AND res.check_out_date > ?
+         )
+         AND r.id NOT IN (
+           SELECT rb.room_id FROM room_blocks rb
+           WHERE rb.is_active = 1 AND rb.start_date < ? AND rb.end_date > ?
+         )
+       ORDER BY r.room_number ASC LIMIT 1`
+    )
+      .bind(roomTypeId, propertyId, checkOutDate, checkInDate, checkOutDate, checkInDate)
+      .first();
+
+    if (availableRoom) {
+      assignedRoomId = availableRoom.id;
+      assignedRoomNumber = availableRoom.room_number;
     }
   }
 
@@ -340,7 +369,7 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
       tenantId,
       reservationNumber,
       source,
-      roomId || null,
+      assignedRoomId,
       roomTypeId,
       ratePlanId || null,
       checkInDate,
@@ -504,6 +533,7 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
     checkInDate,
     checkOutDate,
     roomTypeName: roomType.name,
+    roomNumber: assignedRoomNumber,
     adults,
     children,
     totalAmountRupees: formatINR(totalAmountPaise),
@@ -522,6 +552,8 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
       totalAmountPaise,
       checkInDate,
       checkOutDate,
+      roomId: assignedRoomId,
+      roomNumber: assignedRoomNumber,
       guestPortalToken,
     },
   });
@@ -530,6 +562,8 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
     success: true,
     id: reservationId,
     reservationNumber,
+    roomId: assignedRoomId,
+    roomNumber: assignedRoomNumber,
     totalAmountPaise,
     paidAmountPaise: paidPaise,
     balanceAmountPaise: balancePaise,

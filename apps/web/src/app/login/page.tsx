@@ -18,6 +18,21 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [savedGuestToken, setSavedGuestToken] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const qToken = searchParams.get('token') || searchParams.get('guestToken');
+      if (qToken) {
+        router.replace(`/guest/${qToken}`);
+        return;
+      }
+      try {
+        const stored = localStorage.getItem('hotelflexi_guest_token');
+        if (stored) setSavedGuestToken(stored);
+      } catch {}
+    }
+  }, [searchParams, router]);
 
   const handleGoogleSignIn = async () => {
     setError(null);
@@ -70,6 +85,22 @@ function LoginForm() {
         <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-status-danger text-sm flex items-start gap-2.5">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-status-danger" />
           <span className="font-medium">{error}</span>
+        </div>
+      )}
+
+      {/* Guest Portal Bypass: Direct Access without Login */}
+      {savedGuestToken && (
+        <div className="mb-6 p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl flex items-center justify-between text-xs">
+          <div>
+            <span className="font-bold text-blue-900 block">Are you an in-house guest?</span>
+            <span className="text-[11px] text-blue-700">Open your direct room folio without login</span>
+          </div>
+          <Link
+            href={`/guest/${savedGuestToken}`}
+            className="px-3.5 py-1.5 bg-brand-blue text-white rounded-lg font-bold text-xs hover:bg-brand-blue-hover shadow-sm transition"
+          >
+            Open Portal &rarr;
+          </Link>
         </div>
       )}
 

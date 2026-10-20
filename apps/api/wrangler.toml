@@ -19,8 +19,12 @@ crons = ["0 2 * * *"]
 ENVIRONMENT = "production"
 APP_NAME = "HotelFlexi"
 API_BASE = "https://hotelflexi.divyansh-shukla.workers.dev"
+RESEND_FROM_EMAIL = "HotelFlexi <info@novaxai.in>"
+ADMIN_NOTIFICATION_EMAIL = "info@novaxai.in"
+PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso"
 
 # Secrets to be configured with `wrangler secret put <KEY>`:
+# RESEND_API_KEY: Configured in Cloudflare
 # ADMIN_EMAILS: "divyansh.shukla1512@gmail.com,info@novaxai.in"
 # RAZORPAY_KEY_ID: "rzp_test_..."
 # RAZORPAY_KEY_SECRET: "..."

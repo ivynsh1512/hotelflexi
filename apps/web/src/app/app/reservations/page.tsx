@@ -269,15 +269,15 @@ export default function ReservationsListPage() {
                               </button>
 
                               {res.guest_phone && (
-                                <a
-                                  href={`https://wa.me/${res.guest_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                                    `Namaste ${res.guest_name || 'Guest'}, here is your FlexiLink for reservation #${res.reservation_number}: https://hotelflexi.vercel.app/guest/${res.guest_portal_token} to complete express self check-in and view your stay details.`
-                                  )}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="p-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition"
-                                  title="Share FlexiLink via WhatsApp"
-                                >
+                                  <a
+                                    href={`https://wa.me/${res.guest_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                                      `Namaste ${res.guest_name || 'Guest'}, here is your FlexiLink for reservation #${res.reservation_number}${res.room_number ? ` (Room ${res.room_number})` : ''}: https://hotelflexi.vercel.app/guest/${res.guest_portal_token} to open your direct guest portal without any login. Download our Android App on Google Play: https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso (Access valid during stay and up to 7 days after checkout).`
+                                    )}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition"
+                                    title="Share FlexiLink via WhatsApp"
+                                  >
                                   <MessageCircle className="w-3 h-3" />
                                 </a>
                               )}
