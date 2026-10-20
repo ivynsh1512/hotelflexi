@@ -70,7 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             Platform infrastructure, complaints, finances, and push broadcasts are managed exclusively via the desktop web portal to maintain security and operational oversight.
           </p>
           <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-800/40 text-[11px] text-purple-300 font-mono">
-            Open https://hotelflexi.novaxai.in/admin on your laptop or desktop browser.
+            Open https://hotelflexi.novaxai.in/central-command on your laptop or desktop browser.
           </div>
           <Link
             href="/app"
@@ -107,15 +107,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const navItems = [
-    { label: 'Platform Overview', href: '/admin', icon: LayoutDashboard },
-    { label: 'Tenants & Properties', href: '/admin/tenants', icon: Users },
-    { label: 'SaaS Plans & Pricing', href: '/admin/subscriptions', icon: DollarSign },
-    { label: 'Platform Finance', href: '/admin/finance', icon: PieChart },
-    { label: 'Platform Expenses', href: '/admin/finance/expenses', icon: DollarSign },
-    { label: 'Hotelier Complaints & Bugs', href: '/admin/complaints', icon: AlertTriangle },
-    { label: 'Push Broadcast Center', href: '/admin/broadcast', icon: Bell },
-    { label: 'Administrative Audit Log', href: '/admin/audit-log', icon: FileText },
-    { label: 'Admin Settings', href: '/admin/settings', icon: Settings },
+    { label: 'Platform Overview', href: '/central-command', icon: LayoutDashboard },
+    { label: 'Tenants & Properties', href: '/central-command/tenants', icon: Users },
+    { label: 'SaaS Plans & Pricing', href: '/central-command/subscriptions', icon: DollarSign },
+    { label: 'Platform Finance', href: '/central-command/finance', icon: PieChart },
+    { label: 'Platform Expenses', href: '/central-command/finance/expenses', icon: DollarSign },
+    { label: 'Hotelier Complaints & Bugs', href: '/central-command/complaints', icon: AlertTriangle },
+    { label: 'Push Broadcast Center', href: '/central-command/broadcast', icon: Bell },
+    { label: 'Administrative Audit Log', href: '/central-command/audit-log', icon: FileText },
+    { label: 'Admin Settings', href: '/central-command/settings', icon: Settings },
   ];
 
   return (

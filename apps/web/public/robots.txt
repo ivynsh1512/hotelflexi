@@ -34,6 +34,7 @@ Allow: /book/*
 # Disallow private operational dashboards, super-admin, private APIs & guest check-in sessions
 Disallow: /app/
 Disallow: /admin/
+Disallow: /central-command/
 Disallow: /super-admin-portal
 Disallow: /api/
 Disallow: /guest/
@@ -48,6 +49,7 @@ Allow: /compare/*
 Allow: /blog/*
 Disallow: /app/
 Disallow: /admin/
+Disallow: /central-command/
 Disallow: /guest/
 
 User-agent: Bingbot
@@ -56,6 +58,7 @@ Allow: /compare/*
 Allow: /blog/*
 Disallow: /app/
 Disallow: /admin/
+Disallow: /central-command/
 Disallow: /guest/
 
 # XML Sitemap Location

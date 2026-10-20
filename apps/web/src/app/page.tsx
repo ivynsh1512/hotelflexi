@@ -72,7 +72,7 @@ export default function HomePage() {
       ],
       highlighted: true,
       badge: 'Most Popular for Hotels',
-      ctaText: 'Start 14-Day Free Trial',
+      ctaText: 'Try for Free',
     },
     {
       id: 'growth',
@@ -91,7 +91,7 @@ export default function HomePage() {
         'Dedicated 1-on-1 Onboarding Specialist',
       ],
       highlighted: false,
-      ctaText: 'Start 14-Day Free Trial',
+      ctaText: 'Try for Free',
     },
     {
       id: 'enterprise',
@@ -182,7 +182,7 @@ export default function HomePage() {
               href="/signup"
               className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-brand-blue hover:bg-blue-700 text-white font-extrabold text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
             >
-              <span>Start 14-Day Free Trial</span>
+              <span>Try for Free</span>
               <ChevronRight className="w-4 h-4" />
             </Link>
 
@@ -756,14 +756,14 @@ export default function HomePage() {
             Ready to Automate Your Hotel Operations and Stop Overpaying OTAs?
           </h2>
           <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Join hundreds of forward-thinking hotels across India. Start your 14-day free trial now or book a live 1-on-1 walkthrough.
+            Join hundreds of forward-thinking hotels across India. Try for free now or book a live 1-on-1 walkthrough.
           </p>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/signup"
               className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm shadow-xl transition"
             >
-              Start Free 14-Day Trial &rarr;
+              Try for Free &rarr;
             </Link>
             <button
               onClick={() => setDemoModalOpen(true)}

@@ -188,7 +188,11 @@ export function StaffSirenAlert() {
   if (activeSirens.length === 0) return null;
 
   // Don't render on super-admin portal
-  if (isPlatformAdmin && typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+  if (
+    isPlatformAdmin &&
+    typeof window !== 'undefined' &&
+    (window.location.pathname.startsWith('/central-command') || window.location.pathname.startsWith('/admin'))
+  ) {
     return null;
   }
 

@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo ========================================================
-echo HotelFlexi Android Play Store Bundle Builder (v1.0.5 / Code 8)
+echo HotelFlexi Android Play Store Bundle Builder (v1.0.6 / Code 9)
 echo Package: in.novaxai.hotelflexi
 echo ========================================================
 
@@ -26,7 +26,7 @@ if not exist "%ANDROID_HOME%\platforms\android-36" (
     echo y | "%ANDROID_HOME%\tools\bin\sdkmanager.bat" --sdk_root="%ANDROID_HOME%" platforms;android-36
 )
 
-echo [3/4] Compiling signed Play Store App Bundle (.aab) with VersionCode 8...
+echo [3/4] Compiling signed Play Store App Bundle (.aab) with VersionCode 9...
 call gradlew.bat bundleRelease -Dorg.gradle.jvmargs="-Xmx768m -XX:MaxMetaspaceSize=384m" --no-daemon --stacktrace
 
 if errorlevel 1 (
@@ -35,27 +35,27 @@ if errorlevel 1 (
 )
 
 echo [4/4] Generating Universal APK (.apk) and distributing files...
-copy /y "app\build\outputs\bundle\release\app-release.aab" "HotelFlexi-v1.0.5-release.aab" >nul
-copy /y "app\build\outputs\bundle\release\app-release.aab" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.5-release.aab" >nul
+copy /y "app\build\outputs\bundle\release\app-release.aab" "HotelFlexi-v1.0.6-release.aab" >nul
+copy /y "app\build\outputs\bundle\release\app-release.aab" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.6-release.aab" >nul
 copy /y "app\build\outputs\bundle\release\app-release.aab" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-release.aab" >nul
-copy /y "app\build\outputs\bundle\release\app-release.aab" "C:\Users\divya\Downloads\HotelFlexi-v1.0.5-release.aab" >nul
+copy /y "app\build\outputs\bundle\release\app-release.aab" "C:\Users\divya\Downloads\HotelFlexi-v1.0.6-release.aab" >nul
 
 if exist "bundletool.jar" (
-    if exist "HotelFlexi-v1.0.5.apks" del /f /q "HotelFlexi-v1.0.5.apks"
-    "%JAVA_HOME%\bin\java.exe" -jar bundletool.jar build-apks --bundle="HotelFlexi-v1.0.5-release.aab" --output="HotelFlexi-v1.0.5.apks" --mode=universal --ks="signing.keystore" --ks-pass=pass:dKbvBlLmwBhL --ks-key-alias=my-key-alias --key-pass=pass:dKbvBlLmwBhL
-    tar.exe -xf "HotelFlexi-v1.0.5.apks" universal.apk
+    if exist "HotelFlexi-v1.0.6.apks" del /f /q "HotelFlexi-v1.0.6.apks"
+    "%JAVA_HOME%\bin\java.exe" -jar bundletool.jar build-apks --bundle="HotelFlexi-v1.0.6-release.aab" --output="HotelFlexi-v1.0.6.apks" --mode=universal --ks="signing.keystore" --ks-pass=pass:dKbvBlLmwBhL --ks-key-alias=my-key-alias --key-pass=pass:dKbvBlLmwBhL
+    tar.exe -xf "HotelFlexi-v1.0.6.apks" universal.apk
     if exist "universal.apk" (
-        move /y "universal.apk" "HotelFlexi-v1.0.5-universal.apk" >nul
-        copy /y "HotelFlexi-v1.0.5-universal.apk" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.5-universal.apk" >nul
-        copy /y "HotelFlexi-v1.0.5-universal.apk" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-universal.apk" >nul
-        copy /y "HotelFlexi-v1.0.5-universal.apk" "C:\Users\divya\Downloads\HotelFlexi-v1.0.5-universal.apk" >nul
-        copy /y "HotelFlexi-v1.0.5-universal.apk" "..\apps\web\public\hotelflexi-app.apk" >nul
+        move /y "universal.apk" "HotelFlexi-v1.0.6-universal.apk" >nul
+        copy /y "HotelFlexi-v1.0.6-universal.apk" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.6-universal.apk" >nul
+        copy /y "HotelFlexi-v1.0.6-universal.apk" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-universal.apk" >nul
+        copy /y "HotelFlexi-v1.0.6-universal.apk" "C:\Users\divya\Downloads\HotelFlexi-v1.0.6-universal.apk" >nul
+        copy /y "HotelFlexi-v1.0.6-universal.apk" "..\apps\web\public\hotelflexi-app.apk" >nul
     )
-    if exist "HotelFlexi-v1.0.5.apks" del /f /q "HotelFlexi-v1.0.5.apks"
+    if exist "HotelFlexi-v1.0.6.apks" del /f /q "HotelFlexi-v1.0.6.apks"
 )
 
 echo ========================================================
-echo PLAY STORE BUNDLE (VersionCode 8) READY!
+echo PLAY STORE BUNDLE (VersionCode 9) READY!
 echo ========================================================
-echo AAB: C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.5-release.aab
-echo APK: C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.5-universal.apk
+echo AAB: C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.6-release.aab
+echo APK: C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.6-universal.apk

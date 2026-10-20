@@ -12,9 +12,9 @@ export default function SuperAdminPortalPage() {
   useEffect(() => {
     if (!loading) {
       if (user && isPlatformAdmin) {
-        router.replace('/admin');
+        router.replace('/central-command');
       } else if (!user) {
-        router.replace('/login?redirect=/admin');
+        router.replace('/login?redirect=/central-command');
       }
     }
   }, [user, isPlatformAdmin, loading, router]);
