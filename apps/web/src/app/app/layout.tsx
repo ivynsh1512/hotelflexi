@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { sendEmailVerification } from 'firebase/auth';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
 import { StaffSirenAlert } from '@/components/ui/StaffSirenAlert';
@@ -41,6 +42,7 @@ import {
   HelpCircle,
   ShieldAlert,
   ArrowRight,
+  MailCheck,
 } from 'lucide-react';
 import { isRouteAllowedForRole } from '@/lib/permissions';
 
@@ -51,6 +53,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [apiLockedReason, setApiLockedReason] = useState<string | null>(null);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [emailBannerDismissed, setEmailBannerDismissed] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
+
+  const handleResendVerification = async () => {
+    if (!user) return;
+    setResendingEmail(true);
+    setResendStatus(null);
+    try {
+      await sendEmailVerification(user);
+      setResendStatus('Verification link dispatched! Please check your inbox & spam folder.');
+      setTimeout(() => setResendStatus(null), 6000);
+    } catch (e: any) {
+      setResendStatus(e.message || 'Failed to resend email');
+      setTimeout(() => setResendStatus(null), 6000);
+    } finally {
+      setResendingEmail(false);
+    }
+  };
 
   const checkUnreadNotifs = useCallback(async () => {
     if (!currentTenant?.tenant_id) return;
@@ -406,6 +427,51 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </header>
+
+        {/* Unverified Email Security Banner */}
+        {user && user.email && !user.emailVerified && !emailBannerDismissed && (
+          <div className="bg-amber-400 text-slate-950 px-4 py-2.5 border-b border-amber-500 flex flex-wrap items-center justify-between text-xs gap-2 shadow-sm animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <span className="p-1 rounded-md bg-amber-900/10 text-slate-950 shrink-0">
+                <ShieldAlert className="w-4 h-4 text-amber-950" />
+              </span>
+              <span>
+                <strong>Account Security Notice:</strong> Your registered email (<strong>{user.email}</strong>) is not verified. Please verify your email to ensure password recovery, prevent account takeover, and activate high-priority operational siren alerts.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {resendStatus ? (
+                <span className="px-2.5 py-1 rounded-lg bg-amber-950 text-amber-100 font-bold text-[11px] animate-pulse">
+                  {resendStatus}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendingEmail}
+                  className="px-2.5 py-1 bg-white hover:bg-amber-50 text-slate-900 font-bold rounded-lg border border-amber-600/40 transition text-[11px] shadow-sm disabled:opacity-50"
+                >
+                  {resendingEmail ? 'Sending...' : 'Resend Verification'}
+                </button>
+              )}
+              <Link
+                href="/verify-email"
+                className="px-2.5 py-1 bg-slate-950 hover:bg-slate-900 text-amber-300 font-bold rounded-lg transition text-[11px] shadow-sm flex items-center gap-1"
+              >
+                <MailCheck className="w-3.5 h-3.5" />
+                Verify Now
+              </Link>
+              <button
+                type="button"
+                onClick={() => setEmailBannerDismissed(true)}
+                title="Dismiss for this session"
+                className="p-1 text-slate-800 hover:text-slate-950 rounded hover:bg-amber-300 transition ml-1"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Tenant Lock / Suspension Alert Banner */}
         {isAccountRestricted && (

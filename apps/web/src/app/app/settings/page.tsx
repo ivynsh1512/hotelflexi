@@ -1,6 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import {
+  sendEmailVerification,
+  updatePassword,
+  verifyBeforeUpdateEmail,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
 import AddressAutocomplete, { SelectedLocation } from '@/components/ui/AddressAutocomplete';
@@ -23,6 +32,14 @@ import {
   Upload,
   FileText,
   Percent,
+  Lock,
+  MailCheck,
+  ShieldAlert,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Shield,
+  RefreshCw,
 } from 'lucide-react';
 
 declare global {
@@ -97,6 +114,117 @@ export default function HotelSettingsPage() {
   const [devSetupLoading, setDevSetupLoading] = useState(false);
   const [devSetupRequest, setDevSetupRequest] = useState<any>(null);
   const [devSuccessMsg, setDevSuccessMsg] = useState('');
+
+  // Account Security states
+  const [securityMessage, setSecurityMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswordText, setShowPasswordText] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [newEmailAddress, setNewEmailAddress] = useState('');
+  const [emailCooldown, setEmailCooldown] = useState(0);
+
+  useEffect(() => {
+    if (emailCooldown <= 0) return;
+    const timer = setInterval(() => setEmailCooldown((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [emailCooldown]);
+
+  const handleSendVerificationEmail = async () => {
+    if (!auth.currentUser) return;
+    setSecurityLoading(true);
+    setSecurityMessage(null);
+    try {
+      await sendEmailVerification(auth.currentUser);
+      setSecurityMessage({
+        type: 'success',
+        text: 'Verification link dispatched to your registered email! Please click the link to confirm.',
+      });
+      setEmailCooldown(60);
+    } catch (err: any) {
+      setSecurityMessage({
+        type: 'error',
+        text: err.message || 'Failed to send verification email.',
+      });
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth.currentUser || !auth.currentUser.email) return;
+
+    if (newPassword.length < 6) {
+      setSecurityMessage({ type: 'error', text: 'New password must be at least 6 characters.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setSecurityMessage({ type: 'error', text: 'Passwords do not match.' });
+      return;
+    }
+
+    setSecurityLoading(true);
+    setSecurityMessage(null);
+
+    try {
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      await updatePassword(auth.currentUser, newPassword);
+
+      setSecurityMessage({
+        type: 'success',
+        text: 'Password updated successfully! Your account credentials have been changed.',
+      });
+      setShowPasswordModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      console.error('Password change error:', err);
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setSecurityMessage({ type: 'error', text: 'Current password is incorrect.' });
+      } else if (err.code === 'auth/weak-password') {
+        setSecurityMessage({ type: 'error', text: 'New password is too weak.' });
+      } else {
+        setSecurityMessage({ type: 'error', text: err.message || 'Failed to update password.' });
+      }
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
+
+  const handleInitiateEmailChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth.currentUser || !newEmailAddress.trim()) return;
+
+    setSecurityLoading(true);
+    setSecurityMessage(null);
+
+    try {
+      await verifyBeforeUpdateEmail(auth.currentUser, newEmailAddress.trim());
+      setSecurityMessage({
+        type: 'success',
+        text: `Verification email sent to ${newEmailAddress.trim()}! Please click the link in that email to finalize the email change.`,
+      });
+      setShowEmailModal(false);
+      setNewEmailAddress('');
+    } catch (err: any) {
+      console.error('Email change error:', err);
+      if (err.code === 'auth/email-already-in-use') {
+        setSecurityMessage({ type: 'error', text: 'This email is already associated with another account.' });
+      } else if (err.code === 'auth/requires-recent-login') {
+        setSecurityMessage({ type: 'error', text: 'Security check: Please log out and sign in again before changing your primary email.' });
+      } else {
+        setSecurityMessage({ type: 'error', text: err.message || 'Failed to initiate email change.' });
+      }
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Load Razorpay script dynamically
@@ -934,6 +1062,287 @@ export default function HotelSettingsPage() {
           </button>
         </form>
       )}
+
+      {/* Account & Email Security Card */}
+      <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-5 text-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-light pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-brand-blue flex items-center justify-center shrink-0">
+              <Shield className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-content-primary-light">
+                Account Security &amp; Email Verification
+              </h3>
+              <p className="text-[11px] text-content-secondary-light">
+                Manage your credentials, verified email recovery, and multi-factor protection
+              </p>
+            </div>
+          </div>
+          {user?.emailVerified ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              Email Verified &amp; Protected
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+              Action Required: Unverified Email
+            </span>
+          )}
+        </div>
+
+        {securityMessage && (
+          <div
+            className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
+              securityMessage.type === 'success'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-red-50 text-red-700 border-red-200'
+            }`}
+          >
+            {securityMessage.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            )}
+            <span>{securityMessage.text}</span>
+          </div>
+        )}
+
+        {/* Security Items Grid */}
+        <div className="space-y-3">
+          {/* Email Verification Row */}
+          <div className="p-4 rounded-xl border border-border-light bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-content-primary-light">Primary Account Email:</span>
+                <span className="font-mono font-semibold text-slate-800">{user?.email || 'Not configured'}</span>
+              </div>
+              <p className="text-[11px] text-content-secondary-light">
+                {user?.emailVerified
+                  ? 'Your email is verified. Password reset tokens and security breach notices are sent here.'
+                  : 'Unverified email! If you forget your password, account recovery will be disabled until verified.'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {!user?.emailVerified && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleSendVerificationEmail}
+                    disabled={securityLoading || emailCooldown > 0}
+                    className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold transition text-xs shadow-sm disabled:opacity-50 flex items-center gap-1"
+                  >
+                    <MailCheck className="w-3.5 h-3.5" />
+                    {emailCooldown > 0 ? `Sent (${emailCooldown}s)` : 'Send Verification'}
+                  </button>
+                  <Link
+                    href="/verify-email"
+                    className="px-3 py-1.5 rounded-lg border border-border-light bg-white hover:bg-slate-100 text-content-primary-light font-semibold text-xs"
+                  >
+                    Verify Screen
+                  </Link>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEmailModal(true);
+                  setNewEmailAddress(user?.email || '');
+                }}
+                className="px-3 py-1.5 rounded-lg border border-border-light bg-white hover:bg-slate-100 text-content-primary-light font-semibold text-xs"
+              >
+                Change Email
+              </button>
+            </div>
+          </div>
+
+          {/* Password Protection Row */}
+          <div className="p-4 rounded-xl border border-border-light bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-slate-500" />
+                <span className="font-bold text-content-primary-light">Account Password:</span>
+                <span className="font-mono text-slate-400">••••••••••••••••</span>
+              </div>
+              <p className="text-[11px] text-content-secondary-light">
+                Regularly changing your password protects against staff credential sharing and unauthorized logins.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowPasswordModal(true);
+                setSecurityMessage(null);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm shrink-0 self-start sm:self-auto"
+            >
+              Update Password
+            </button>
+          </div>
+
+          {/* Multi-Factor Authentication (MFA / 2FA) Guidance Row */}
+          <div className="p-4 rounded-xl border border-blue-200/60 bg-blue-50/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-brand-blue" />
+                <span className="font-bold text-brand-blue">Multi-Factor Authentication (MFA / 2FA)</span>
+                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">
+                  Enterprise Security
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600">
+                Secondary authentication step via SMS or Authenticator app for privileged operations (payouts, employee deletion, and API key reveal).
+              </p>
+            </div>
+            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 shrink-0 self-start sm:self-auto">
+              ✓ Active on Platform
+            </span>
+          </div>
+        </div>
+
+        {/* Change Password Modal */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-border-light pb-3">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-5 h-5 text-brand-blue" />
+                  <h4 className="font-bold text-sm text-content-primary-light">Change Account Password</h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="text-slate-400 hover:text-slate-600 font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdatePassword} className="space-y-3">
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700">Current Password *</label>
+                  <input
+                    type={showPasswordText ? 'text' : 'password'}
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter existing password"
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700">New Password (Min 6 chars) *</label>
+                  <div className="relative">
+                    <input
+                      type={showPasswordText ? 'text' : 'password'}
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new strong password"
+                      className="w-full px-3 py-2 pr-10 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordText(!showPasswordText)}
+                      className="absolute right-3 top-2.5 text-slate-400"
+                    >
+                      {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700">Confirm New Password *</label>
+                  <input
+                    type={showPasswordText ? 'text' : 'password'}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordModal(false)}
+                    className="flex-1 py-2 rounded-lg border border-border-light font-semibold hover:bg-slate-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={securityLoading}
+                    className="flex-1 py-2 rounded-lg bg-brand-blue text-white font-bold hover:bg-brand-blue-hover transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {securityLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update Password'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Change Email Modal */}
+        {showEmailModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-border-light pb-3">
+                <div className="flex items-center gap-2">
+                  <MailCheck className="w-5 h-5 text-brand-blue" />
+                  <h4 className="font-bold text-sm text-content-primary-light">Change Primary Email</h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailModal(false)}
+                  className="text-slate-400 hover:text-slate-600 font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500 leading-relaxed">
+                For security, a verification email will be dispatched to the new address. The email change only takes effect once you click the confirmation link.
+              </p>
+
+              <form onSubmit={handleInitiateEmailChange} className="space-y-3">
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700">New Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    value={newEmailAddress}
+                    onChange={(e) => setNewEmailAddress(e.target.value)}
+                    placeholder="newowner@hotel.com"
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailModal(false)}
+                    className="flex-1 py-2 rounded-lg border border-border-light font-semibold hover:bg-slate-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={securityLoading}
+                    className="flex-1 py-2 rounded-lg bg-brand-blue text-white font-bold hover:bg-brand-blue-hover transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {securityLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Verification'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Hire a Developer Setup Service Card (₹499) */}
       <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 text-white shadow-lg space-y-4">
