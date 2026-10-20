@@ -98,6 +98,13 @@ guestPortalRoutes.get('/:token', async (c) => {
     .bind(res.id)
     .all();
 
+  // In-Stay Food Orders
+  const foodOrders = await c.env.DB.prepare(
+    `SELECT id, description, priority, status, created_at FROM complaints WHERE reservation_id = ? AND category = 'room_service' ORDER BY created_at DESC`
+  )
+    .bind(res.id)
+    .all();
+
   return c.json({
     expired: false,
     reservation: {
@@ -146,6 +153,7 @@ guestPortalRoutes.get('/:token', async (c) => {
       idNumberMasked: primaryGuest?.id_number_masked || '',
     },
     payments: payments.results || [],
+    foodOrders: foodOrders.results || [],
   });
 });
 
@@ -485,7 +493,7 @@ guestPortalRoutes.post('/:token/food-orders', async (c) => {
   const totalPaise = items.reduce((sum: number, it: any) => sum + (it.pricePaise || 0) * (it.quantity || 1), 0);
 
   const itemsSummary = items.map((it: any) => `${it.quantity || 1}x ${it.name}`).join(', ');
-  const orderDescription = `In-Stay Dining Order: ${itemsSummary}${notes ? ` (Notes: ${notes})` : ''} - Total: ₹${(totalPaise / 100).toFixed(2)} [Payment: ${paymentMethod === 'cash_on_delivery' ? 'Cash/Pay Staff' : 'Paid Online'}]`;
+  const orderDescription = `In-Stay Dining Order: ${itemsSummary}${notes ? ` (Notes: ${notes})` : ''} - Total: ₹${(totalPaise / 100).toFixed(2)} [Payment: ${paymentMethod === 'cash_on_delivery' ? 'Charged to Room Folio' : 'Paid Online'}]`;
 
   const ticketId = `ord_${crypto.randomUUID()}`;
 
@@ -499,14 +507,14 @@ guestPortalRoutes.post('/:token/food-orders', async (c) => {
   const guestName = guest?.full_name || 'In-House Guest';
   const roomNumber = res.room_number || 'Room';
 
-  // Record as an operational service ticket so kitchen & front-desk can fulfill it
-  await c.env.DB.prepare(
-    `INSERT INTO complaints (
-       id, property_id, tenant_id, reservation_id, guest_name, room_number,
-       category, description, priority, status, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, 'room_service', ?, 'high', 'open', ?, ?)`
-  )
-    .bind(
+  const statements: any[] = [
+    // 1. Record as an operational service ticket for kitchen & floor staff
+    c.env.DB.prepare(
+      `INSERT INTO complaints (
+         id, property_id, tenant_id, reservation_id, guest_name, room_number,
+         category, description, priority, status, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, 'room_service', ?, 'high', 'open', ?, ?)`
+    ).bind(
       ticketId,
       res.property_id,
       res.tenant_id,
@@ -516,12 +524,88 @@ guestPortalRoutes.post('/:token/food-orders', async (c) => {
       orderDescription,
       now,
       now
-    )
-    .run();
+    ),
+  ];
+
+  // 2. Add food order amount to reservation total and folio balance
+  if (totalPaise > 0) {
+    if (paymentMethod === 'online') {
+      const paymentId = `pay_${crypto.randomUUID()}`;
+      statements.push(
+        c.env.DB.prepare(
+          `UPDATE reservations
+           SET total_amount_paise = total_amount_paise + ?,
+               paid_amount_paise = paid_amount_paise + ?,
+               updated_at = ?
+           WHERE id = ?`
+        ).bind(totalPaise, totalPaise, now, res.id),
+        c.env.DB.prepare(
+          `INSERT INTO payments (
+             id, property_id, tenant_id, reservation_id, amount_paise,
+             payment_method, status, notes, created_at, updated_at
+           ) VALUES (?, ?, ?, ?, ?, 'online', 'completed', ?, ?, ?)`
+        ).bind(paymentId, res.property_id, res.tenant_id, res.id, totalPaise, `Room Dining: ${itemsSummary}`, now, now)
+      );
+    } else {
+      // Cash on delivery / charge to room folio
+      statements.push(
+        c.env.DB.prepare(
+          `UPDATE reservations
+           SET total_amount_paise = total_amount_paise + ?,
+               balance_amount_paise = balance_amount_paise + ?,
+               payment_status = CASE WHEN paid_amount_paise > 0 THEN 'partially_paid' ELSE 'pending' END,
+               updated_at = ?
+           WHERE id = ?`
+        ).bind(totalPaise, totalPaise, now, res.id)
+      );
+    }
+
+    // 3. Update invoice & insert invoice_item if invoice exists
+    const invoice: any = await c.env.DB.prepare(
+      `SELECT id FROM invoices WHERE reservation_id = ? ORDER BY created_at DESC LIMIT 1`
+    ).bind(res.id).first();
+
+    if (invoice) {
+      const invoiceItemId = `ini_${crypto.randomUUID()}`;
+      statements.push(
+        c.env.DB.prepare(
+          `INSERT INTO invoice_items (
+             id, invoice_id, tenant_id, description, quantity, unit_price_paise,
+             amount_paise, tax_rate_basis_points, tax_amount_paise, created_at
+           ) VALUES (?, ?, ?, ?, 1, ?, ?, 0, 0, ?)`
+        ).bind(
+          invoiceItemId,
+          invoice.id,
+          res.tenant_id,
+          `Room Dining: ${itemsSummary}`,
+          totalPaise,
+          totalPaise,
+          now
+        ),
+        c.env.DB.prepare(
+          `UPDATE invoices
+           SET subtotal_paise = subtotal_paise + ?,
+               total_amount_paise = total_amount_paise + ?,
+               balance_amount_paise = balance_amount_paise + ?,
+               status = 'issued',
+               updated_at = ?
+           WHERE id = ?`
+        ).bind(
+          totalPaise,
+          totalPaise,
+          paymentMethod === 'online' ? 0 : totalPaise,
+          now,
+          invoice.id
+        )
+      );
+    }
+  }
+
+  await c.env.DB.batch(statements);
 
   return c.json({
     success: true,
-    message: 'Your room dining order has been received by the kitchen and is being prepared!',
+    message: 'Your room dining order has been received by the kitchen and added to your room folio!',
     ticketId,
     orderSummary: itemsSummary,
     totalPaise,

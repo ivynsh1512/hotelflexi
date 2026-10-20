@@ -695,24 +695,24 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Dedicated Developer Setup Callout */}
-          <div className="mt-12 max-w-4xl mx-auto p-6 rounded-3xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* Dedicated White-Glove Onboarding & OTA Listing Callout */}
+          <div className="mt-12 max-w-4xl mx-auto p-6 rounded-3xl bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="space-y-1">
               <span className="text-[10px] font-black uppercase text-brand-blue tracking-wider">
                 OPTIONAL WHITE-GLOVE SERVICE
               </span>
               <h4 className="text-base font-extrabold text-slate-900">
-                Want a Developer to Set Up Your Entire Hotel &amp; OTA Mapping?
+                Need Help Setting Up Your Hotel or Getting Listed on OTAs?
               </h4>
               <p className="text-xs text-slate-600">
-                Hire a dedicated NovaX AI integration engineer for ₹499 one-time. We configure your rooms, rate plans, Razorpay keys, and MMT credentials.
+                Choose basic PMS setup for <strong>₹499</strong> or get <strong>Complete OTA Listing on Expedia, Booking.com, MakeMyTrip &amp; Goibibo</strong> with full 2-way HotelFlexi sync for <strong>₹4,999</strong> one-time.
               </p>
             </div>
             <Link
               href="/pricing"
-              className="px-6 py-2.5 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shrink-0 shadow"
+              className="px-6 py-2.5 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shrink-0 shadow whitespace-nowrap"
             >
-              Learn More &rarr;
+              View Setup Packages &rarr;
             </Link>
           </div>
         </div>

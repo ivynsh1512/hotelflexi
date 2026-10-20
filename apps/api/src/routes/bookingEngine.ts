@@ -263,9 +263,9 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
     return c.json({ error: 'Sorry, no rooms of this type are available for the selected dates.' }, 409);
   }
 
-  // Get Room Type Pricing
+  // Get Room Type Pricing & Name
   const roomType: any = await c.env.DB.prepare(
-    'SELECT base_price_paise, weekend_price_paise, extra_adult_price_paise, extra_child_price_paise FROM room_types WHERE id = ?'
+    'SELECT id, name, base_price_paise, weekend_price_paise, extra_adult_price_paise, extra_child_price_paise FROM room_types WHERE id = ?'
   )
     .bind(roomTypeId)
     .first();
@@ -525,7 +525,7 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
     ownerEmail: property.email,
     checkInDate,
     checkOutDate,
-    roomTypeName: roomType.name,
+    roomTypeName: roomType?.name || 'Deluxe Room',
     roomNumber: availableRoom.room_number,
     adults,
     children,

@@ -224,9 +224,9 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
     .bind(propertyId, tenantId)
     .first();
 
-  // Get Room Type Pricing
+  // Get Room Type Pricing & Name
   const roomType: any = await c.env.DB.prepare(
-    'SELECT base_price_paise, weekend_price_paise, extra_adult_price_paise, extra_child_price_paise FROM room_types WHERE id = ? AND tenant_id = ?'
+    'SELECT id, name, base_price_paise, weekend_price_paise, extra_adult_price_paise, extra_child_price_paise FROM room_types WHERE id = ? AND tenant_id = ?'
   )
     .bind(roomTypeId, tenantId)
     .first();
@@ -532,7 +532,7 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
     ownerEmail: property?.email || user.email,
     checkInDate,
     checkOutDate,
-    roomTypeName: roomType.name,
+    roomTypeName: roomType?.name || 'Deluxe Room',
     roomNumber: assignedRoomNumber,
     adults,
     children,

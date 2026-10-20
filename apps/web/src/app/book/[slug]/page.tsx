@@ -554,7 +554,7 @@ export default function DirectBookingPage() {
                     ) : (
                       <div className="flex items-center gap-1.5 text-blue-900 font-bold">
                         <Hotel className="w-3.5 h-3.5 text-brand-blue" />
-                        <span>Payment Mode: Pay at Hotel upon Check-in</span>
+                        <span>Payment Mode: Kindly proceed and pay at the property upon check-in</span>
                       </div>
                     )}
                     <div className="flex justify-between text-slate-600 text-[10px]">
@@ -768,10 +768,15 @@ export default function DirectBookingPage() {
                         )}
                       </div>
 
-                      {!isOnlinePaymentAvailable && advancePaise > 0 && (
-                        <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900 flex items-start gap-1.5">
-                          <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                          <span>Direct online payment gateway is currently pending configuration by hotelier. You can confirm your booking with <strong>Pay at Hotel</strong> upon arrival.</span>
+                      {!isOnlinePaymentAvailable && (
+                        <div className="p-3 bg-blue-50/90 border border-blue-200 rounded-xl text-xs text-blue-950 flex items-start gap-2.5">
+                          <CheckCircle2 className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
+                          <div className="space-y-0.5">
+                            <span className="font-extrabold text-blue-900 block">Kindly proceed and pay at the property.</span>
+                            <p className="text-[11px] text-blue-800 leading-relaxed">
+                              Online advance payment is not required for this booking. You can complete your reservation instantly and comfortably settle the stay amount upon check-in at the hotel front desk via Cash, UPI, or Card.
+                            </p>
+                          </div>
                         </div>
                       )}
 
@@ -784,7 +789,7 @@ export default function DirectBookingPage() {
                       <button
                         type="submit"
                         disabled={bookingLoading}
-                        className="w-full py-3 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shadow-sm flex items-center justify-center gap-2"
+                        className="w-full py-3.5 rounded-xl bg-brand-blue text-white font-extrabold text-xs hover:bg-brand-blue-hover transition shadow-md flex items-center justify-center gap-2"
                       >
                         {bookingLoading ? (
                           <>
@@ -795,7 +800,10 @@ export default function DirectBookingPage() {
                             <CreditCard className="w-4 h-4" /> Pay Advance ({formatINR(advancePaise)}) via Razorpay &amp; Confirm
                           </>
                         ) : (
-                          'Confirm Reservation (Pay at Hotel)'
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                            Kindly Proceed and Pay at the Property
+                          </>
                         )}
                       </button>
                     </div>

@@ -28,6 +28,13 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
   const playStoreUrl = env.PLAY_STORE_APP_URL || 'https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso';
   const adminEmail = env.ADMIN_NOTIFICATION_EMAIL || 'info@novaxai.in';
 
+  const safeRoomTypeName =
+    data.roomTypeName &&
+    String(data.roomTypeName).toLowerCase() !== 'undefined' &&
+    String(data.roomTypeName).trim() !== ''
+      ? String(data.roomTypeName).trim()
+      : 'Deluxe Room';
+
   const guestHtml = `
     <!DOCTYPE html>
     <html>
@@ -60,7 +67,7 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
             <div style="font-size:24px;font-weight:800;color:#1e3a8a;margin:4px 0;font-family:monospace;">
               ${data.roomNumber ? `Room ${data.roomNumber}` : 'Allocated On Check-In'}
             </div>
-            <div style="font-size:12px;color:#3b82f6;font-weight:600;">Category: ${data.roomTypeName}</div>
+            <div style="font-size:12px;color:#3b82f6;font-weight:600;">Category: ${safeRoomTypeName}</div>
           </div>
 
           <div class="card">
@@ -70,7 +77,7 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
             </div>
             <div style="border-top:1px dashed #cbd5e1;padding-top:12px;font-size:14px;line-height:1.6;">
               <div><strong>Dates:</strong> ${data.checkInDate} &rarr; ${data.checkOutDate}</div>
-              <div><strong>Room Category:</strong> ${data.roomTypeName} ${data.roomNumber ? `(Room ${data.roomNumber})` : ''}</div>
+              <div><strong>Room Category:</strong> ${safeRoomTypeName} ${data.roomNumber ? `(Room ${data.roomNumber})` : ''}</div>
               <div><strong>Guests:</strong> ${data.adults} Adult${data.adults > 1 ? 's' : ''} ${data.children > 0 ? `• ${data.children} Child${data.children > 1 ? 'ren' : ''}` : ''}</div>
               <div><strong>Total Amount:</strong> ${data.totalAmountRupees}</div>
               <div><strong>Advance Paid:</strong> ${data.paidAmountRupees}</div>
@@ -146,7 +153,7 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
             <div style="margin-bottom:8px;"><strong>Booking Reference:</strong> <span style="color:#1e40af;font-family:monospace;">${data.reservationNumber}</span></div>
             <div><strong>Guest:</strong> ${data.guestName} (${data.guestPhone || 'No phone'} &bull; ${data.guestEmail || 'No email'})</div>
             <div><strong>Stay:</strong> ${data.checkInDate} to ${data.checkOutDate}</div>
-            <div><strong>Allocated Room:</strong> ${data.roomNumber ? `Room ${data.roomNumber}` : 'Auto-allocated on arrival'} (${data.roomTypeName})</div>
+            <div><strong>Allocated Room:</strong> ${data.roomNumber ? `Room ${data.roomNumber}` : 'Auto-allocated on arrival'} (${safeRoomTypeName})</div>
             <div><strong>Occupancy:</strong> ${data.adults} Adults ${data.children > 0 ? `, ${data.children} Children` : ''}</div>
             <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #cbd5e1;">
               <div>Total Tariff: <strong>${data.totalAmountRupees}</strong></div>

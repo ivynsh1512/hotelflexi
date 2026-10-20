@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { CheckCircle2, ChevronRight, Check, X, Wrench, Shield, Zap } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Check, X, Wrench, Shield, Zap, Globe, Sparkles } from 'lucide-react';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -238,30 +238,134 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Done-For-You Setup Assistance Callout */}
-        <div className="mt-12 p-8 rounded-3xl bg-gradient-to-r from-blue-900 to-indigo-900 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-white border border-white/20">
-              <Wrench className="w-3.5 h-3.5 text-blue-300" />
-              White-Glove Setup Service
-            </div>
-            <h3 className="text-xl font-extrabold tracking-tight">
-              Want NovaX AI to set up your entire hotel?
-            </h3>
-            <p className="text-xs text-blue-200 leading-relaxed">
-              Our engineering team configures all your rooms, pricing plans, GST tax brackets, OTA channel connections,
-              and staff accounts for just ₹499 one-time.
+        {/* White-Glove Setup & Complete OTA Listing Assistance */}
+        <div className="mt-16 space-y-6">
+          <div className="text-center space-y-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-brand-blue bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+              White-Glove Onboarding &amp; OTA Services
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              Want NovaX AI to Launch &amp; List Your Hotel?
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto">
+              Save hundreds of manual hours. Choose from our quick setup package or get full end-to-end OTA listing and channel synchronization.
             </p>
           </div>
 
-          <div className="shrink-0 flex flex-col items-start md:items-end gap-2">
-            <div className="text-2xl font-extrabold text-white">₹499 <span className="text-xs font-normal text-blue-300">one-time</span></div>
-            <a
-              href="mailto:info@novaxai.in?subject=HotelFlexi%20Developer%20Setup%20Service%20(Rs.%20499)&body=Hi%20NovaX%20AI%20Team,%0A%0AI%20would%20like%20to%20hire%20a%20developer%20for%20complete%20HotelFlexi%20setup%20for%20my%20property.%0A%0AProperty%20Name:%20%0APhone%20Number:%20"
-              className="px-6 py-3 rounded-xl bg-white text-blue-950 font-bold text-xs hover:bg-blue-50 transition shadow-lg"
-            >
-              Hire Developer Setup (₹499)
-            </a>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Package 1: Developer Software Setup (Rs. 499) */}
+            <div className="p-7 rounded-3xl bg-slate-900 text-white shadow-xl flex flex-col justify-between space-y-6 border border-slate-800">
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/10 text-white border border-white/20">
+                    <Wrench className="w-3.5 h-3.5 text-blue-300" />
+                    Basic Setup Package
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-black text-white">₹499</div>
+                    <span className="text-[10px] text-slate-400">One-Time Fee</span>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-extrabold text-white">Dedicated Developer Setup</h3>
+                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                    A dedicated NovaX AI engineer configures your complete HotelFlexi PMS, rooms, rate cards, and payment gateway.
+                  </p>
+                </div>
+
+                <ul className="space-y-2 text-xs text-slate-300 pt-2 border-t border-slate-800">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Complete Room Inventory &amp; Category Configuration</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Base Rates, Weekend Pricing &amp; Child Policies Setup</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Indian GST Tax Slabs (12% / 18%) &amp; SAC Billing Profile</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Razorpay Payment Gateway &amp; Hotel UPI ID Connection</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Staff Accounts &amp; Housekeeping Siren Alert Setup</span>
+                  </li>
+                </ul>
+              </div>
+
+              <a
+                href="mailto:info@novaxai.in?subject=HotelFlexi%20Developer%20Setup%20Service%20(Rs.%20499)&body=Hi%20NovaX%20AI%20Team,%0A%0AI%20would%20like%20to%20hire%20a%20developer%20for%20complete%20HotelFlexi%20setup%20for%20my%20property.%0A%0AProperty%20Name:%20%0APhone%20Number:%20"
+                className="w-full text-center py-3 rounded-xl bg-white text-slate-900 font-bold text-xs hover:bg-slate-100 transition shadow-md block"
+              >
+                Hire Developer Setup (₹499) &rarr;
+              </a>
+            </div>
+
+            {/* Package 2: Complete OTA Listing & HotelFlexi 2-Way Setup (Rs. 4,999) */}
+            <div className="p-7 rounded-3xl bg-gradient-to-br from-blue-900 via-indigo-900 to-blue-950 text-white shadow-2xl flex flex-col justify-between space-y-6 border-2 border-blue-400/40 relative overflow-hidden">
+              <div className="absolute top-4 right-4 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-[10px] uppercase px-3 py-1 rounded-full shadow">
+                ★ Complete OTA Listing
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/10 text-white border border-white/20">
+                    <Globe className="w-3.5 h-3.5 text-blue-300" />
+                    Full OTA Onboarding Package
+                  </div>
+                  <div className="text-right pt-6 sm:pt-0">
+                    <div className="text-2xl font-black text-amber-300">₹4,999</div>
+                    <span className="text-[10px] text-blue-200">One-Time All-Inclusive</span>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-extrabold text-white">Complete OTA Listing &amp; HotelFlexi Setup</h3>
+                  <p className="text-xs text-blue-100 mt-1 leading-relaxed">
+                    Get your hotel listed, verified, and live on every major OTA with 2-way synchronization into HotelFlexi PMS.
+                  </p>
+                </div>
+
+                <ul className="space-y-2 text-xs text-blue-100 pt-2 border-t border-blue-800/80">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span><strong>Full OTA Listings:</strong> MakeMyTrip, Goibibo, Booking.com, Agoda &amp; Expedia</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span>Professional Room Photo Categorization &amp; Amenity Tagging on OTAs</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span><strong>2-Way Channel Sync:</strong> Live rate &amp; inventory push directly from HotelFlexi</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span>Dynamic Weekend Pricing, Meal Plans (CP/MAP/EP) &amp; Cancellation Policies</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span>Google Hotel Ads / Free Booking Links profile verification</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span>1-on-1 Dedicated Video Training &amp; Staff Handover Call</span>
+                  </li>
+                </ul>
+              </div>
+
+              <a
+                href="mailto:info@novaxai.in?subject=Complete%20OTA%20Listing%20%26%20HotelFlexi%20Setup%20(Rs.%204,999)&body=Hi%20NovaX%20AI%20Team,%0A%0AI%20would%20like%20to%20get%20complete%20OTA%20listings%20on%20Expedia,%20Booking.com,%20MakeMyTrip,%20Goibibo%20with%20full%20HotelFlexi%202-Way%20Setup.%0A%0AProperty%20Name:%20%0ACity/State:%20%0ANumber%20of%20Rooms:%20%0AContact%20Phone:%20"
+                className="w-full text-center py-3 rounded-xl bg-amber-400 text-slate-950 font-extrabold text-xs hover:bg-amber-300 transition shadow-lg block"
+              >
+                Get Complete OTA Listing &amp; Setup (₹4,999) &rarr;
+              </a>
+            </div>
           </div>
         </div>
       </section>

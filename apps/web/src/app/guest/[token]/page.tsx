@@ -81,11 +81,11 @@ export default function GuestPortalPage() {
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [orderSuccessMsg, setOrderSuccessMsg] = useState('');
 
-  // Urgent Room Assistance / Siren Complaints
+  // In-Stay Guest Complaints & Room Assistance
   const [selectedIssueCategory, setSelectedIssueCategory] = useState('dirty_bedsheet');
   const [issueDescription, setIssueDescription] = useState('');
   const [submittingComplaint, setSubmittingComplaint] = useState(false);
-  const [activeSirenDispatched, setActiveSirenDispatched] = useState(false);
+  const [complaintSubmitted, setComplaintSubmitted] = useState(false);
 
   const fetchPortalData = async () => {
     if (!token) return;
@@ -304,12 +304,16 @@ export default function GuestPortalPage() {
       }
 
       setOrderSuccessMsg(
-        `Order confirmed! ${json.orderSummary} will be served to Room ${data?.room?.roomNumber}. Payment: ${
-          foodPaymentMethod === 'cash_on_delivery' ? 'Cash to Server' : 'Paid Online'
+        `Order confirmed! ${json.orderSummary} will be served to Room ${data?.room?.roomNumber}. ${
+          foodPaymentMethod === 'cash_on_delivery'
+            ? 'Added to your Room Folio bill (Pay at Hotel / Checkout)'
+            : 'Paid Online'
         }`
       );
       setCart({});
       setCookingNotes('');
+      // Automatically refresh Stay Folio & billing totals immediately
+      await fetchPortalData();
     } catch (err: any) {
       alert(err.message || 'Could not place food order');
     } finally {
@@ -317,7 +321,7 @@ export default function GuestPortalPage() {
     }
   };
 
-  const handleTriggerStaffSiren = async (e: React.FormEvent) => {
+  const handleSubmitComplaint = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmittingComplaint(true);
 
@@ -350,10 +354,10 @@ export default function GuestPortalPage() {
         throw new Error(json.error || 'Failed to dispatch staff alert.');
       }
 
-      setActiveSirenDispatched(true);
+      setComplaintSubmitted(true);
       setIssueDescription('');
     } catch (err: any) {
-      alert(err.message || 'Could not sound staff alert');
+      alert(err.message || 'Could not submit complaint');
     } finally {
       setSubmittingComplaint(false);
     }
@@ -550,12 +554,12 @@ export default function GuestPortalPage() {
             onClick={() => setActiveTab('assistance')}
             className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
               activeTab === 'assistance'
-                ? 'bg-white text-red-600 shadow-sm'
-                : 'text-slate-600 hover:text-red-600'
+                ? 'bg-white text-brand-blue shadow-sm'
+                : 'text-slate-600 hover:text-brand-blue'
             }`}
           >
-            <BellRing className="w-3.5 h-3.5 text-red-500 animate-pulse" />
-            Urgent Siren
+            <AlertCircle className="w-3.5 h-3.5 text-brand-blue" />
+            Raise Complaint
           </button>
         </div>
 
@@ -594,7 +598,9 @@ export default function GuestPortalPage() {
                   <span className="font-extrabold text-brand-blue text-sm truncate block font-mono">
                     {room.roomNumber && room.roomNumber !== 'To be assigned on arrival' ? `Room ${room.roomNumber}` : 'Allocated On Arrival'}
                   </span>
-                  <span className="text-[10px] text-slate-600 block truncate">{room.roomTypeName}</span>
+                  <span className="text-[10px] text-slate-600 block truncate">
+                    {room.roomTypeName && room.roomTypeName !== 'undefined' ? room.roomTypeName : 'Deluxe Room'}
+                  </span>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl">
                   <span className="text-[10px] text-slate-500 block">Guests</span>
@@ -625,16 +631,27 @@ export default function GuestPortalPage() {
               </div>
 
               <div className="space-y-2 text-xs">
+                {Array.isArray(data?.foodOrders) && data.foodOrders.length > 0 && (
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1 mb-2">
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">In-Stay Room Service &amp; Food Orders</span>
+                    {data.foodOrders.map((ord: any) => (
+                      <div key={ord.id} className="flex justify-between text-[11px] text-slate-700">
+                        <span className="truncate pr-2">{ord.description}</span>
+                        <span className="shrink-0 font-semibold capitalize text-brand-blue">({ord.status})</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex justify-between text-slate-600">
-                  <span>Total Tariff (incl. GST):</span>
-                  <span className="font-semibold text-slate-900">{formatINR(reservation.totalAmountPaise)}</span>
+                  <span className="font-medium">Total Stay &amp; Dining Folio (incl. GST):</span>
+                  <span className="font-bold text-slate-900">{formatINR(reservation.totalAmountPaise)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
-                  <span>Advance Paid:</span>
+                  <span>Advance / Payments Received:</span>
                   <span className="font-semibold text-emerald-700">{formatINR(reservation.paidAmountPaise)}</span>
                 </div>
                 <div className="pt-2 border-t border-slate-100 flex justify-between text-sm font-extrabold">
-                  <span>Outstanding Due:</span>
+                  <span>Outstanding Balance Due:</span>
                   <span className={reservation.balanceAmountPaise > 0 ? 'text-amber-700' : 'text-emerald-700'}>
                     {formatINR(reservation.balanceAmountPaise)}
                   </span>
@@ -957,44 +974,44 @@ export default function GuestPortalPage() {
           </div>
         )}
 
-        {/* TAB 4: URGENT ROOM ASSISTANCE / STAFF SIREN */}
+        {/* TAB 4: ROOM ASSISTANCE & COMPLAINTS */}
         {activeTab === 'assistance' && (
-          <div className="bg-white rounded-2xl border border-red-200 p-5 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-red-100">
-              <div className="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
-                <BellRing className="w-4 h-4" />
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+              <div className="w-7 h-7 rounded-lg bg-blue-50 text-brand-blue flex items-center justify-center">
+                <AlertCircle className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-slate-900">Urgent In-Stay Assistance & Staff Siren</h3>
-                <p className="text-[10px] text-slate-500">Sounds an audible alarm on all staff devices until acknowledged</p>
+                <h3 className="font-bold text-sm text-slate-900">Raise a Complaint / Room Assistance</h3>
+                <p className="text-[10px] text-slate-500">Report an issue directly to hotel management &amp; floor staff</p>
               </div>
             </div>
 
-            {activeSirenDispatched && (
-              <div className="p-4 bg-red-600 text-white rounded-xl shadow-lg space-y-2 animate-pulse">
-                <div className="flex items-center gap-2 font-extrabold text-xs">
-                  <span className="text-lg">🚨</span>
-                  <span>Emergency Siren Alarm Active on Staff Devices!</span>
+            {complaintSubmitted && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl space-y-1">
+                <div className="flex items-center gap-2 font-bold text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Complaint Dispatched &amp; Assigned to On-Duty Staff!</span>
                 </div>
-                <p className="text-[11px] text-red-100 leading-relaxed">
-                  Your request has triggered an urgent audible siren across all on-duty hotel staff and front-desk devices. A team member is actively responding and will arrive at <strong>Room {room.roomNumber}</strong> immediately.
+                <p className="text-[11px] text-emerald-700 leading-relaxed">
+                  Your request has been logged with highest priority for <strong>Room {room.roomNumber}</strong>. On-duty floor staff has been notified and is attending to your room immediately.
                 </p>
               </div>
             )}
 
-            <form onSubmit={handleTriggerStaffSiren} className="space-y-4 text-xs">
+            <form onSubmit={handleSubmitComplaint} className="space-y-4 text-xs">
               <label className="block font-semibold text-slate-800">
-                Select Your Critical Issue:
+                Select Issue Category:
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
                   { id: 'dirty_bedsheet', label: '🛏️ Dirty / Stained Bedsheets', sub: 'Instant clean linen replacement' },
-                  { id: 'washroom_leak', label: '🚿 Washroom / Tap Leakage', sub: 'Plumbing or geyser issue' },
-                  { id: 'ac_electrical', label: '⚡ AC / Power / Electrical', sub: 'Cooling or electricity fault' },
-                  { id: 'urgent_clean', label: '🧹 Urgent Room Cleaning', sub: 'Spill or housekeeping required' },
+                  { id: 'washroom_leak', label: '🚿 Washroom / Tap Leakage', sub: 'Plumbing or hot water issue' },
+                  { id: 'ac_electrical', label: '⚡ AC / Power / Electrical', sub: 'Cooling, lighting or electricity' },
+                  { id: 'urgent_clean', label: '🧹 Room Cleaning & Dusting', sub: 'Spill or housekeeping required' },
                   { id: 'noise_disturbance', label: '🔊 Noise Disturbance', sub: 'Corridor or neighboring room noise' },
-                  { id: 'other_emergency', label: '❓ Other Critical Assistance', sub: 'Immediate staff presence required' },
+                  { id: 'other_emergency', label: '❓ Other Guest Assistance', sub: 'Immediate staff presence required' },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -1002,7 +1019,7 @@ export default function GuestPortalPage() {
                     onClick={() => setSelectedIssueCategory(item.id)}
                     className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
                       selectedIssueCategory === item.id
-                        ? 'bg-red-50/80 border-red-500 shadow-sm'
+                        ? 'bg-blue-50 border-brand-blue shadow-sm'
                         : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                     }`}
                   >
@@ -1020,24 +1037,24 @@ export default function GuestPortalPage() {
                   rows={2}
                   value={issueDescription}
                   onChange={(e) => setIssueDescription(e.target.value)}
-                  placeholder="e.g. Please provide 2 extra pillows and fresh bedsheets right away..."
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-red-500"
+                  placeholder="e.g. Please send fresh towels and extra pillows..."
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-brand-blue"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submittingComplaint}
-                className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition"
+                className="w-full py-3.5 rounded-xl bg-brand-blue hover:bg-brand-blue-hover text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition"
               >
                 {submittingComplaint ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Dispatching Alert...
+                    <Loader2 className="w-4 h-4 animate-spin" /> Dispatching Request...
                   </>
                 ) : (
                   <>
-                    <BellRing className="w-4 h-4 animate-bounce" />
-                    🚨 Sound Staff Siren for Assistance
+                    <AlertCircle className="w-4 h-4" />
+                    Submit Complaint &amp; Request Staff
                   </>
                 )}
               </button>
