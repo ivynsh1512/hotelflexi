@@ -13,20 +13,20 @@ set "GRADLE_OPTS=-Xmx768m -XX:MaxMetaspaceSize=384m"
 
 cd /d "%~dp0"
 
-echo [1/3] Environment check...
+echo [1/4] Environment check...
 "%JAVA_HOME%\bin\java.exe" -version
 if errorlevel 1 (
     echo [ERROR] Java 17 not found at %JAVA_HOME%
     exit /b 1
 )
 
-echo [2/3] Checking Android Platform 36...
+echo [2/4] Checking Android Platform 36...
 if not exist "%ANDROID_HOME%\platforms\android-36" (
     echo Downloading and installing Android SDK Platform 36...
     echo y | "%ANDROID_HOME%\tools\bin\sdkmanager.bat" --sdk_root="%ANDROID_HOME%" platforms;android-36
 )
 
-echo [3/3] Compiling signed Play Store App Bundle (.aab)...
+echo [3/4] Compiling signed Play Store App Bundle (.aab)...
 call gradlew.bat bundleRelease -Dorg.gradle.jvmargs="-Xmx768m -XX:MaxMetaspaceSize=384m" --no-daemon --stacktrace
 
 if errorlevel 1 (
@@ -34,7 +34,25 @@ if errorlevel 1 (
     exit /b 1
 )
 
+echo [4/4] Generating Universal APK (.apk) and distributing files...
+copy /y "app\build\outputs\bundle\release\app-release.aab" "HotelFlexi-v1.0.3-release.aab" >nul
+copy /y "app\build\outputs\bundle\release\app-release.aab" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.3-release.aab" >nul
+copy /y "app\build\outputs\bundle\release\app-release.aab" "C:\Users\divya\Downloads\HotelFlexi-v1.0.3-release.aab" >nul
+
+if exist "bundletool.jar" (
+    if exist "HotelFlexi-v1.0.3.apks" del /f /q "HotelFlexi-v1.0.3.apks"
+    "%JAVA_HOME%\bin\java.exe" -jar bundletool.jar build-apks --bundle="HotelFlexi-v1.0.3-release.aab" --output="HotelFlexi-v1.0.3.apks" --mode=universal --ks="signing.keystore" --ks-pass=pass:dKbvBlLmwBhL --ks-key-alias=my-key-alias --key-pass=pass:dKbvBlLmwBhL
+    tar.exe -xf "HotelFlexi-v1.0.3.apks" universal.apk
+    if exist "universal.apk" (
+        move /y "universal.apk" "HotelFlexi-v1.0.3-universal.apk" >nul
+        copy /y "HotelFlexi-v1.0.3-universal.apk" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.3-universal.apk" >nul
+        copy /y "HotelFlexi-v1.0.3-universal.apk" "C:\Users\divya\Downloads\HotelFlexi-v1.0.3-universal.apk" >nul
+    )
+    if exist "HotelFlexi-v1.0.3.apks" del /f /q "HotelFlexi-v1.0.3.apks"
+)
+
 echo ========================================================
-echo PLAY STORE BUNDLE BUILD SUCCESSFUL!
+echo PLAY STORE BUNDLE ^& UNIVERSAL APK READY!
 echo ========================================================
-dir /s /b app\build\outputs\bundle\release\*.aab
+echo AAB: C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.3-release.aab
+echo APK: C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.3-universal.apk
