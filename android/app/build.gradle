@@ -26,13 +26,13 @@ def twaManifest = [
     launchUrl: '/login', // The start path for the TWA. Must be relative to the domain.
     name: 'HotelFlexi', // The application name.
     launcherName: 'HotelFlexi', // The name shown on the Android Launcher.
-    themeColor: '#1E40AF', // The color used for the status bar.
-    themeColorDark: '#0F172A', // The color used for the dark status bar.
-    navigationColor: '#FFFFFF', // The color used for the navigation bar.
-    navigationColorDark: '#0F172A', // The color used for the dark navbar.
+    themeColor: '#0A0F1D', // The color used for the status bar (Dark luxury theme).
+    themeColorDark: '#0A0F1D', // The color used for the dark status bar.
+    navigationColor: '#0A0F1D', // The color used for the navigation bar.
+    navigationColorDark: '#0A0F1D', // The color used for the dark navbar.
     navigationDividerColor: '#000000', // The navbar divider color.
     navigationDividerColorDark: '#000000', // The dark navbar divider color.
-    backgroundColor: '#FFFFFF', // The color used for the splash screen background.
+    backgroundColor: '#0A0F1D', // The color used for the splash screen background.
     enableNotifications: true, // Set to true to enable notification delegation.
     // Every shortcut must include the following fields:
     // - name: String that will show up in the shortcut.
@@ -43,9 +43,9 @@ def twaManifest = [
     // The duration of fade out animation in milliseconds to be played when removing splash screen.
     splashScreenFadeOutDuration: 300,
     generatorApp: 'bubblewrap-cli', // Application that generated the Android Project
-    // The fallback strategy for when Trusted Web Activity is not available. Possible values are
-    // 'customtabs' and 'webview'.
-    fallbackType: 'customtabs',
+    // The fallback strategy for when Trusted Web Activity is not available.
+    // 'webview' guarantees full-screen native app experience without browser URL bars!
+    fallbackType: 'webview',
     enableSiteSettingsShortcut: 'true',
     orientation: 'default',
 ]
@@ -57,8 +57,8 @@ android {
         applicationId "in.novaxai.hotelflexi"
         minSdkVersion 24
         targetSdkVersion 36
-        versionCode 5
-        versionName "1.0.2"
+        versionCode 6
+        versionName "1.0.3"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
