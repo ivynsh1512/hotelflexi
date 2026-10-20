@@ -1,5 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 import { AuthProvider } from '../lib/AuthContext';
 import { ServiceWorkerRegister } from '../components/ServiceWorkerRegister';
 import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt';
@@ -168,8 +175,11 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -185,7 +195,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-white text-content-primary-light antialiased">
+      <body className={`min-h-screen bg-white text-content-primary-light antialiased ${inter.className}`}>
         <AuthProvider>{children}</AuthProvider>
         <ServiceWorkerRegister />
         <NotificationPermissionPrompt />

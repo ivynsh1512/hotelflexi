@@ -19,7 +19,7 @@
 body {
   color: var(--primary-text);
   background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -37,4 +37,192 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
+}
+
+/* ============================================================
+   NOVAX-INSPIRED ANIMATION SYSTEM — HotelFlexi Public Site
+   ============================================================ */
+
+/* Scroll progress bar */
+#hf-scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #2563EB, #818cf8);
+  z-index: 9999;
+  width: 0%;
+  transition: width 0.1s linear;
+  pointer-events: none;
+}
+
+/* Word-reveal animation */
+.hf-word-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  margin-right: 0.28em;
+}
+.hf-word {
+  display: inline-block;
+  transform: translateY(110%) rotate(1.5deg);
+  opacity: 0;
+  transition: transform 0.82s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.55s ease;
+}
+.hf-word.revealed {
+  transform: translateY(0) rotate(0deg);
+  opacity: 1;
+}
+
+/* Scroll-triggered fade-up reveals */
+.hf-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.72s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hf-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hf-fade-slide {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.65s ease, transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hf-fade-slide.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hf-scale-in {
+  opacity: 0;
+  transform: scale(0.96) translateY(16px);
+  transition: opacity 0.72s ease, transform 0.72s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hf-scale-in.visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Stagger delay helpers */
+.hf-delay-100 { transition-delay: 100ms !important; }
+.hf-delay-150 { transition-delay: 150ms !important; }
+.hf-delay-200 { transition-delay: 200ms !important; }
+.hf-delay-300 { transition-delay: 300ms !important; }
+.hf-delay-400 { transition-delay: 400ms !important; }
+.hf-delay-500 { transition-delay: 500ms !important; }
+.hf-delay-600 { transition-delay: 600ms !important; }
+
+/* Marquee ticker */
+@keyframes hfMarquee {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+.hf-marquee-track {
+  display: flex;
+  animation: hfMarquee 36s linear infinite;
+  will-change: transform;
+}
+.hf-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* Pulsing live dot */
+@keyframes hfPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+.hf-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+  animation: hfPulse 1.8s ease-in-out infinite;
+  display: inline-block;
+}
+
+/* Shimmer button effect */
+.hf-btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+.hf-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%);
+  transform: skewX(-20deg);
+  transition: left 0.55s ease;
+}
+.hf-btn-primary:hover::before {
+  left: 130%;
+}
+
+/* Bento card hover */
+.hf-bento-card {
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.hf-bento-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 36px -8px rgba(37, 99, 235, 0.12);
+  border-color: #BFDBFE !important;
+}
+
+/* Floating badge badge-glow */
+@keyframes hfFloatBadge {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-4px); }
+}
+.hf-float {
+  animation: hfFloatBadge 3s ease-in-out infinite;
+}
+
+/* Browser window mock */
+.hf-browser-window {
+  box-shadow: 0 40px 100px -20px rgba(0,0,0,0.13), 0 0 0 1px rgba(0,0,0,0.04);
+}
+.hf-win-dot { width: 11px; height: 11px; border-radius: 50%; }
+.hf-win-dot.red    { background: #FF5F57; }
+.hf-win-dot.yellow { background: #FEBC2E; }
+.hf-win-dot.green  { background: #28C840; }
+
+/* Serif accent utility */
+.hf-serif-accent {
+  font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  font-style: italic;
+}
+
+/* Gradient underline on section heads */
+.hf-underline-blue {
+  text-decoration: underline;
+  text-decoration-color: #2563EB;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 3px;
+}
+
+/* Tab switcher */
+.hf-tab-btn {
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: #475569;
+  transition: background 0.18s, color 0.18s;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.hf-tab-btn.active {
+  background: #2563EB;
+  color: #fff;
+}
+.hf-tab-btn:hover:not(.active) {
+  background: #F1F5F9;
+  color: #111827;
 }
