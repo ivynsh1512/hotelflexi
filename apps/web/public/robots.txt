@@ -13,6 +13,7 @@ Allow: /booking-engine
 Allow: /dine-out
 Allow: /dine/*
 Allow: /ai-hotel-agent
+Allow: /download-app
 Allow: /pricing
 Allow: /compare
 Allow: /compare/
@@ -33,6 +34,7 @@ Allow: /book/*
 # Disallow private operational dashboards, super-admin, private APIs & guest check-in sessions
 Disallow: /app/
 Disallow: /admin/
+Disallow: /super-admin-portal
 Disallow: /api/
 Disallow: /guest/
 Disallow: /offline
