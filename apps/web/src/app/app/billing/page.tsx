@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient, formatINR } from '@/lib/api';
-import { Receipt, Search, Printer, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { Receipt, Search, Printer, CheckCircle2, Loader2, AlertCircle, X } from 'lucide-react';
 
 export default function BillingInvoicesPage() {
   const { currentTenant } = useAuth();
@@ -112,10 +112,26 @@ export default function BillingInvoicesPage() {
 
       {/* Printable Invoice Modal */}
       {selectedInvoice && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl border border-border-light max-h-[90vh] overflow-y-auto print:p-0 print:border-none print:shadow-none">
+        <div
+          onClick={() => setSelectedInvoice(null)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl border border-border-light max-h-[90vh] overflow-y-auto print:p-0 print:border-none print:shadow-none"
+          >
+            {/* Top-Right Cross Button */}
+            <button
+              type="button"
+              onClick={() => setSelectedInvoice(null)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors print:hidden"
+              aria-label="Close invoice"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
             {/* Header */}
-            <div className="flex justify-between items-start pb-6 border-b border-border-light">
+            <div className="flex justify-between items-start pb-6 border-b border-border-light pr-8">
               <div>
                 <h2 className="text-xl font-extrabold text-content-primary-light">
                   {selectedInvoice.invoice.property_name}

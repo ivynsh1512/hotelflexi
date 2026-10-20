@@ -28,6 +28,7 @@ import {
   Clock,
   Shield,
   UtensilsCrossed,
+  X,
 } from 'lucide-react';
 
 export default function WeddingManagementPage() {
@@ -843,11 +844,28 @@ export default function WeddingManagementPage() {
 
       {/* Package Creation Modal */}
       {packageModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleSavePackage} className="bg-white rounded-3xl max-w-lg w-full p-6 text-slate-900 shadow-2xl space-y-4 text-xs">
-            <h3 className="text-base font-extrabold text-slate-900 pb-2 border-b border-slate-100">
-              Add Destination Wedding Package
-            </h3>
+        <div
+          onClick={() => setPackageModalOpen(false)}
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <form
+            onSubmit={handleSavePackage}
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white rounded-3xl max-w-lg w-full p-6 text-slate-900 shadow-2xl space-y-4 text-xs"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="text-base font-extrabold text-slate-900">
+                Add Destination Wedding Package
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPackageModalOpen(false)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div>
               <label className="block font-bold mb-1">Package Name</label>
               <input
@@ -926,11 +944,28 @@ export default function WeddingManagementPage() {
 
       {/* Decor Theme Creation Modal */}
       {decorModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleSaveDecor} className="bg-white rounded-3xl max-w-lg w-full p-6 text-slate-900 shadow-2xl space-y-4 text-xs">
-            <h3 className="text-base font-extrabold text-slate-900 pb-2 border-b border-slate-100">
-              Add Mandap &amp; Stage Decor Theme
-            </h3>
+        <div
+          onClick={() => setDecorModalOpen(false)}
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <form
+            onSubmit={handleSaveDecor}
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white rounded-3xl max-w-lg w-full p-6 text-slate-900 shadow-2xl space-y-4 text-xs"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="text-base font-extrabold text-slate-900">
+                Add Mandap &amp; Stage Decor Theme
+              </h3>
+              <button
+                type="button"
+                onClick={() => setDecorModalOpen(false)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div>
               <label className="block font-bold mb-1">Theme Name</label>
               <input

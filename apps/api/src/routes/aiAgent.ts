@@ -10,7 +10,11 @@ aiAgentRoutes.use('*', authMiddleware, tenantMiddleware);
 // Detect language style: English, Hindi, Hinglish
 function detectLanguage(text: string): 'en' | 'hi' | 'hinglish' {
   const lower = text.toLowerCase();
-  const hindiIndicators = ['karo', 'dikhao', 'banao', 'aaj', 'kal', 'mahine', 'kitni', 'pichhle', 'darj', 'kar do', 'chahiye', 'hoga'];
+  const hindiIndicators = [
+    'karo', 'dikhao', 'banao', 'aaj', 'kal', 'mahine', 'kitni', 'pichhle',
+    'darj', 'kar do', 'chahiye', 'hoga', 'saare', 'sab', 'khol do', 'rakho',
+    'baki', 'kamre', 'kamra', 'safai', 'kaun'
+  ];
   const hasHindiKeywords = hindiIndicators.some((word) => lower.includes(word));
   
   if (hasHindiKeywords) {
@@ -19,11 +23,21 @@ function detectLanguage(text: string): 'en' | 'hi' | 'hinglish' {
   return 'en';
 }
 
-// Natural language intent matcher
-function parseNaturalLanguageIntent(message: string): { toolName: string; params: any } | null {
+export interface IntentContext {
+  roomTypes?: any[];
+  property?: any;
+}
+
+// Natural language intent matcher with contextual room category and price extraction
+export function parseNaturalLanguageIntent(
+  message: string,
+  context: IntentContext = {}
+): { toolName: string; params: any } | null {
   const lower = message.toLowerCase().trim();
 
-  // 0. Unblock Room (Single, Bulk, or All): e.g. "unblock all rooms", "unblock room 101", "unbloack them", "unblock them", "khol do", "release blocks"
+  // -------------------------------------------------------------------------
+  // 0. UNBLOCK ROOM(S)
+  // -------------------------------------------------------------------------
   if (
     lower.includes('unblock') ||
     lower.includes('unbloack') ||
@@ -31,6 +45,7 @@ function parseNaturalLanguageIntent(message: string): { toolName: string; params
     lower.includes('khol do') ||
     lower.includes('kholo') ||
     lower.includes('release block') ||
+    lower.includes('release room') ||
     (lower.includes('remove') && lower.includes('block'))
   ) {
     const isAll =
@@ -53,7 +68,9 @@ function parseNaturalLanguageIntent(message: string): { toolName: string; params
     };
   }
 
-  // 1. Block Room (Single or Bulk): e.g. "Kal Room 101 block kar do", "Block rooms 101, 102 from 25 Oct"
+  // -------------------------------------------------------------------------
+  // 1. BLOCK ROOM(S)
+  // -------------------------------------------------------------------------
   if (
     !lower.includes('unblock') &&
     !lower.includes('unbloack') &&
@@ -119,8 +136,37 @@ function parseNaturalLanguageIntent(message: string): { toolName: string; params
     };
   }
 
-  // 2. Arrivals: "Kal ke arrivals dikhao", "Find tomorrow's arrivals", "today arrivals"
-  if (lower.includes('arrival') || lower.includes('aane wale') || lower.includes('check-in')) {
+  // -------------------------------------------------------------------------
+  // 2. CHECKOUTS / DEPARTURES: "Pending checkouts dikhao", "aaj ke checkouts", "show departures"
+  // -------------------------------------------------------------------------
+  if (
+    lower.includes('checkout') ||
+    lower.includes('check-out') ||
+    lower.includes('check out') ||
+    lower.includes('departure') ||
+    lower.includes('jane wale') ||
+    lower.includes('nikalne wale')
+  ) {
+    let targetDate = new Date().toISOString().split('T')[0];
+    if (lower.includes('tomorrow') || lower.includes('kal')) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      targetDate = tomorrow.toISOString().split('T')[0];
+    }
+    const pendingOnly = lower.includes('pending') || lower.includes('baki') || !lower.includes('all');
+    return {
+      toolName: 'find_checkouts',
+      params: { date: targetDate, pendingOnly },
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // 3. ARRIVALS / CHECK-INS: "Kal ke arrivals dikhao", "Find tomorrow's arrivals", "today arrivals"
+  // -------------------------------------------------------------------------
+  if (
+    (lower.includes('arrival') || lower.includes('aane wale') || lower.includes('check-in') || lower.includes('checkin')) &&
+    !lower.includes('checkout') && !lower.includes('check-out')
+  ) {
     let targetDate = new Date().toISOString().split('T')[0];
     if (lower.includes('tomorrow') || lower.includes('kal')) {
       const tomorrow = new Date();
@@ -133,56 +179,225 @@ function parseNaturalLanguageIntent(message: string): { toolName: string; params
     };
   }
 
-  // 3. Collections & Payments: "Aaj kitni payment collect hui?", "Show today's collection and pending payments"
-  if (lower.includes('collection') || lower.includes('payment') || lower.includes('kamai') || lower.includes('collect')) {
+  // -------------------------------------------------------------------------
+  // 4. IN-HOUSE GUESTS: "In-house guests dikhao", "currently staying guests"
+  // -------------------------------------------------------------------------
+  if (
+    lower.includes('in-house') ||
+    lower.includes('inhouse') ||
+    lower.includes('staying guest') ||
+    lower.includes('current guest') ||
+    lower.includes('kaun ruke') ||
+    lower.includes('currently staying')
+  ) {
     return {
-      toolName: 'get_daily_collections',
-      params: { date: new Date().toISOString().split('T')[0] },
+      toolName: 'get_inhouse_guests',
+      params: {},
     };
   }
 
-  // 4. Housekeeping: "Room 204 ki housekeeping assign karo", "Mark Room 204 as requiring housekeeping"
-  if (lower.includes('housekeeping') || lower.includes('safai') || lower.includes('cleaning') || lower.includes('clean')) {
-    const roomMatch = lower.match(/(?:room|kamra)\s*(\d+[a-z]?)/i);
-    const roomNumber = roomMatch ? roomMatch[1] : '101';
+  // -------------------------------------------------------------------------
+  // 5. VACANT / FREE ROOMS: "Kitne kamre khali hain", "vacant rooms", "free rooms"
+  // -------------------------------------------------------------------------
+  if (
+    lower.includes('vacant') ||
+    (lower.includes('khali') && (lower.includes('room') || lower.includes('kamr'))) ||
+    lower.includes('free room') ||
+    lower.includes('available room')
+  ) {
     return {
-      toolName: 'create_housekeeping_task',
-      params: { roomNumber, priority: 'high', notes: 'Scheduled via AI Assistant' },
+      toolName: 'get_vacant_rooms',
+      params: {},
     };
   }
 
-  // 5. Update Rates: "Weekend ka rate ₹3,500 kar do", "Change the weekend rate to ₹3,500"
-  if (lower.includes('rate') || lower.includes('price') || lower.includes('kiraya')) {
-    const amountMatch = lower.match(/(?:₹|rs\.?|inr)?\s*([\d,]+)/i);
-    let ratePaise = 350000; // default ₹3,500
-    if (amountMatch) {
-      const parsedNum = parseInt(amountMatch[1].replace(/,/g, ''), 10);
-      if (parsedNum > 0) {
-        ratePaise = parsedNum * 100;
-      }
-    }
-    const isWeekend = lower.includes('weekend') || lower.includes('hafta');
-    return {
-      toolName: 'update_rate',
-      params: { ratePaise, isWeekend },
-    };
-  }
-
-  // 6. Occupancy / Reports: "Pichhle mahine ki revenue report banao", "Show occupancy"
-  if (lower.includes('occupancy') || lower.includes('revenue') || lower.includes('report') || lower.includes('occupant')) {
+  // -------------------------------------------------------------------------
+  // 6. OCCUPANCY & STATUS: "Aaj ki occupancy dikhao", "hotel status", "revenue report"
+  // -------------------------------------------------------------------------
+  if (lower.includes('occupancy') || lower.includes('occupant') || lower.includes('occupancy rate')) {
     return {
       toolName: 'get_occupancy',
       params: {},
     };
   }
 
-  // 7. Complaint: "Create a complaint", "shikayat", "complaint"
-  if (lower.includes('complaint') || lower.includes('shikayat')) {
+  // -------------------------------------------------------------------------
+  // 7. PAYMENTS & COLLECTIONS: "Aaj kitni payment collect hui?", "collection report"
+  // -------------------------------------------------------------------------
+  if (
+    lower.includes('collection') ||
+    lower.includes('payment') ||
+    lower.includes('kamai') ||
+    lower.includes('collect') ||
+    (lower.includes('hisab') && !lower.includes('safai'))
+  ) {
+    return {
+      toolName: 'get_daily_collections',
+      params: { date: new Date().toISOString().split('T')[0] },
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // 8. HOUSEKEEPING / CLEANING / DIRTY MARK
+  // -------------------------------------------------------------------------
+  if (
+    lower.includes('housekeeping') ||
+    lower.includes('safai') ||
+    lower.includes('cleaning') ||
+    lower.includes('clean') ||
+    lower.includes('dirty')
+  ) {
+    const roomMatch = lower.match(/(?:room|kamra)\s*(\d+[a-z]?)/i);
+    const roomNumber = roomMatch ? roomMatch[1] : '101';
+
+    if (lower.includes('clean mark') || lower.includes('mark clean') || lower.includes('saaf ho gaya') || lower.includes('clean ho gaya')) {
+      return { toolName: 'mark_room_clean', params: { roomNumber } };
+    }
+    if (lower.includes('dirty mark') || lower.includes('mark dirty') || lower.includes('ganda')) {
+      return { toolName: 'mark_room_dirty', params: { roomNumber } };
+    }
+    return {
+      toolName: 'create_housekeeping_task',
+      params: { roomNumber, priority: 'high', notes: 'Scheduled via AI Assistant' },
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // 9. ROOM PRICING, EXTRA ADULT RATES & OCCUPANCY CONFIGURATION
+  // Examples:
+  // - "for cottage price for 2 people is rs. 5000 and above 2 people each one will additionally pay 3000"
+  // - "deluxe room ka rate 4500 set karo"
+  // - "cottage price 5000 extra adult 3000"
+  // - "weekend rate 3500 set karo"
+  // -------------------------------------------------------------------------
+  if (
+    lower.includes('price') ||
+    lower.includes('rate') ||
+    lower.includes('kiraya') ||
+    lower.includes('pricing') ||
+    lower.includes('tariff') ||
+    lower.includes('additionally pay') ||
+    lower.includes('additionally') ||
+    lower.includes('extra adult') ||
+    lower.includes('extra person')
+  ) {
+    // 1. Detect matching room type from context or text
+    let matchedRt: any = null;
+    if (Array.isArray(context.roomTypes) && context.roomTypes.length > 0) {
+      matchedRt = context.roomTypes.find((rt: any) =>
+        lower.includes(rt.name.toLowerCase()) || lower.includes(rt.code.toLowerCase())
+      );
+    }
+
+    // Fallback category detection
+    let detectedCategory = matchedRt ? matchedRt.name : '';
+    if (!detectedCategory) {
+      const commonCategories = [
+        'cottage', 'deluxe', 'super deluxe', 'standard', 'suite', 'executive',
+        'villa', 'tent', 'dormitory', 'dorm', 'family room', 'premium'
+      ];
+      for (const cat of commonCategories) {
+        if (lower.includes(cat)) {
+          detectedCategory = cat;
+          break;
+        }
+      }
+    }
+
+    // 2. Extract Base Occupancy (e.g. "for 2 people", "2 adults", "base 2 persons", "2 guests", "2 log")
+    let baseOccupancy: number | undefined = undefined;
+    const occMatch = lower.match(/(?:for|base)?\s*(\d+)\s*(?:people|persons?|guests?|adults?|log|vyakti|members?)/i);
+    if (occMatch) {
+      const occ = parseInt(occMatch[1], 10);
+      if (occ > 0 && occ <= 20) {
+        baseOccupancy = occ;
+      }
+    }
+
+    // 3. Extract Extra Adult Surcharge (e.g. "above 2 people each one will additionally pay 3000", "extra adult 3000", "extra person 1500")
+    let extraAdultPriceRupees: number | undefined = undefined;
+    const extraMatch = lower.match(/(?:above|extra|additional|additionally|each one|har ek|per person|per adult)[^0-9]*?(?:pay|charge|rate|₹|rs\.?|inr)?\s*(?:rs\.?|inr|₹)?\s*(\d{3,6})/i);
+    if (extraMatch) {
+      const parsedExtra = parseInt(extraMatch[1].replace(/,/g, ''), 10);
+      if (parsedExtra >= 100) {
+        extraAdultPriceRupees = parsedExtra;
+      }
+    }
+
+    // 4. Extract Base Price (must be a realistic hotel tariff >= 100, not guest counts)
+    let basePriceRupees: number | undefined = undefined;
+
+    // Pattern A: "price ... is rs. 5000" or "price for 2 people is rs. 5000" or "rate 5000"
+    const priceWithPrefix = lower.match(/(?:price|rate|kiraya|tariff|cost)(?:[^0-9]*?(?:for\s*\d+\s*(?:people|adults|persons?|guests?|log)))?[^0-9]*?(?:is|hoga|rakho|set karo|to)?\s*(?:rs\.?|inr|₹)?\s*(\d{3,7})/i);
+    if (priceWithPrefix) {
+      const parsedBase = parseInt(priceWithPrefix[1].replace(/,/g, ''), 10);
+      if (parsedBase >= 100 && parsedBase !== extraAdultPriceRupees) {
+        basePriceRupees = parsedBase;
+      }
+    }
+
+    // Pattern B: Explicit currency prefixed number (e.g. "rs. 5000", "₹5,000", "5000 rs")
+    if (!basePriceRupees) {
+      const currencyMatches = Array.from(lower.matchAll(/(?:₹|rs\.?|inr)\s*(\d[\d,]*)/gi));
+      for (const cm of currencyMatches) {
+        const num = parseInt(cm[1].replace(/,/g, ''), 10);
+        if (num >= 100 && num !== extraAdultPriceRupees) {
+          basePriceRupees = num;
+          break;
+        }
+      }
+    }
+
+    // Pattern C: Any 4-5 digit number that is not the extra adult price
+    if (!basePriceRupees) {
+      const allNumbers = Array.from(lower.matchAll(/\b(\d{3,6})\b/g));
+      for (const nm of allNumbers) {
+        const num = parseInt(nm[1], 10);
+        if (num >= 500 && num !== extraAdultPriceRupees) {
+          basePriceRupees = num;
+          break;
+        }
+      }
+    }
+
+    const isWeekend = lower.includes('weekend') || lower.includes('hafta') || lower.includes('shanivar');
+
+    // If we have room type or extra adult charge or base price
+    if (detectedCategory || extraAdultPriceRupees || basePriceRupees) {
+      return {
+        toolName: 'update_room_type_pricing',
+        params: {
+          roomTypeName: matchedRt ? matchedRt.name : (detectedCategory || 'all'),
+          roomTypeId: matchedRt ? matchedRt.id : undefined,
+          basePriceRupees,
+          baseOccupancy,
+          extraAdultPriceRupees,
+          weekendPriceRupees: isWeekend ? basePriceRupees : undefined,
+        },
+      };
+    }
+
+    // Fallback simple rate update
+    if (basePriceRupees && basePriceRupees >= 100) {
+      return {
+        toolName: 'update_rate',
+        params: {
+          ratePaise: basePriceRupees * 100,
+          isWeekend,
+        },
+      };
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 10. COMPLAINTS & MAINTENANCE
+  // -------------------------------------------------------------------------
+  if (lower.includes('complaint') || lower.includes('shikayat') || lower.includes('kharab') || lower.includes('problem')) {
     const roomMatch = lower.match(/(?:room|kamra)\s*(\d+[a-z]?)/i);
     return {
       toolName: 'create_complaint',
       params: {
-        guestName: 'Guest',
+        guestName: 'Hotel Guest',
         roomNumber: roomMatch ? roomMatch[1] : undefined,
         description: message,
       },
@@ -190,6 +405,118 @@ function parseNaturalLanguageIntent(message: string): { toolName: string; params
   }
 
   return null;
+}
+
+// Conversational guidance when user sends greetings, how-tos, or questions
+function generateConversationalReply(
+  message: string,
+  lang: 'en' | 'hi' | 'hinglish',
+  context: IntentContext
+): string {
+  const lower = message.toLowerCase().trim();
+  const hotelName = context.property?.name || 'HotelFlexi';
+  const slug = context.property?.slug || '';
+
+  // 1. Greetings
+  if (
+    lower === 'hi' ||
+    lower === 'hello' ||
+    lower === 'hey' ||
+    lower === 'namaste' ||
+    lower === 'namaskar' ||
+    lower.startsWith('good morning') ||
+    lower.startsWith('good evening') ||
+    lower.startsWith('kaise ho')
+  ) {
+    if (lang === 'hi' || lang === 'hinglish') {
+      return `Namaste! 🙏 Main ${hotelName} ka AI Business Assistant hoon. Aap mujhe natural language mein direct command de sakte hain, jaise:
+• "Pending checkouts dikhao"
+• "for cottage price for 2 people is rs. 5000 and above 2 people each one will additionally pay 3000"
+• "Saare rooms unblock kar do"
+• "Kal ke arrivals dikhao"
+• "Room 204 housekeeping assign karo"
+• "Aaj ki payment collection dikhao"`;
+    }
+    return `Hello! 🙏 I am ${hotelName}'s AI Business Assistant. How can I help you today? You can command me in plain English or Hinglish:
+• "Show pending checkouts"
+• "for cottage price for 2 people is rs. 5000 and above 2 people each one will additionally pay 3000"
+• "Unblock all rooms"
+• "Show tomorrow's arrivals"
+• "Mark Room 204 as requiring housekeeping"
+• "Show today's collection and pending payments"`;
+  }
+
+  // 2. Direct Booking Engine Link
+  if (
+    lower.includes('booking engine') ||
+    lower.includes('direct booking') ||
+    lower.includes('website link') ||
+    lower.includes('booking url') ||
+    lower.includes('booking link')
+  ) {
+    const bookingUrl = slug ? `https://hotelflexi.com/book/${slug}` : 'https://hotelflexi.com/app/booking-engine';
+    return lang === 'hi' || lang === 'hinglish'
+      ? `Aapke property ka official 0% commission direct booking engine link ye hai:\n🌐 ${bookingUrl}\n\nGuests yahan se directly rooms book kar sakte hain aur payment seedhe aapke account mein settle hoti hai!`
+      : `Your official 0% commission direct booking engine URL is:\n🌐 ${bookingUrl}\n\nGuests can book directly, with instant payment settlement into your bank account!`;
+  }
+
+  // 3. Channel Manager / OTA connections
+  if (
+    lower.includes('channel manager') ||
+    lower.includes('makemytrip') ||
+    lower.includes('agoda') ||
+    lower.includes('booking.com') ||
+    lower.includes('expedia') ||
+    lower.includes('airbnb') ||
+    lower.includes('ota')
+  ) {
+    return `To manage and connect OTAs (MakeMyTrip, Agoda, Booking.com, Expedia, Airbnb):
+1. Navigate to Channel Manager (/app/channels).
+2. Select your channel and click "Connect Channel".
+3. Enter your Hotel ID and credentials. Availability, rates, and inventory (ARI) sync automatically in sub-seconds!`;
+  }
+
+  // 4. GST & Billing rules
+  if (lower.includes('gst') || lower.includes('tax slab') || lower.includes('tax rate')) {
+    return `Under Indian GST regulations for Hotels (SAC 9963):
+• Room Tariff up to ₹7,500/night: 12% GST (6% CGST + 6% SGST)
+• Room Tariff above ₹7,500/night: 18% Luxury GST (9% CGST + 9% SGST)
+HotelFlexi automatically applies the correct slab on invoices and tax folios based on room tariff.`;
+  }
+
+  // 5. Capabilities / What can you do / Help
+  if (
+    lower.includes('what can you do') ||
+    lower.includes('kya kar sakte ho') ||
+    lower.includes('features') ||
+    lower.includes('capabilities') ||
+    lower === 'help'
+  ) {
+    return `I am your hotel's autonomous operational AI. Here is what I execute:
+1. 🏨 Room Inventory: Block/unblock rooms ("Saare rooms unblock kar do"), check vacant rooms, view occupancy.
+2. 💰 Pricing & Extra Person: Set room tariffs and extra adult charges ("for cottage price for 2 people is rs. 5000 and above 2 people each one will additionally pay 3000").
+3. 🛎️ Front Desk Operations: View arrivals ("Kal ke arrivals dikhao"), departures ("Pending checkouts dikhao"), and in-house guests.
+4. 🧹 Housekeeping: Assign cleaning tasks ("Room 204 housekeeping assign karo") or mark rooms clean/dirty.
+5. 💳 Accounts: View daily payment collections and active folio dues.`;
+  }
+
+  // 6. Helpful clarification fallback
+  if (lang === 'hi' || lang === 'hinglish') {
+    return `Main aapki request samajh raha hoon, kripya thodi specific detail dein (jaise Room number, date ya amount).
+Aap inme se koi command de sakte hain:
+• "Pending checkouts dikhao"
+• "for cottage price for 2 people is rs. 5000 and above 2 people each one will additionally pay 3000"
+• "Saare rooms unblock kar do"
+• "Room 101 block kar do kal ke liye"
+• "Aaj ki payment collection dikhao"`;
+  }
+  return `I understand you want to operate ${hotelName}, but I need a specific room number, date, or amount.
+You can try:
+• "Show pending checkouts"
+• "for cottage price for 2 people is rs. 5000 and above 2 people each one will additionally pay 3000"
+• "Unblock all rooms"
+• "Block Room 101 for tomorrow"
+• "Show today's collection and pending payments"`;
 }
 
 // Chat API endpoint
@@ -230,6 +557,22 @@ aiAgentRoutes.post('/chat', async (c) => {
     }
   }
 
+  // Fetch contextual tenant data: room types and property details
+  const roomTypesQuery: any = await c.env.DB.prepare(
+    `SELECT id, name, code, base_occupancy, max_occupancy, base_price_paise, extra_adult_price_paise
+     FROM room_types WHERE tenant_id = ?`
+  ).bind(tenantId).all().catch(() => ({ results: [] }));
+  const roomTypes = roomTypesQuery.results || [];
+
+  const property: any = await c.env.DB.prepare(
+    `SELECT id, name, property_code, slug, city, phone FROM properties WHERE tenant_id = ? LIMIT 1`
+  ).bind(tenantId).first().catch(() => null);
+
+  const intentContext: IntentContext = {
+    roomTypes,
+    property,
+  };
+
   // Ensure conversation exists
   if (!conversationId) {
     conversationId = `conv_${crypto.randomUUID()}`;
@@ -251,7 +594,7 @@ aiAgentRoutes.post('/chat', async (c) => {
     .run();
 
   const lang = detectLanguage(message);
-  const toolCall = parseNaturalLanguageIntent(message);
+  const toolCall = parseNaturalLanguageIntent(message, intentContext);
 
   let assistantReply = '';
   let toolResult = null;
@@ -262,6 +605,7 @@ aiAgentRoutes.post('/chat', async (c) => {
       tenantId,
       userId: user.uid,
       role: membership.role,
+      propertyId: property?.id,
       language: lang,
     };
 
@@ -269,30 +613,8 @@ aiAgentRoutes.post('/chat', async (c) => {
     assistantReply = execution.humanMessage;
     toolResult = execution;
   } else {
-    // Helpful guidance when query doesn't match an exact tool pattern
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const day = tomorrow.getDate();
-    const month = tomorrow.toLocaleString('en-IN', { month: 'long' });
-    const tomorrowLabel = `${day} ${month}`;
-
-    if (lang === 'hi' || lang === 'hinglish') {
-      assistantReply = `Namaste! Main HotelFlexi ka AI Business Agent hoon. Aap mujhse natural language mein hotel operate karne ke liye keh sakte hain, jaise:
-• "Kal ke arrivals dikhao"
-• "Kal (${tomorrowLabel}) ko Room 101 block kar do"
-• "Weekend ka rate ₹3,500 kar do"
-• "Aaj kitni payment collect hui?"
-• "Room 204 ki housekeeping assign karo"
-• "Aaj ki occupancy dikhao"`;
-    } else {
-      assistantReply = `Hello! I am HotelFlexi's AI Business Assistant. You can give me simple instructions to operate your hotel, such as:
-• "Show tomorrow's arrivals"
-• "Block Room 101 for tomorrow (${tomorrowLabel})"
-• "Change the weekend rate to ₹3,500"
-• "Show today's collection and pending payments"
-• "Mark Room 204 as requiring housekeeping"
-• "Show occupancy for this month"`;
-    }
+    // Conversational, helpful response tailored to query
+    assistantReply = generateConversationalReply(message, lang, intentContext);
   }
 
   // Record assistant response

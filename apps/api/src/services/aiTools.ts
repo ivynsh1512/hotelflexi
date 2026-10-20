@@ -264,6 +264,131 @@ export async function executeAiTool(
       }
 
       // -----------------------------------------------------------------------
+      // 2B. FIND CHECKOUTS / DEPARTURES (Pending or Completed)
+      // -----------------------------------------------------------------------
+      case 'find_checkouts': {
+        const targetDate = params.date || new Date().toISOString().split('T')[0];
+        const pendingOnly = params.pendingOnly !== false;
+
+        let query = `
+          SELECT res.reservation_number, res.check_in_date, res.check_out_date, res.status,
+                 res.total_amount_paise, res.balance_amount_paise,
+                 rg.full_name as guest_name, rg.phone as guest_phone, r.room_number, rt.name as room_type
+          FROM reservations res
+          LEFT JOIN reservation_guests rg ON rg.reservation_id = res.id AND rg.is_primary = 1
+          LEFT JOIN rooms r ON r.id = res.room_id
+          LEFT JOIN room_types rt ON rt.id = res.room_type_id
+          WHERE res.tenant_id = ? AND res.check_out_date = ? AND res.status NOT IN ('cancelled')
+        `;
+
+        if (pendingOnly) {
+          query += ` AND res.status NOT IN ('checked_out')`;
+        }
+
+        query += ` ORDER BY r.room_number ASC, res.created_at ASC`;
+
+        const rows: any = await env.DB.prepare(query)
+          .bind(tenantId, targetDate)
+          .all();
+
+        const checkouts = rows.results || [];
+        success = true;
+        result = { date: targetDate, count: checkouts.length, checkouts };
+
+        if (checkouts.length === 0) {
+          humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+            ? `${targetDate} ke liye koi ${pendingOnly ? 'pending ' : ''}checkouts nahi hain. Sabhi status clear hai.`
+            : `No ${pendingOnly ? 'pending ' : ''}checkouts found for ${targetDate}. All reservations are clear.`;
+        } else {
+          const list = checkouts.map((c: any) => {
+            const balanceRs = (c.balance_amount_paise || 0) / 100;
+            const balStr = balanceRs > 0 ? `⚠️ Dues Pending: ₹${balanceRs.toLocaleString('en-IN')}` : '✅ Fully Paid';
+            return `• Room ${c.room_number || 'Unassigned'} — ${c.guest_name || 'Guest'} (Res: #${c.reservation_number}, Status: ${c.status.toUpperCase()}, ${balStr})`;
+          }).join('\n');
+
+          humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+            ? `${targetDate} ko total ${checkouts.length} ${pendingOnly ? 'pending ' : ''}checkout(s) hain:\n${list}`
+            : `Found ${checkouts.length} ${pendingOnly ? 'pending ' : ''}checkout(s) scheduled for ${targetDate}:\n${list}`;
+        }
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 2C. IN-HOUSE GUESTS
+      // -----------------------------------------------------------------------
+      case 'get_inhouse_guests': {
+        const rows: any = await env.DB.prepare(`
+          SELECT res.reservation_number, res.check_in_date, res.check_out_date,
+                 res.total_amount_paise, res.balance_amount_paise,
+                 rg.full_name as guest_name, rg.phone as guest_phone, r.room_number, rt.name as room_type
+          FROM reservations res
+          LEFT JOIN reservation_guests rg ON rg.reservation_id = res.id AND rg.is_primary = 1
+          LEFT JOIN rooms r ON r.id = res.room_id
+          LEFT JOIN room_types rt ON rt.id = res.room_type_id
+          WHERE res.tenant_id = ? AND res.status = 'checked_in'
+          ORDER BY r.room_number ASC
+        `).bind(tenantId).all();
+
+        const inHouse = rows.results || [];
+        success = true;
+        result = { count: inHouse.length, inHouse };
+
+        if (inHouse.length === 0) {
+          humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+            ? 'Abhi hotel mein koi checked-in in-house guests nahi hain.'
+            : 'There are currently no checked-in in-house guests.';
+        } else {
+          const list = inHouse.map((g: any) => {
+            const balRs = (g.balance_amount_paise || 0) / 100;
+            return `• Room ${g.room_number || 'N/A'} (${g.room_type || 'Room'}) — ${g.guest_name || 'Guest'} | Departs: ${g.check_out_date}${balRs > 0 ? ` | Dues: ₹${balRs.toLocaleString('en-IN')}` : ''}`;
+          }).join('\n');
+
+          humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+            ? `Filhal hotel mein ${inHouse.length} in-house guest(s) checked-in hain:\n${list}`
+            : `Currently ${inHouse.length} in-house guest(s) staying at the hotel:\n${list}`;
+        }
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 2D. VACANT / AVAILABLE ROOMS
+      // -----------------------------------------------------------------------
+      case 'get_vacant_rooms': {
+        const rows: any = await env.DB.prepare(`
+          SELECT r.room_number, r.floor, rt.name as room_type
+          FROM rooms r
+          LEFT JOIN room_types rt ON rt.id = r.room_type_id
+          WHERE r.tenant_id = ? AND r.is_active = 1 AND r.status = 'available'
+          ORDER BY r.room_number ASC
+        `).bind(tenantId).all();
+
+        const available = rows.results || [];
+        success = true;
+        result = { count: available.length, rooms: available };
+
+        if (available.length === 0) {
+          humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+            ? 'Sabhi rooms filhal occupied ya blocked hain. Zero vacancies (100% Sold Out)!'
+            : 'All rooms are currently occupied or blocked. Zero vacancies (100% Sold Out)!';
+        } else {
+          const roomsByCat: Record<string, string[]> = {};
+          for (const rm of available) {
+            const cat = rm.room_type || 'Standard';
+            if (!roomsByCat[cat]) roomsByCat[cat] = [];
+            roomsByCat[cat].push(rm.room_number);
+          }
+          const catSummary = Object.entries(roomsByCat)
+            .map(([cat, nums]) => `• ${cat} (${nums.length} available): ${nums.join(', ')}`)
+            .join('\n');
+
+          humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+            ? `Abhi total ${available.length} vacant rooms available hain:\n${catSummary}`
+            : `Currently ${available.length} vacant room(s) available for booking:\n${catSummary}`;
+        }
+        break;
+      }
+
+      // -----------------------------------------------------------------------
       // 3. GET DAILY COLLECTIONS
       // -----------------------------------------------------------------------
       case 'get_daily_collections': {
@@ -336,7 +461,7 @@ export async function executeAiTool(
       }
 
       // -----------------------------------------------------------------------
-      // 5. UPDATE RATE
+      // 5. UPDATE RATE (Generic base or weekend)
       // -----------------------------------------------------------------------
       case 'update_rate': {
         const { ratePaise, isWeekend = false, roomTypeCode } = params;
@@ -362,6 +487,102 @@ export async function executeAiTool(
         humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
           ? `${isWeekend ? 'Weekend' : 'Base'} rate ko update karke ₹${rateInRupees.toLocaleString('en-IN')} kar diya gaya hai.`
           : `${isWeekend ? 'Weekend' : 'Base'} rate successfully updated to ₹${rateInRupees.toLocaleString('en-IN')}.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 5B. UPDATE ROOM TYPE PRICING & OCCUPANCY (Smart rate + extra adult pricing)
+      // -----------------------------------------------------------------------
+      case 'update_room_type_pricing': {
+        const {
+          roomTypeId,
+          roomTypeName,
+          basePriceRupees,
+          baseOccupancy,
+          extraAdultPriceRupees,
+          extraChildPriceRupees,
+          weekendPriceRupees,
+          maxOccupancy,
+        } = params;
+
+        // Find room type(s)
+        let query = 'SELECT id, name, code, base_occupancy, max_occupancy, base_price_paise, extra_adult_price_paise FROM room_types WHERE tenant_id = ?';
+        const queryParams: any[] = [tenantId];
+
+        if (roomTypeId) {
+          query += ' AND id = ?';
+          queryParams.push(roomTypeId);
+        } else if (roomTypeName && roomTypeName !== 'all') {
+          query += ' AND (LOWER(name) LIKE ? OR LOWER(code) LIKE ?)';
+          queryParams.push(`%${roomTypeName.toLowerCase()}%`, `%${roomTypeName.toLowerCase()}%`);
+        }
+
+        const rtRows: any = await env.DB.prepare(query).bind(...queryParams).all();
+        const targets = rtRows.results || [];
+
+        if (targets.length === 0) {
+          const allRts: any = await env.DB.prepare('SELECT name FROM room_types WHERE tenant_id = ?').bind(tenantId).all();
+          const names = (allRts.results || []).map((r: any) => r.name).join(', ');
+          throw new Error(`Room category "${roomTypeName || ''}" nahi mili. Available categories: ${names || 'None'}`);
+        }
+
+        const updatedNames: string[] = [];
+
+        for (const target of targets) {
+          const sets: string[] = ['updated_at = ?'];
+          const setValues: any[] = [now];
+
+          if (basePriceRupees !== undefined && basePriceRupees > 0) {
+            sets.push('base_price_paise = ?');
+            setValues.push(Math.round(basePriceRupees * 100));
+          }
+
+          if (baseOccupancy !== undefined && baseOccupancy > 0) {
+            sets.push('base_occupancy = ?');
+            setValues.push(Number(baseOccupancy));
+          }
+
+          if (extraAdultPriceRupees !== undefined && extraAdultPriceRupees >= 0) {
+            sets.push('extra_adult_price_paise = ?');
+            setValues.push(Math.round(extraAdultPriceRupees * 100));
+          }
+
+          if (extraChildPriceRupees !== undefined && extraChildPriceRupees >= 0) {
+            sets.push('extra_child_price_paise = ?');
+            setValues.push(Math.round(extraChildPriceRupees * 100));
+          }
+
+          if (weekendPriceRupees !== undefined && weekendPriceRupees > 0) {
+            sets.push('weekend_price_paise = ?');
+            setValues.push(Math.round(weekendPriceRupees * 100));
+          }
+
+          if (maxOccupancy !== undefined && maxOccupancy > 0) {
+            sets.push('max_occupancy = ?');
+            setValues.push(Number(maxOccupancy));
+          }
+
+          setValues.push(target.id, tenantId);
+          await env.DB.prepare(`UPDATE room_types SET ${sets.join(', ')} WHERE id = ? AND tenant_id = ?`)
+            .bind(...setValues)
+            .run();
+
+          updatedNames.push(target.name);
+        }
+
+        success = true;
+        result = { targets: updatedNames, basePriceRupees, baseOccupancy, extraAdultPriceRupees };
+
+        const detailsParts: string[] = [];
+        if (basePriceRupees) detailsParts.push(`Base Tariff: ₹${basePriceRupees.toLocaleString('en-IN')}${baseOccupancy ? ` (Base Occupancy: ${baseOccupancy} adults)` : ''}`);
+        if (extraAdultPriceRupees) detailsParts.push(`Extra Adult Charge: ₹${extraAdultPriceRupees.toLocaleString('en-IN')}/night`);
+        if (weekendPriceRupees) detailsParts.push(`Weekend Tariff: ₹${weekendPriceRupees.toLocaleString('en-IN')}`);
+
+        if (ctx.language === 'hi' || ctx.language === 'hinglish') {
+          humanMessage = `${updatedNames.join(', ')} ki pricing successfully update kar di gayi hai!\n• ${detailsParts.join('\n• ')}`;
+        } else {
+          humanMessage = `Pricing for ${updatedNames.join(', ')} successfully updated!\n• ${detailsParts.join('\n• ')}`;
+        }
         break;
       }
 

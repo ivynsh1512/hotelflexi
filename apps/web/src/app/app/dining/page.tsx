@@ -20,6 +20,7 @@ import {
   ChevronRight,
   ShieldCheck,
   AlertCircle,
+  X,
 } from 'lucide-react';
 
 export default function AppDiningPage() {
@@ -543,11 +544,27 @@ export default function AppDiningPage() {
 
       {/* Add Dish Modal */}
       {showAddDish && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <h3 className="text-base font-black text-slate-900 pb-2 border-b border-border-light">
-              Add New Menu Item
-            </h3>
+        <div
+          onClick={() => setShowAddDish(false)}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-border-light">
+              <h3 className="text-base font-black text-slate-900">
+                Add New Menu Item
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddDish(false)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleAddDish} className="space-y-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Dish Name</label>

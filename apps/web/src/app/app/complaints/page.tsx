@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
 import { UrgencySirenAlert } from '@/components/UrgencySirenAlert';
-import { AlertTriangle, PlusCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { AlertTriangle, PlusCircle, CheckCircle2, Loader2, X } from 'lucide-react';
 
 export default function ComplaintsPage() {
   const { currentTenant, user } = useAuth();
@@ -227,11 +227,24 @@ export default function ComplaintsPage() {
 
       {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light">
+        <div
+          onClick={() => setModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light mb-4">
               <h3 className="text-sm font-bold text-content-primary-light">Log Guest Complaint</h3>
-              <button onClick={() => setModalOpen(false)} className="text-xs text-content-secondary-light">✕</button>
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4 text-xs">

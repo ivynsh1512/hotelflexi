@@ -696,9 +696,23 @@ export default function SubscriptionPage() {
 
           {/* Assigned Developer Modal Popup after Payment */}
           {assignedDevModal && (
-            <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+            <div
+              onClick={() => setAssignedDevModal(null)}
+              className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-200"
+              >
+                <button
+                  type="button"
+                  onClick={() => setAssignedDevModal(null)}
+                  className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-100 pr-8">
                   <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>

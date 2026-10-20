@@ -16,6 +16,7 @@ import {
   ToggleLeft,
   ToggleRight,
   TrendingDown,
+  X,
 } from 'lucide-react';
 
 export default function CouponsPage() {
@@ -258,15 +259,23 @@ export default function CouponsPage() {
 
       {/* Create Coupon Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-2xl border border-border-light shadow-xl p-6 space-y-4">
+        <div
+          onClick={() => setShowModal(false)}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-md w-full bg-white rounded-2xl border border-border-light shadow-xl p-6 space-y-4"
+          >
             <div className="flex justify-between items-center pb-3 border-b border-border-light">
               <h3 className="font-bold text-base text-content-primary-light">Create Promotional Coupon</h3>
               <button
+                type="button"
                 onClick={() => setShowModal(false)}
-                className="text-content-secondary-light hover:text-content-primary-light text-sm"
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                aria-label="Close"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
