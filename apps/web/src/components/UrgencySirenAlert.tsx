@@ -1,10 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Bell,
-  Volume2,
-  VolumeX,
   AlertTriangle,
   CheckCircle2,
   Clock,
@@ -34,20 +32,11 @@ interface UrgencySirenProps {
 
 export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenProps) {
   const [urgentTickets, setUrgentTickets] = useState<UrgentTicket[]>([]);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isSirenPlaying, setIsSirenPlaying] = useState(false);
   const [quickReportModalOpen, setQuickReportModalOpen] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [reportingRoom, setReportingRoom] = useState('');
   const [reportingCategory, setReportingCategory] = useState('dirty_bedsheet');
   const [reportingNotes, setReportingNotes] = useState('');
-
-  // Web Audio Context & Oscillator Refs
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const oscRef = useRef<OscillatorNode | null>(null);
-  const gainRef = useRef<GainNode | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Poll or fetch active urgent tasks/complaints
   const fetchActiveUrgentTickets = useCallback(async () => {
@@ -70,36 +59,36 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
           urgentList.push({
             id: t.id,
             source: 'housekeeping',
-            roomNumber: t.room_number || 'Room',
+            roomNumber: t.room_number ? `Room ${t.room_number}` : 'Room',
             category: t.task_type || 'Cleaning',
             title: t.notes || 'Urgent Room Cleaning Required',
             status: t.status === 'in_progress' ? 'in_progress' : 'pending',
-            pickedByName: t.assigned_to_name,
+            pickedByName: t.assigned_to_name || (t.notes?.includes('Taken by ') ? t.notes.split('Taken by ')[1]?.replace(')', '') : undefined),
             createdAt: t.created_at || Math.floor(Date.now() / 1000),
           });
         }
       }
 
-      // 2. Urgent guest complaints (bedsheet, washroom, plumbing)
+      // 2. Urgent guest complaints
       for (const c of cData.complaints || []) {
         const descLower = (c.description || '').toLowerCase();
         const isUrgentGrievance =
-          c.category === 'room_cleanliness' ||
-          c.category === 'maintenance' ||
-          descLower.includes('bedsheet') ||
-          descLower.includes('washroom') ||
-          descLower.includes('leak') ||
-          descLower.includes('urgent');
+          c.priority === 'urgent' ||
+          descLower.includes('[urgent siren dispatch]');
 
         if (c.status !== 'resolved' && isUrgentGrievance) {
+          const pickedName = c.resolution_notes?.startsWith('Taken by ')
+            ? c.resolution_notes.replace('Taken by ', '')
+            : c.resolved_by_name || c.resolved_by_email || c.assigned_staff_name;
+
           urgentList.push({
             id: c.id,
             source: 'complaint',
             roomNumber: c.room_number ? `Room ${c.room_number}` : 'Room',
             category: c.category || 'Service Grievance',
             title: c.description || 'Guest urgent complaint',
-            status: c.status === 'in_investigation' ? 'in_progress' : 'pending',
-            pickedByName: c.assigned_staff_name,
+            status: c.status === 'investigating' ? 'in_progress' : 'pending',
+            pickedByName: pickedName,
             createdAt: c.created_at || Math.floor(Date.now() / 1000),
           });
         }
@@ -113,96 +102,14 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
 
   useEffect(() => {
     fetchActiveUrgentTickets();
-    const timer = setInterval(fetchActiveUrgentTickets, 10000); // Poll every 10 seconds
+    const timer = setInterval(fetchActiveUrgentTickets, 8000); // Poll every 8 seconds
     return () => clearInterval(timer);
   }, [fetchActiveUrgentTickets]);
 
-  // Audio Siren Management (Web Audio API)
-  const stopSirenSound = useCallback(() => {
-    try {
-      if (oscRef.current) {
-        oscRef.current.stop();
-        oscRef.current.disconnect();
-        oscRef.current = null;
-      }
-      if (gainRef.current) {
-        gainRef.current.disconnect();
-        gainRef.current = null;
-      }
-      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-        audioCtxRef.current.close().catch(() => {});
-        audioCtxRef.current = null;
-      }
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    } catch (e) {
-      console.warn('Error stopping siren audio:', e);
-    }
-    setIsSirenPlaying(false);
-  }, []);
-
-  const startSirenSound = useCallback(() => {
-    if (isMuted || !soundEnabled || isSirenPlaying) return;
-
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-
-      const ctx = new AudioCtx();
-      audioCtxRef.current = ctx;
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(750, ctx.currentTime);
-
-      gain.gain.setValueAtTime(0.15, ctx.currentTime); // Safe volume
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-
-      oscRef.current = osc;
-      gainRef.current = gain;
-      setIsSirenPlaying(true);
-
-      // Pitch sweep simulation (750Hz <-> 1200Hz every 400ms)
-      let high = false;
-      intervalRef.current = setInterval(() => {
-        if (!audioCtxRef.current || !oscRef.current) return;
-        high = !high;
-        const targetFreq = high ? 1200 : 750;
-        oscRef.current.frequency.exponentialRampToValueAtTime(
-          targetFreq,
-          audioCtxRef.current.currentTime + 0.35
-        );
-      }, 400);
-    } catch (e) {
-      console.warn('AudioContext autoplay policy prevented audio playback until user click:', e);
-    }
-  }, [isMuted, soundEnabled, isSirenPlaying]);
-
-  // Trigger or stop siren based on pending unpicked tickets
   const pendingUrgentTickets = urgentTickets.filter((t) => t.status === 'pending');
 
-  useEffect(() => {
-    if (pendingUrgentTickets.length > 0 && !isMuted) {
-      startSirenSound();
-    } else {
-      stopSirenSound();
-    }
-    return () => {
-      stopSirenSound();
-    };
-  }, [pendingUrgentTickets.length, isMuted, startSirenSound, stopSirenSound]);
-
-  // Handle Pick / Acknowledge Request (silences siren)
+  // Handle Pick / Acknowledge Request (silences siren on all devices)
   const handlePickRequest = async (ticket: UrgentTicket) => {
-    stopSirenSound();
-    setIsMuted(true);
     try {
       if (ticket.source === 'housekeeping') {
         await apiClient(`/operations/housekeeping/${ticket.id}/status`, {
@@ -212,11 +119,11 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
       } else {
         await apiClient(`/operations/complaints/${ticket.id}/acknowledge`, {
           method: 'PATCH',
+          body: JSON.stringify({ staffName: 'Staff On Duty' }),
         });
       }
       await fetchActiveUrgentTickets();
       if (onRefreshNeeded) onRefreshNeeded();
-      alert(`Request for ${ticket.roomNumber} picked! Siren stopped.`);
     } catch (err: any) {
       alert(err.message || 'Failed to acknowledge request.');
     }
@@ -277,7 +184,6 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
       setQuickReportModalOpen(false);
       setReportingRoom('');
       setReportingNotes('');
-      setIsMuted(false);
       await fetchActiveUrgentTickets();
       if (onRefreshNeeded) onRefreshNeeded();
       alert(`🚨 Urgent siren dispatched for Room ${reportingRoom}!`);
@@ -290,56 +196,39 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
 
   return (
     <div className="space-y-3">
-      {/* Active Siren Banner if any pending ticket */}
+      {/* Operational Dispatch Monitor Banner (Calm Admin Monitoring — zero sound on Admin) */}
       {pendingUrgentTickets.length > 0 && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white p-4 sm:p-5 shadow-xl border border-red-400 animate-pulse">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 shadow-lg border border-indigo-800">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
             <div className="flex items-start gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0 shadow-inner">
-                <Bell className="w-6 h-6 animate-bounce" />
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 backdrop-blur-md flex items-center justify-center text-amber-300 shrink-0 border border-indigo-400/30">
+                <Bell className="w-6 h-6 animate-pulse" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-white text-red-700 text-[10px] font-black uppercase tracking-wider">
-                    🚨 URGENCY SIREN ACTIVE
+                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-900 text-[10px] font-black uppercase tracking-wider">
+                    📡 STAFF DISPATCH ACTIVE
                   </span>
-                  <span className="text-xs font-semibold text-red-100">
-                    {pendingUrgentTickets.length} Request(s) Sounding Alarm
+                  <span className="text-xs font-medium text-slate-300">
+                    Siren alarm sounding on staff mobile devices ({pendingUrgentTickets.length} pending)
                   </span>
                 </div>
-                <h3 className="font-black text-base sm:text-lg mt-1 tracking-tight">
+                <h3 className="font-bold text-base sm:text-lg mt-1 tracking-tight text-white">
                   {pendingUrgentTickets[0].roomNumber}: {pendingUrgentTickets[0].title}
                 </h3>
-                <p className="text-xs text-red-100 mt-0.5">
-                  Siren sounding across staff devices. Tap <strong>Pick Request</strong> to silence and take ownership.
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Awaiting staff pickup on their mobile devices. Tap <strong>Pick / Assign</strong> to take manual ownership.
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
               <button
-                onClick={() => {
-                  if (isMuted) {
-                    setIsMuted(false);
-                    startSirenSound();
-                  } else {
-                    setIsMuted(true);
-                    stopSirenSound();
-                  }
-                }}
-                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 transition border border-white/20"
-                title={isMuted ? 'Unmute Siren Alarm' : 'Mute Siren Alarm'}
-              >
-                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-amber-300" />}
-                {isMuted ? 'Muted' : 'Sound ON'}
-              </button>
-
-              <button
                 onClick={() => handlePickRequest(pendingUrgentTickets[0])}
-                className="px-4 py-2 rounded-xl bg-white text-red-700 hover:bg-red-50 font-black text-xs flex items-center gap-1.5 shadow-md transition"
+                className="px-4 py-2 rounded-xl bg-brand-blue hover:bg-brand-blue-hover text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition"
               >
                 <UserCheck className="w-4 h-4" />
-                Pick Request (Silence)
+                Pick / Assign
               </button>
             </div>
           </div>
@@ -352,12 +241,12 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
           <div
             className={`w-8 h-8 rounded-xl flex items-center justify-center ${
               pendingUrgentTickets.length > 0
-                ? 'bg-red-100 text-red-600'
+                ? 'bg-amber-100 text-amber-700'
                 : 'bg-emerald-100 text-emerald-600'
             }`}
           >
             {pendingUrgentTickets.length > 0 ? (
-              <Bell className="w-4 h-4 animate-spin" />
+              <Bell className="w-4 h-4 animate-spin text-amber-600" />
             ) : (
               <CheckCircle2 className="w-4 h-4" />
             )}
@@ -365,20 +254,20 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-content-primary-light">
-                Housekeeping &amp; Guest Urgency Siren System
+                Housekeeping &amp; Staff Urgency Dispatch
               </span>
               <span
                 className={`px-2 py-0.2 rounded-full text-[9px] font-extrabold uppercase ${
                   pendingUrgentTickets.length > 0
-                    ? 'bg-red-100 text-red-800'
+                    ? 'bg-amber-100 text-amber-800'
                     : 'bg-emerald-100 text-emerald-800'
                 }`}
               >
-                {pendingUrgentTickets.length > 0 ? 'Siren Active' : 'Standby'}
+                {pendingUrgentTickets.length > 0 ? 'Staff Alert Active' : 'Standby'}
               </span>
             </div>
             <p className="text-[11px] text-content-secondary-light">
-              Automatic siren sound across all staff devices for direct bedsheets, washroom leaks, and urgent room issues.
+              Emergency dual-tone alarm rings with hardware vibration on staff mobile devices for urgent room grievances.
             </p>
           </div>
         </div>
@@ -413,8 +302,8 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
                       t.status === 'pending'
-                        ? 'bg-red-100 text-red-700 animate-pulse'
-                        : 'bg-blue-100 text-blue-700'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-emerald-100 text-emerald-800'
                     }`}
                   >
                     {t.roomNumber.replace('Room', '').trim()}
@@ -428,17 +317,19 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                           t.status === 'pending'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-blue-100 text-blue-700'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                            : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         }`}
                       >
-                        {t.status === 'pending' ? 'Sounding Alarm' : 'In Progress (Siren Silenced)'}
+                        {t.status === 'pending'
+                          ? 'Sounding on Staff Phones'
+                          : `Taken by ${t.pickedByName || 'Staff'} — In Progress`}
                       </span>
                     </div>
                     <p className="text-xs text-content-primary-light mt-0.5 font-medium">{t.title}</p>
                     {t.pickedByName && (
                       <span className="text-[11px] text-content-secondary-light">
-                        Picked by: <strong className="text-content-primary-light">{t.pickedByName}</strong>
+                        Assigned: <strong className="text-content-primary-light">{t.pickedByName}</strong>
                       </span>
                     )}
                   </div>
@@ -459,7 +350,7 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
                       className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Close &amp; Mark Resolved
+                      Mark as Closed
                     </button>
                   )}
                 </div>

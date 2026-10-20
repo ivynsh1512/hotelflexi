@@ -107,77 +107,114 @@ calendarRoutes.post('/blocks', requireRole(['owner', 'manager', 'receptionist'])
   const body = await c.req.json();
   const now = Math.floor(Date.now() / 1000);
 
-  const { propertyId, roomId, startDate, endDate, reason, notes } = body;
+  const { propertyId, roomId, roomIds, startDate, endDate, reason, notes } = body;
 
-  if (!propertyId || !roomId || !startDate || !endDate || !reason) {
-    return c.json({ error: 'Property ID, Room ID, start date, end date, and reason are required' }, 400);
+  const targetRoomIds: string[] = Array.isArray(roomIds) && roomIds.length > 0 
+    ? roomIds 
+    : roomId ? [roomId] : [];
+
+  if (!propertyId || targetRoomIds.length === 0 || !startDate || !endDate || !reason) {
+    return c.json({ error: 'Property ID, Room(s), start date, end date, and reason are required' }, 400);
+  }
+
+  // Validate present or future dates
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (startDate < todayStr) {
+    return c.json({ error: 'Please enter present or future dates. Cannot block rooms for past dates.' }, 400);
   }
 
   if (startDate >= endDate) {
     return c.json({ error: 'End date must be strictly after start date (inclusive check-in, exclusive check-out)' }, 400);
   }
 
-  // 1. Conflict Check: Verify room has no conflicting active reservations
-  const resConflict: any = await c.env.DB.prepare(
-    `SELECT id, reservation_number, check_in_date, check_out_date FROM reservations
-     WHERE room_id = ? AND tenant_id = ?
-       AND status NOT IN ('cancelled', 'checked_out')
-       AND check_in_date < ?
-       AND check_out_date > ?`
-  )
-    .bind(roomId, tenantId, endDate, startDate)
-    .first();
+  const blocked: string[] = [];
+  const skipped: { roomId: string; reason: string }[] = [];
 
-  if (resConflict) {
-    return c.json(
-      {
-        error: `Cannot block room: Conflicting reservation ${resConflict.reservation_number} exists from ${resConflict.check_in_date} to ${resConflict.check_out_date}.`,
-        code: 'CONFLICT_RESERVATION',
-        reservationId: resConflict.id,
-      },
-      409
-    );
+  for (const rId of targetRoomIds) {
+    // 1. Conflict Check: Verify room has no conflicting active reservations
+    const resConflict: any = await c.env.DB.prepare(
+      `SELECT id, reservation_number, check_in_date, check_out_date FROM reservations
+       WHERE room_id = ? AND tenant_id = ?
+         AND status NOT IN ('cancelled', 'checked_out')
+         AND check_in_date < ?
+         AND check_out_date > ?`
+    )
+      .bind(rId, tenantId, endDate, startDate)
+      .first();
+
+    if (resConflict) {
+      if (targetRoomIds.length === 1) {
+        return c.json(
+          {
+            error: `Cannot block room: Conflicting reservation ${resConflict.reservation_number} exists from ${resConflict.check_in_date} to ${resConflict.check_out_date}.`,
+            code: 'CONFLICT_RESERVATION',
+            reservationId: resConflict.id,
+          },
+          409
+        );
+      }
+      skipped.push({ rId, reason: `Conflicting reservation #${resConflict.reservation_number}` });
+      continue;
+    }
+
+    // 2. Conflict Check: Verify room is not already blocked in this date range
+    const blockConflict: any = await c.env.DB.prepare(
+      `SELECT id, reason, start_date, end_date FROM room_blocks
+       WHERE room_id = ? AND tenant_id = ? AND is_active = 1
+         AND start_date < ?
+         AND end_date > ?`
+    )
+      .bind(rId, tenantId, endDate, startDate)
+      .first();
+
+    if (blockConflict) {
+      if (targetRoomIds.length === 1) {
+        return c.json(
+          {
+            error: `Room is already blocked for '${blockConflict.reason}' between ${blockConflict.start_date} and ${blockConflict.end_date}.`,
+            code: 'CONFLICT_BLOCK',
+          },
+          409
+        );
+      }
+      skipped.push({ rId, reason: `Already blocked for '${blockConflict.reason}'` });
+      continue;
+    }
+
+    const id = `blk_${crypto.randomUUID()}`;
+    await c.env.DB.prepare(
+      `INSERT INTO room_blocks (
+        id, property_id, tenant_id, room_id, start_date, end_date,
+        reason, notes, created_by_user_id, is_active, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
+    )
+      .bind(id, propertyId, tenantId, rId, startDate, endDate, reason, notes || null, user.uid, now, now)
+      .run();
+
+    blocked.push(rId);
+
+    await recordAuditLog(c, {
+      action: 'room.blocked',
+      resourceType: 'room_block',
+      resourceId: id,
+      newValues: { roomId: rId, startDate, endDate, reason },
+    });
   }
 
-  // 2. Conflict Check: Verify room is not already blocked in this date range
-  const blockConflict: any = await c.env.DB.prepare(
-    `SELECT id, reason, start_date, end_date FROM room_blocks
-     WHERE room_id = ? AND tenant_id = ? AND is_active = 1
-       AND start_date < ?
-       AND end_date > ?`
-  )
-    .bind(roomId, tenantId, endDate, startDate)
-    .first();
-
-  if (blockConflict) {
-    return c.json(
-      {
-        error: `Room is already blocked for '${blockConflict.reason}' between ${blockConflict.start_date} and ${blockConflict.end_date}.`,
-        code: 'CONFLICT_BLOCK',
-      },
-      409
-    );
+  if (blocked.length === 0 && targetRoomIds.length > 1) {
+    return c.json({
+      error: `Could not block selected rooms due to conflicts: ${skipped.map(s => s.reason).join(', ')}`,
+      skipped,
+    }, 409);
   }
 
-  const id = `blk_${crypto.randomUUID()}`;
-
-  await c.env.DB.prepare(
-    `INSERT INTO room_blocks (
-      id, property_id, tenant_id, room_id, start_date, end_date,
-      reason, notes, created_by_user_id, is_active, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
-  )
-    .bind(id, propertyId, tenantId, roomId, startDate, endDate, reason, notes || null, user.uid, now, now)
-    .run();
-
-  await recordAuditLog(c, {
-    action: 'room.blocked',
-    resourceType: 'room_block',
-    resourceId: id,
-    newValues: { roomId, startDate, endDate, reason },
+  return c.json({
+    success: true,
+    blockedCount: blocked.length,
+    skippedCount: skipped.length,
+    skipped,
+    message: `Successfully blocked ${blocked.length} room(s) from ${startDate} to ${endDate}${skipped.length > 0 ? ` (${skipped.length} skipped due to conflicts)` : ''}`,
   });
-
-  return c.json({ success: true, id, message: `Room blocked from ${startDate} to ${endDate}` });
 });
 
 calendarRoutes.delete('/blocks/:id', requireRole(['owner', 'manager', 'receptionist']), async (c) => {

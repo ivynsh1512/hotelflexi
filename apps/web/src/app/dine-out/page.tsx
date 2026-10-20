@@ -1,9 +1,11 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Metadata } from 'next';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { DineOutSearchBar } from '@/components/DineOutSearchBar';
+import { apiClient } from '@/lib/api';
 import {
   UtensilsCrossed,
   Clock,
@@ -17,57 +19,26 @@ import {
   ShieldCheck,
   MapPin,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'HotelFlexi Dine-Out — Table Bookings & Menus at Top Resort Restaurants',
-  description:
-    'Experience gourmet dining at top hotels and resorts. Book dine-out tables, explore authentic local cuisine, verified 100% Pure Veg menus, and pay in-app or at the restaurant.',
-  keywords: [
-    'hotel dine out booking',
-    'resort restaurant reservation india',
-    'pure veg resort restaurant',
-    'dine out table booking hotel',
-    'hotel food ordering online',
-  ],
-};
-
 export default function DineOutLandingPage() {
-  const featuredVenues = [
-    {
-      code: '58291',
-      name: 'The Royal Spice Courtyard',
-      property: 'The Grand Heritage Palace & Spa',
-      location: 'Udaipur, Rajasthan',
-      cuisine: 'Royal Rajasthani, North Indian & Awadhi',
-      isPureVeg: true,
-      timings: '07:30 AM - 11:00 PM',
-      rating: '4.9',
-      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      code: '74192',
-      name: 'Saffron Cliffside Fine Dine',
-      property: 'Pine Valley Luxury Resort',
-      location: 'Manali, Himachal Pradesh',
-      cuisine: 'Tandoor, Continental & Himachali Delicacies',
-      isPureVeg: false,
-      timings: '08:00 AM - 10:30 PM',
-      rating: '4.8',
-      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      code: '39481',
-      name: 'Vrindavan Satvik Rasoi',
-      property: 'Govardhan Retreat & Homestay',
-      location: 'Vrindavan, Uttar Pradesh',
-      cuisine: 'Authentic Satvik, Braj Specialties & Sweets',
-      isPureVeg: true,
-      timings: '07:00 AM - 10:00 PM',
-      rating: '5.0',
-      image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
-    },
-  ];
+  const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadFeatured() {
+      try {
+        const res = await apiClient('/dining/public-featured');
+        setRestaurants(res.restaurants || []);
+      } catch (e) {
+        setRestaurants([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadFeatured();
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -100,7 +71,7 @@ export default function DineOutLandingPage() {
         </div>
       </section>
 
-      {/* Featured Venues */}
+      {/* Real Featured Venues */}
       <section className="py-20 bg-slate-50 border-b border-border-light">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
@@ -115,57 +86,84 @@ export default function DineOutLandingPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredVenues.map((v) => (
-              <div
-                key={v.code}
-                className="rounded-3xl bg-white border border-slate-200 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group"
-              >
-                <div className="relative h-48 overflow-hidden bg-slate-100">
-                  <img
-                    src={v.image}
-                    alt={v.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  {v.isPureVeg && (
-                    <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider shadow flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-white" />
-                      100% Pure Veg
-                    </div>
-                  )}
-                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur text-white text-xs font-mono font-bold">
-                    Code: #{v.code}
-                  </div>
-                </div>
-
-                <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
-                  <div>
-                    <div className="flex items-center gap-1 text-xs text-slate-500 font-medium">
-                      <MapPin className="w-3.5 h-3.5 text-amber-600" />
-                      {v.location}
-                    </div>
-                    <h3 className="text-lg font-black text-slate-900 mt-1">{v.name}</h3>
-                    <p className="text-xs text-slate-500 font-medium">{v.property}</p>
-                    <p className="text-xs text-slate-600 mt-2 line-clamp-2">{v.cuisine}</p>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                    <div className="text-[11px] text-slate-500 font-mono">
-                      <Clock className="w-3 h-3 inline mr-1 text-slate-400" />
-                      {v.timings}
-                    </div>
-                    <Link
-                      href={`/dine/${v.code}`}
-                      className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition flex items-center gap-1 shadow"
-                    >
-                      Book Table
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </div>
+          {loading ? (
+            <div className="py-20 text-center flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+            </div>
+          ) : restaurants.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 space-y-4 max-w-xl mx-auto shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                <UtensilsCrossed className="w-6 h-6" />
               </div>
-            ))}
-          </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-slate-900">No Featured Restaurants Listed Yet</h3>
+                <p className="text-xs text-slate-500">
+                  Resort and hotel owners can list their restaurant in under 2 minutes from their HotelFlexi dashboard to accept outside diner reservations.
+                </p>
+              </div>
+              <div className="pt-2">
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-600 text-white font-bold text-xs hover:bg-amber-700 transition shadow"
+                >
+                  List Your Restaurant
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {restaurants.map((v) => (
+                <div
+                  key={v.id}
+                  className="rounded-3xl bg-white border border-slate-200 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group"
+                >
+                  <div className="relative h-48 overflow-hidden bg-slate-100 flex items-center justify-center">
+                    <UtensilsCrossed className="w-12 h-12 text-slate-300" />
+                    {v.is_pure_veg === 1 && (
+                      <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider shadow flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-white" />
+                        100% Pure Veg
+                      </div>
+                    )}
+                    {v.hotel_code && (
+                      <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur text-white text-xs font-mono font-bold">
+                        Code: #{v.hotel_code}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                    <div>
+                      {(v.city || v.state) && (
+                        <div className="flex items-center gap-1 text-xs text-slate-500 font-medium">
+                          <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                          {[v.city, v.state].filter(Boolean).join(', ')}
+                        </div>
+                      )}
+                      <h3 className="text-lg font-black text-slate-900 mt-1">{v.name}</h3>
+                      <p className="text-xs text-slate-500 font-medium">{v.property_name}</p>
+                      <p className="text-xs text-slate-600 mt-2 line-clamp-2">{v.cuisine_type || v.description}</p>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                      <div className="text-[11px] text-slate-500 font-mono">
+                        <Clock className="w-3 h-3 inline mr-1 text-slate-400" />
+                        {v.open_time} - {v.close_time}
+                      </div>
+                      <Link
+                        href={`/dine/${v.hotel_code || v.property_slug || v.id}`}
+                        className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition flex items-center gap-1 shadow"
+                      >
+                        Book Table
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

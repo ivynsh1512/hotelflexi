@@ -8,6 +8,19 @@ export const diningRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>
 // PUBLIC DINE-OUT ENDPOINTS (For outside resort guests & public diners)
 // -----------------------------------------------------------------------------
 
+// Fetch active featured resort restaurants for landing page
+diningRoutes.get('/public-featured', async (c) => {
+  const rows = await c.env.DB.prepare(
+    `SELECT pr.*, p.name as property_name, p.hotel_code, p.city, p.state, p.slug as property_slug
+     FROM property_restaurants pr
+     JOIN properties p ON p.id = pr.property_id
+     WHERE pr.is_active = 1
+     ORDER BY pr.created_at DESC LIMIT 6`
+  ).all();
+
+  return c.json({ restaurants: rows.results || [] });
+});
+
 // Fetch restaurant details & menu by 5-digit hotel code or property slug
 diningRoutes.get('/public/:codeOrSlug', async (c) => {
   const codeOrSlug = c.req.param('codeOrSlug');

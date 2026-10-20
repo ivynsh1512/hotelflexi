@@ -252,19 +252,24 @@ operationsRoutes.get('/complaints', async (c) => {
   const propertyId = c.req.query('property_id');
   const status = c.req.query('status');
 
-  let sql = `SELECT * FROM complaints WHERE tenant_id = ?`;
+  let sql = `
+    SELECT c.*, u.full_name as resolved_by_name, u.email as resolved_by_email
+    FROM complaints c
+    LEFT JOIN users u ON u.id = c.resolved_by_user_id
+    WHERE c.tenant_id = ?
+  `;
   const params: any[] = [tenantId];
 
   if (propertyId) {
-    sql += ` AND property_id = ?`;
+    sql += ` AND c.property_id = ?`;
     params.push(propertyId);
   }
   if (status) {
-    sql += ` AND status = ?`;
+    sql += ` AND c.status = ?`;
     params.push(status);
   }
 
-  sql += ` ORDER BY created_at DESC LIMIT 100`;
+  sql += ` ORDER BY c.created_at DESC LIMIT 100`;
 
   const rows = await c.env.DB.prepare(sql).bind(...params).all();
   return c.json({ complaints: rows.results || [] });
@@ -366,12 +371,14 @@ operationsRoutes.get('/complaints/active-sirens', async (c) => {
   });
 });
 
-// Acknowledge and Pick Complaint (Silences Siren on Staff Devices)
+// Acknowledge and Pick Complaint (Silences Siren on All Staff Devices)
 operationsRoutes.patch('/complaints/:id/acknowledge', async (c) => {
   const tenantId = c.get('tenantId')!;
   const user = c.get('user')!;
   const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
   const now = Math.floor(Date.now() / 1000);
+  const staffName = body.staffName || user.email?.split('@')[0] || 'Staff Member';
 
   if (id.startsWith('notif_')) {
     await c.env.DB.prepare(
@@ -385,11 +392,16 @@ operationsRoutes.patch('/complaints/:id/acknowledge', async (c) => {
 
   if (id.startsWith('hk_')) {
     await c.env.DB.prepare(
-      `UPDATE housekeeping_tasks SET status = 'in_progress', assigned_to_user_id = ?, updated_at = ? WHERE id = ? AND tenant_id = ?`
-    ).bind(user.uid, now, id, tenantId).run();
+      `UPDATE housekeeping_tasks SET 
+         status = 'in_progress', 
+         assigned_to_user_id = ?, 
+         notes = CASE WHEN notes IS NOT NULL AND notes != '' THEN notes || ' (Taken by ' || ? || ')' ELSE 'Taken by ' || ? END,
+         updated_at = ? 
+       WHERE id = ? AND tenant_id = ?`
+    ).bind(user.uid, staffName, staffName, now, id, tenantId).run();
     return c.json({
       success: true,
-      message: 'Housekeeping task picked by staff. Siren alarm silenced.',
+      message: `Housekeeping task picked by ${staffName}. Siren alarm silenced on all devices.`,
     });
   }
 
@@ -397,15 +409,16 @@ operationsRoutes.patch('/complaints/:id/acknowledge', async (c) => {
     `UPDATE complaints SET
        status = 'investigating',
        resolved_by_user_id = ?,
+       resolution_notes = ?,
        updated_at = ?
      WHERE id = ? AND tenant_id = ?`
   )
-    .bind(user.uid, now, id, tenantId)
+    .bind(user.uid, `Taken by ${staffName}`, now, id, tenantId)
     .run();
 
   return c.json({
     success: true,
-    message: 'Complaint acknowledged by staff. Siren alarm silenced.',
+    message: `Complaint acknowledged by ${staffName}. Siren alarm silenced on all devices.`,
   });
 });
 

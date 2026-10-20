@@ -28,49 +28,100 @@ export async function executeAiTool(
       // -----------------------------------------------------------------------
       // 1. BLOCK ROOM
       // -----------------------------------------------------------------------
+      // 1. BLOCK ROOM (Single or Bulk)
+      // -----------------------------------------------------------------------
       case 'block_room': {
-        const { roomNumber, startDate, endDate, reason = 'maintenance' } = params;
-        if (!roomNumber || !startDate || !endDate) {
-          throw new Error('Room number, start date, and end date are required');
+        const { roomNumber, roomNumbers, startDate, endDate, reason = 'maintenance' } = params;
+        const inputRooms: string[] = Array.isArray(roomNumbers) && roomNumbers.length > 0
+          ? roomNumbers.map(String)
+          : roomNumber
+          ? [String(roomNumber)]
+          : [];
+
+        if (inputRooms.length === 0 || !startDate || !endDate) {
+          throw new Error('Room number(s), start date, and end date are required');
         }
 
-        // Find room in tenant
-        const room: any = await env.DB.prepare(
-          `SELECT id, property_id, room_number FROM rooms WHERE room_number = ? AND tenant_id = ? AND is_active = 1`
-        )
-          .bind(String(roomNumber), tenantId)
-          .first();
-
-        if (!room) {
-          throw new Error(`Room ${roomNumber} not found in this hotel.`);
+        // Validate present or future dates
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (startDate < todayStr) {
+          throw new Error('Please enter present or future dates. Cannot block rooms for past dates.');
+        }
+        if (endDate < startDate) {
+          throw new Error('End date must be on or after start date.');
         }
 
-        // Conflict check with reservations
-        const conflict: any = await env.DB.prepare(
-          `SELECT id, reservation_number FROM reservations
-           WHERE room_id = ? AND tenant_id = ? AND status NOT IN ('cancelled', 'checked_out')
-             AND check_in_date < ? AND check_out_date > ?`
-        )
-          .bind(room.id, tenantId, endDate, startDate)
-          .first();
+        const blocked: string[] = [];
+        const skipped: string[] = [];
 
-        if (conflict) {
-          throw new Error(`Cannot block: Room ${roomNumber} is already reserved (#${conflict.reservation_number}) during this period.`);
+        for (const num of inputRooms) {
+          // Find room in tenant
+          const room: any = await env.DB.prepare(
+            `SELECT id, property_id, room_number FROM rooms WHERE room_number = ? AND tenant_id = ? AND is_active = 1`
+          )
+            .bind(num, tenantId)
+            .first();
+
+          if (!room) {
+            skipped.push(`Room ${num} (not found)`);
+            continue;
+          }
+
+          // Conflict check with reservations
+          const conflict: any = await env.DB.prepare(
+            `SELECT id, reservation_number FROM reservations
+             WHERE room_id = ? AND tenant_id = ? AND status NOT IN ('cancelled', 'checked_out')
+               AND check_in_date < ? AND check_out_date > ?`
+          )
+            .bind(room.id, tenantId, endDate, startDate)
+            .first();
+
+          if (conflict) {
+            skipped.push(`Room ${num} (reserved #${conflict.reservation_number})`);
+            continue;
+          }
+
+          // Conflict check with existing room blocks
+          const blockConflict: any = await env.DB.prepare(
+            `SELECT id, reason FROM room_blocks
+             WHERE room_id = ? AND tenant_id = ? AND is_active = 1
+               AND start_date < ? AND end_date > ?`
+          )
+            .bind(room.id, tenantId, endDate, startDate)
+            .first();
+
+          if (blockConflict) {
+            skipped.push(`Room ${num} (already blocked for ${blockConflict.reason})`);
+            continue;
+          }
+
+          const blockId = `blk_${crypto.randomUUID()}`;
+          await env.DB.prepare(
+            `INSERT INTO room_blocks (id, property_id, tenant_id, room_id, start_date, end_date, reason, created_by_user_id, is_active, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
+          )
+            .bind(blockId, room.property_id, tenantId, room.id, startDate, endDate, reason, userId, now, now)
+            .run();
+
+          blocked.push(num);
         }
 
-        const blockId = `blk_${crypto.randomUUID()}`;
-        await env.DB.prepare(
-          `INSERT INTO room_blocks (id, property_id, tenant_id, room_id, start_date, end_date, reason, created_by_user_id, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
-        )
-          .bind(blockId, room.property_id, tenantId, room.id, startDate, endDate, reason, userId, now, now)
-          .run();
+        if (blocked.length === 0) {
+          throw new Error(`Could not block rooms: ${skipped.join(', ')}`);
+        }
 
         success = true;
-        result = { blockId, roomNumber, startDate, endDate, reason };
-        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
-          ? `Room ${roomNumber} ko ${startDate} se ${endDate} tak successfully block kar diya gaya hai (${reason}).`
-          : `Room ${roomNumber} has been successfully blocked from ${startDate} to ${endDate} for ${reason}.`;
+        result = { blocked, skipped, startDate, endDate, reason };
+
+        if (blocked.length === 1) {
+          humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+            ? `Room ${blocked[0]} ko ${startDate} se ${endDate} tak successfully block kar diya gaya hai (${reason}).`
+            : `Room ${blocked[0]} has been successfully blocked from ${startDate} to ${endDate} for ${reason}.`;
+        } else {
+          humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+            ? `Total ${blocked.length} rooms (${blocked.join(', ')}) ko ${startDate} se ${endDate} tak successfully block kar diya gaya hai.${skipped.length > 0 ? ` (${skipped.join(', ')} skip hue)` : ''}`
+            : `Successfully blocked ${blocked.length} room(s) (${blocked.join(', ')}) from ${startDate} to ${endDate} for ${reason}.${skipped.length > 0 ? ` (${skipped.length} skipped due to conflicts)` : ''}`;
+        }
         break;
       }
 

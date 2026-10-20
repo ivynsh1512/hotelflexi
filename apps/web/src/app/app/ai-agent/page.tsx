@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
 import { Sparkles, Send, Bot, User, Loader2, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
@@ -27,14 +27,22 @@ export default function AiAgentPage() {
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const quickChips = [
-    'Kal ke arrivals dikhao.',
-    '3 October ko Room 101 block kar do.',
-    'Weekend ka rate ₹3,500 kar do.',
-    'Aaj kitni payment collect hui?',
-    'Room 204 ki housekeeping assign karo.',
-    'Pichhle mahine ki occupancy dikhao.',
-  ];
+  const quickChips = useMemo(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const day = tomorrow.getDate();
+    const month = tomorrow.toLocaleString('en-IN', { month: 'long' });
+    const formattedTomorrow = `${day} ${month}`;
+
+    return [
+      'Kal ke arrivals dikhao.',
+      `Kal (${formattedTomorrow}) ko Room 101 block kar do.`,
+      'Weekend ka rate ₹3,500 kar do.',
+      'Aaj kitni payment collect hui?',
+      'Room 204 ki housekeeping assign karo.',
+      'Aaj ki occupancy dikhao.',
+    ];
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

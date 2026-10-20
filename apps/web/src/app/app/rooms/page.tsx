@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   Layers,
   Hash,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 
 export default function RoomsManagementPage() {
@@ -37,6 +39,16 @@ export default function RoomsManagementPage() {
   const [roomTypeId, setRoomTypeId] = useState('');
   const [floor, setFloor] = useState('Floor 1');
   const [modalLoading, setModalLoading] = useState(false);
+
+  // Edit Room Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<any>(null);
+  const [editRoomNumber, setEditRoomNumber] = useState('');
+  const [editRoomTypeId, setEditRoomTypeId] = useState('');
+  const [editFloor, setEditFloor] = useState('Floor 1');
+  const [editStatus, setEditStatus] = useState('available');
+  const [editHousekeepingStatus, setEditHousekeepingStatus] = useState('clean');
+  const [editModalLoading, setEditModalLoading] = useState(false);
 
   const generatedRoomNumbers = useMemo(() => {
     if (creationMode === 'single') {
@@ -107,6 +119,62 @@ export default function RoomsManagementPage() {
       await fetchData();
     } catch (err: any) {
       alert(err.message || 'Status update failed.');
+    }
+  };
+
+  const openEditModal = (room: any) => {
+    setEditingRoom(room);
+    setEditRoomNumber(room.room_number || '');
+    setEditRoomTypeId(room.room_type_id || '');
+    setEditFloor(room.floor || 'Floor 1');
+    setEditStatus(room.status || 'available');
+    setEditHousekeepingStatus(room.housekeeping_status || 'clean');
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEditRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRoom) return;
+    if (!editRoomNumber.trim()) {
+      alert('Room number is required');
+      return;
+    }
+    setEditModalLoading(true);
+    setError(null);
+    try {
+      await apiClient(`/rooms/${editingRoom.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          roomNumber: editRoomNumber.trim(),
+          roomTypeId: editRoomTypeId,
+          floor: editFloor.trim(),
+          status: editStatus,
+          housekeepingStatus: editHousekeepingStatus,
+        }),
+      });
+      setStatusMessage(`Room ${editRoomNumber.trim()} updated successfully.`);
+      setTimeout(() => setStatusMessage(null), 4000);
+      setEditModalOpen(false);
+      setEditingRoom(null);
+      await fetchData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update room.');
+    } finally {
+      setEditModalLoading(false);
+    }
+  };
+
+  const handleDeleteRoom = async (room: any) => {
+    if (!confirm(`Are you sure you want to delete Room ${room.room_number}? This will remove it from active inventory.`)) {
+      return;
+    }
+    try {
+      await apiClient(`/rooms/${room.id}`, { method: 'DELETE' });
+      setStatusMessage(`Room ${room.room_number} deleted successfully.`);
+      setTimeout(() => setStatusMessage(null), 4000);
+      await fetchData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete room.');
     }
   };
 
@@ -301,6 +369,20 @@ export default function RoomsManagementPage() {
                               Mark Clean
                             </button>
                           )}
+                          <button
+                            onClick={() => openEditModal(room)}
+                            className="p-1 rounded hover:bg-blue-50 text-brand-blue border border-blue-200 transition"
+                            title="Edit Room"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRoom(room)}
+                            className="p-1 rounded hover:bg-red-50 text-status-danger border border-red-200 transition"
+                            title="Delete Room"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -534,6 +616,128 @@ export default function RoomsManagementPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Room Modal */}
+      {editModalOpen && editingRoom && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border-light mb-4">
+              <div>
+                <h3 className="text-base font-bold text-content-primary-light">
+                  Edit Room {editingRoom.room_number}
+                </h3>
+                <p className="text-[11px] text-content-secondary-light">
+                  Update room number, category, floor level, and status
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setEditModalOpen(false);
+                  setEditingRoom(null);
+                }}
+                className="text-xs font-semibold text-content-secondary-light hover:text-content-primary-light"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditRoom} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold mb-1">Room Number *</label>
+                <input
+                  type="text"
+                  required
+                  value={editRoomNumber}
+                  onChange={(e) => setEditRoomNumber(e.target.value)}
+                  placeholder="e.g. 101"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1">Room Category *</label>
+                <select
+                  value={editRoomTypeId}
+                  onChange={(e) => setEditRoomTypeId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-medium"
+                >
+                  {roomTypes.map((rt) => (
+                    <option key={rt.id} value={rt.id}>
+                      {rt.name} ({rt.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1">Floor Level</label>
+                <input
+                  type="text"
+                  value={editFloor}
+                  onChange={(e) => setEditFloor(e.target.value)}
+                  placeholder="e.g. Floor 1, Ground Floor"
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold mb-1">Occupancy Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-medium"
+                  >
+                    <option value="available">Available</option>
+                    <option value="occupied">Occupied</option>
+                    <option value="maintenance">Maintenance</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold mb-1">Housekeeping Status</label>
+                  <select
+                    value={editHousekeepingStatus}
+                    onChange={(e) => setEditHousekeepingStatus(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-medium"
+                  >
+                    <option value="clean">Clean / Ready</option>
+                    <option value="dirty">Dirty / Needs Cleaning</option>
+                    <option value="inspecting">Inspecting</option>
+                    <option value="out_of_order">Out of Order</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditModalOpen(false);
+                    setEditingRoom(null);
+                  }}
+                  className="flex-1 py-2 rounded-lg border border-border-light font-semibold hover:bg-surface-light"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editModalLoading}
+                  className="flex-1 py-2 rounded-lg bg-brand-blue text-white font-semibold hover:bg-brand-blue-hover disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {editModalLoading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

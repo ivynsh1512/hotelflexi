@@ -23,24 +23,64 @@ function detectLanguage(text: string): 'en' | 'hi' | 'hinglish' {
 function parseNaturalLanguageIntent(message: string): { toolName: string; params: any } | null {
   const lower = message.toLowerCase().trim();
 
-  // 1. Block Room: "Block Room 101 from 3 October to 4 October" or "3 October ko Room 101 block kar do"
-  if (lower.includes('block') && (lower.includes('room') || lower.includes('kamra'))) {
-    const roomMatch = lower.match(/(?:room|kamra)\s*(\d+[a-z]?)/i);
-    const roomNumber = roomMatch ? roomMatch[1] : '101';
-    
-    // Default dates if none parsed: next 2 days
-    const today = new Date();
-    const d1 = new Date(today);
-    d1.setDate(d1.getDate() + 1);
-    const d2 = new Date(d1);
-    d2.setDate(d2.getDate() + 1);
+  // 1. Block Room (Single or Bulk): e.g. "Kal Room 101 block kar do", "Block rooms 101, 102 from 25 Oct"
+  if (lower.includes('block') && (lower.includes('room') || lower.includes('kamr') || lower.includes('unit'))) {
+    const allMatches = Array.from(lower.matchAll(/(?:room|rooms|kamra|kamre|unit|units)?\s*#?(\d+[a-z]?)/gi));
+    const roomNumbers = Array.from(new Set(allMatches.map((m) => m[1]))).filter(Boolean);
+    const primaryRoomNumber = roomNumbers[0] || '101';
 
-    const startDate = d1.toISOString().split('T')[0];
-    const endDate = d2.toISOString().split('T')[0];
+    const today = new Date();
+    let startDate: string;
+    let endDate: string;
+
+    const monthNames: Record<string, number> = {
+      jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+      may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7,
+      sep: 8, september: 8, oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11,
+    };
+
+    const monthMatch = lower.match(/(\d{1,2})\s*(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)/i);
+    const isoMatch = lower.match(/(\d{4}-\d{2}-\d{2})/);
+
+    if (monthMatch) {
+      const day = parseInt(monthMatch[1], 10);
+      const mStr = monthMatch[2].toLowerCase();
+      const monthIdx = monthNames[mStr] ?? today.getMonth();
+      const parsedDate = new Date(today.getFullYear(), monthIdx, day);
+      startDate = parsedDate.toISOString().split('T')[0];
+      const nextDay = new Date(parsedDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      endDate = nextDay.toISOString().split('T')[0];
+    } else if (isoMatch) {
+      startDate = isoMatch[1];
+      const parsedDate = new Date(startDate);
+      parsedDate.setDate(parsedDate.getDate() + 1);
+      endDate = parsedDate.toISOString().split('T')[0];
+    } else if (lower.includes('kal') || lower.includes('tomorrow')) {
+      const d1 = new Date(today);
+      d1.setDate(d1.getDate() + 1);
+      const d2 = new Date(d1);
+      d2.setDate(d2.getDate() + 1);
+      startDate = d1.toISOString().split('T')[0];
+      endDate = d2.toISOString().split('T')[0];
+    } else {
+      const d1 = new Date(today);
+      d1.setDate(d1.getDate() + 1);
+      const d2 = new Date(d1);
+      d2.setDate(d2.getDate() + 1);
+      startDate = d1.toISOString().split('T')[0];
+      endDate = d2.toISOString().split('T')[0];
+    }
 
     return {
       toolName: 'block_room',
-      params: { roomNumber, startDate, endDate, reason: 'maintenance' },
+      params: {
+        roomNumber: primaryRoomNumber,
+        roomNumbers: roomNumbers.length > 1 ? roomNumbers : undefined,
+        startDate,
+        endDate,
+        reason: 'maintenance',
+      },
     };
   }
 
@@ -195,18 +235,24 @@ aiAgentRoutes.post('/chat', async (c) => {
     toolResult = execution;
   } else {
     // Helpful guidance when query doesn't match an exact tool pattern
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const day = tomorrow.getDate();
+    const month = tomorrow.toLocaleString('en-IN', { month: 'long' });
+    const tomorrowLabel = `${day} ${month}`;
+
     if (lang === 'hi' || lang === 'hinglish') {
       assistantReply = `Namaste! Main HotelFlexi ka AI Business Agent hoon. Aap mujhse natural language mein hotel operate karne ke liye keh sakte hain, jaise:
 • "Kal ke arrivals dikhao"
-• "3 October ko Room 101 block kar do"
+• "Kal (${tomorrowLabel}) ko Room 101 block kar do"
 • "Weekend ka rate ₹3,500 kar do"
 • "Aaj kitni payment collect hui?"
 • "Room 204 ki housekeeping assign karo"
-• "Pichhle mahine ki occupancy dikhao"`;
+• "Aaj ki occupancy dikhao"`;
     } else {
       assistantReply = `Hello! I am HotelFlexi's AI Business Assistant. You can give me simple instructions to operate your hotel, such as:
 • "Show tomorrow's arrivals"
-• "Block Room 101 from 3 October to 4 October"
+• "Block Room 101 for tomorrow (${tomorrowLabel})"
 • "Change the weekend rate to ₹3,500"
 • "Show today's collection and pending payments"
 • "Mark Room 204 as requiring housekeeping"

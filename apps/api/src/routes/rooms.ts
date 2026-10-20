@@ -299,6 +299,68 @@ roomRoutes.patch('/:id/status', async (c) => {
   return c.json({ success: true, message: 'Room status updated' });
 });
 
+roomRoutes.patch('/:id', requireRole(['owner', 'manager']), async (c) => {
+  const tenantId = c.get('tenantId')!;
+  const id = c.req.param('id');
+  const body = await c.req.json();
+  const now = Math.floor(Date.now() / 1000);
+
+  // If roomNumber is changing, ensure uniqueness within this property
+  if (body.roomNumber) {
+    const existing = await c.env.DB.prepare(
+      'SELECT id FROM rooms WHERE property_id = (SELECT property_id FROM rooms WHERE id = ?) AND room_number = ? AND id != ?'
+    )
+      .bind(id, body.roomNumber, id)
+      .first();
+
+    if (existing) {
+      return c.json({ error: `Room ${body.roomNumber} already exists in this property` }, 409);
+    }
+  }
+
+  await c.env.DB.prepare(
+    `UPDATE rooms SET
+       room_number = COALESCE(?, room_number),
+       room_type_id = COALESCE(?, room_type_id),
+       floor = COALESCE(?, floor),
+       status = COALESCE(?, status),
+       housekeeping_status = COALESCE(?, housekeeping_status),
+       updated_at = ?
+     WHERE id = ? AND tenant_id = ?`
+  )
+    .bind(
+      body.roomNumber || null,
+      body.roomTypeId || null,
+      body.floor || null,
+      body.status || null,
+      body.housekeepingStatus || null,
+      now,
+      id,
+      tenantId
+    )
+    .run();
+
+  await recordAuditLog(c, {
+    action: 'room.updated',
+    resourceType: 'room',
+    resourceId: id,
+    newValues: body,
+  });
+
+  return c.json({ success: true, message: 'Room updated successfully' });
+});
+
+roomRoutes.delete('/:id', requireRole(['owner', 'manager']), async (c) => {
+  const tenantId = c.get('tenantId')!;
+  const id = c.req.param('id');
+
+  await c.env.DB.prepare('UPDATE rooms SET is_active = 0 WHERE id = ? AND tenant_id = ?')
+    .bind(id, tenantId)
+    .run();
+
+  return c.json({ success: true, message: 'Room removed successfully' });
+});
+
 // -----------------------------------------------------------------------------
 // RATE PLANS
 // -----------------------------------------------------------------------------

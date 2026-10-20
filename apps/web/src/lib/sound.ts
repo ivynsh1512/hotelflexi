@@ -5,7 +5,9 @@ let audioCtx: AudioContext | null = null;
 let isAudioUnlocked = false;
 let activeOscillator: OscillatorNode | null = null;
 let activeGain: GainNode | null = null;
+let activeFilter: BiquadFilterNode | null = null;
 let sirenInterval: NodeJS.Timeout | null = null;
+let vibrationInterval: NodeJS.Timeout | null = null;
 let isSirenPlaying = false;
 
 // 1. Initialize or get AudioContext
@@ -51,7 +53,7 @@ export function setupAudioUnlock(): void {
   window.addEventListener('keydown', unlock, { passive: true });
 }
 
-// 3. Play Urgent Siren (Two-tone emergency siren with piercing harmonics)
+// 3. Play Urgent Siren (Smooth European Two-Tone 880Hz / 660Hz with Anti-Crack Filtering and Looping Vibration)
 export function playSiren(): void {
   if (typeof window === 'undefined') return;
   if (isSirenPlaying) return;
@@ -64,52 +66,83 @@ export function playSiren(): void {
       ctx.resume().catch(() => {});
     }
 
-    // Stop any existing oscillator
+    // Stop any existing sounds
     stopSiren();
 
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
 
-    // Use sawtooth wave for high-visibility emergency penetration
-    osc.type = 'sawtooth';
-    // Frequency range: 960Hz (high) <-> 770Hz (low) standard emergency warble
-    osc.frequency.setValueAtTime(960, ctx.currentTime);
+    // Use triangle wave with a lowpass filter to remove any high-frequency digital crackle
+    osc.type = 'triangle';
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1600, ctx.currentTime);
 
-    // Master volume (0.28 is loud without clipping)
-    gain.gain.setValueAtTime(0.28, ctx.currentTime);
+    // Initial frequency: 880Hz (A5)
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
 
-    osc.connect(gain);
+    // Smooth soft-attack gain ramp to prevent initial click
+    gain.gain.setValueAtTime(0.01, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 0.06);
+
+    // Connect audio chain: osc -> filter -> gain -> destination
+    osc.connect(filter);
+    filter.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
 
     activeOscillator = osc;
     activeGain = gain;
+    activeFilter = filter;
     isSirenPlaying = true;
 
-    // Siren warble modulation alternating every 350ms
+    // Smooth European Hi-Lo siren modulation (880Hz high <-> 660Hz low alternating every 420ms)
     let isHigh = false;
     sirenInterval = setInterval(() => {
       if (!activeOscillator || !audioCtx) return;
       const now = audioCtx.currentTime;
-      const freq = isHigh ? 960 : 770;
-      activeOscillator.frequency.setTargetAtTime(freq, now, 0.08);
+      const targetFreq = isHigh ? 880 : 660;
+      activeOscillator.frequency.cancelScheduledValues(now);
+      activeOscillator.frequency.linearRampToValueAtTime(targetFreq, now + 0.12);
       isHigh = !isHigh;
-    }, 350);
+    }, 420);
 
-    // Trigger physical hardware vibration on mobile/Android devices
-    if ('vibrate' in navigator) {
-      navigator.vibrate([400, 200, 400, 200, 600]);
+    // Continuous Hardware Vibration on Mobile Devices (rhythmic looping pulse)
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate([600, 250, 600, 250]);
+      } catch {}
+
+      if (vibrationInterval) clearInterval(vibrationInterval);
+      vibrationInterval = setInterval(() => {
+        try {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate([600, 250, 600, 250]);
+          }
+        } catch {}
+      }, 1700);
     }
   } catch (err) {
     console.warn('Could not start siren audio:', err);
   }
 }
 
-// 4. Stop Urgent Siren
+// 4. Stop Urgent Siren & Cancel Vibrations
 export function stopSiren(): void {
   if (sirenInterval) {
     clearInterval(sirenInterval);
     sirenInterval = null;
+  }
+
+  if (vibrationInterval) {
+    clearInterval(vibrationInterval);
+    vibrationInterval = null;
+  }
+
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    try {
+      navigator.vibrate(0);
+    } catch {}
   }
 
   if (activeOscillator) {
@@ -125,6 +158,13 @@ export function stopSiren(): void {
       activeGain.disconnect();
     } catch {}
     activeGain = null;
+  }
+
+  if (activeFilter) {
+    try {
+      activeFilter.disconnect();
+    } catch {}
+    activeFilter = null;
   }
 
   isSirenPlaying = false;

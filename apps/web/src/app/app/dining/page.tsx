@@ -43,6 +43,7 @@ export default function AppDiningPage() {
   const [menu, setMenu] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [isPureVegDetected, setIsPureVegDetected] = useState(false);
+  const hasNonVeg = menu.some((item) => item.is_veg === 0 || item.is_veg === false);
 
   // Add Item Modal
   const [showAddDish, setShowAddDish] = useState(false);
@@ -89,6 +90,10 @@ export default function AppDiningPage() {
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasNonVeg && restaurant.is_pure_veg === 1) {
+      alert('Cannot enable 100% Pure Veg: Your menu currently contains non-veg dish(es). Please remove all non-veg dishes first.');
+      return;
+    }
     setSavingSettings(true);
     try {
       await apiClient('/dining/restaurant', {
@@ -475,15 +480,41 @@ export default function AppDiningPage() {
               />
             </div>
             <div className="pt-6">
-              <label className="flex items-center gap-2 text-xs font-bold text-slate-800 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={restaurant.is_pure_veg === 1}
-                  onChange={(e) => setRestaurant({ ...restaurant, is_pure_veg: e.target.checked ? 1 : 0 })}
-                  className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                />
-                <span>100% Pure Vegetarian Restaurant</span>
-              </label>
+              <div className="relative group inline-block w-full">
+                <label
+                  onClick={(e) => {
+                    if (hasNonVeg) {
+                      e.preventDefault();
+                      alert('Please remove all non-veg dish(es) from your menu to enable the 100% Pure Veg checkmark.');
+                    }
+                  }}
+                  title={hasNonVeg ? 'Please remove non-veg dish(es) to enable the check mark' : '100% Pure Veg'}
+                  className={`flex items-center gap-2 text-xs font-bold ${
+                    hasNonVeg
+                      ? 'text-slate-400 cursor-not-allowed opacity-70'
+                      : 'text-slate-800 cursor-pointer'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    disabled={hasNonVeg}
+                    checked={!hasNonVeg && restaurant.is_pure_veg === 1}
+                    onChange={(e) => {
+                      if (hasNonVeg) return;
+                      setRestaurant({ ...restaurant, is_pure_veg: e.target.checked ? 1 : 0 });
+                    }}
+                    className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 disabled:opacity-50"
+                  />
+                  <span>100% Pure Vegetarian Restaurant</span>
+                </label>
+
+                {hasNonVeg && (
+                  <div className="mt-1.5 flex items-center gap-1.5 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                    <span>Please remove non-veg dish(es) to enable the 100% Pure Veg check mark</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

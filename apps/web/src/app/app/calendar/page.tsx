@@ -28,13 +28,17 @@ export default function CalendarPage() {
 
   // Block Modal
   const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [blockMode, setBlockMode] = useState<'single' | 'bulk'>('single');
   const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([]);
   const [blockStart, setBlockStart] = useState('');
   const [blockEnd, setBlockEnd] = useState('');
   const [blockReason, setBlockReason] = useState('maintenance');
   const [blockNotes, setBlockNotes] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const fetchGrid = async (propId: string, start: string, numDays: number) => {
     setLoading(true);
@@ -87,25 +91,59 @@ export default function CalendarPage() {
     if (propertyId) fetchGrid(propertyId, newStart, days);
   };
 
+  const toggleRoomSelection = (roomId: string) => {
+    setSelectedRoomIds((prev) =>
+      prev.includes(roomId) ? prev.filter((id) => id !== roomId) : [...prev, roomId]
+    );
+  };
+
+  const selectAllRooms = () => {
+    setSelectedRoomIds(rooms.map((r) => r.id));
+  };
+
+  const deselectAllRooms = () => {
+    setSelectedRoomIds([]);
+  };
+
   const handleCreateBlock = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (blockStart < todayStr) {
+      alert('Please enter present or future dates. Cannot block rooms for past dates.');
+      return;
+    }
+
+    if (blockMode === 'bulk' && selectedRoomIds.length === 0) {
+      alert('Please select at least one room to block.');
+      return;
+    }
+
     setModalLoading(true);
     setError(null);
 
     try {
-      await apiClient('/calendar/blocks', {
+      const payload: any = {
+        propertyId,
+        startDate: blockStart,
+        endDate: blockEnd,
+        reason: blockReason,
+        notes: blockNotes,
+      };
+
+      if (blockMode === 'bulk') {
+        payload.roomIds = selectedRoomIds;
+      } else {
+        payload.roomId = selectedRoomId;
+      }
+
+      const res = await apiClient('/calendar/blocks', {
         method: 'POST',
-        body: JSON.stringify({
-          propertyId,
-          roomId: selectedRoomId,
-          startDate: blockStart,
-          endDate: blockEnd,
-          reason: blockReason,
-          notes: blockNotes,
-        }),
+        body: JSON.stringify(payload),
       });
 
+      alert(res.message || 'Room(s) blocked successfully.');
       setBlockModalOpen(false);
+      setSelectedRoomIds([]);
       await fetchGrid(propertyId, startDate, days);
     } catch (err: any) {
       setError(err.message || 'Failed to create room block.');
@@ -354,20 +392,103 @@ export default function CalendarPage() {
             </div>
 
             <form onSubmit={handleCreateBlock} className="space-y-4 text-xs">
-              <div>
-                <label className="block font-semibold text-content-primary-light mb-1">Select Room *</label>
-                <select
-                  value={selectedRoomId}
-                  onChange={(e) => setSelectedRoomId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              {/* Mode Toggle: Single vs Bulk */}
+              <div className="flex p-1 bg-surface-light rounded-xl border border-border-light">
+                <button
+                  type="button"
+                  onClick={() => setBlockMode('single')}
+                  className={`flex-1 py-1.5 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 ${
+                    blockMode === 'single'
+                      ? 'bg-white text-amber-700 shadow-sm'
+                      : 'text-content-secondary-light hover:text-content-primary-light'
+                  }`}
                 >
-                  {rooms.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      Room {r.room_number} ({r.room_type_name})
-                    </option>
-                  ))}
-                </select>
+                  Single Room
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBlockMode('bulk');
+                    if (selectedRoomIds.length === 0 && rooms.length > 0) {
+                      setSelectedRoomIds([rooms[0].id]);
+                    }
+                  }}
+                  className={`flex-1 py-1.5 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 ${
+                    blockMode === 'bulk'
+                      ? 'bg-white text-amber-700 shadow-sm'
+                      : 'text-content-secondary-light hover:text-content-primary-light'
+                  }`}
+                >
+                  Bulk Rooms (Multi-Select)
+                </button>
               </div>
+
+              {blockMode === 'single' ? (
+                <div>
+                  <label className="block font-semibold text-content-primary-light mb-1">Select Room *</label>
+                  <select
+                    value={selectedRoomId}
+                    onChange={(e) => setSelectedRoomId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  >
+                    {rooms.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        Room {r.room_number} ({r.room_type_name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="space-y-2 p-3 bg-amber-50/60 rounded-xl border border-amber-200">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-amber-900">
+                      Select Rooms to Block ({selectedRoomIds.length} of {rooms.length})
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAllRooms}
+                        className="text-[10px] text-amber-800 font-bold hover:underline"
+                      >
+                        Select All
+                      </button>
+                      <span className="text-amber-400">|</span>
+                      <button
+                        type="button"
+                        onClick={deselectAllRooms}
+                        className="text-[10px] text-amber-800 font-bold hover:underline"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-40 overflow-y-auto grid grid-cols-2 gap-1.5 p-1 bg-white rounded-lg border border-amber-200">
+                    {rooms.map((r) => {
+                      const isSelected = selectedRoomIds.includes(r.id);
+                      return (
+                        <label
+                          key={r.id}
+                          className={`flex items-center gap-2 px-2 py-1.5 rounded border text-[11px] cursor-pointer transition ${
+                            isSelected
+                              ? 'bg-amber-100/70 border-amber-400 font-bold text-amber-900'
+                              : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleRoomSelection(r.id)}
+                            className="rounded text-amber-600 focus:ring-amber-500"
+                          />
+                          <span className="font-mono">#{r.room_number}</span>
+                          <span className="truncate text-[10px] text-slate-500">({r.room_type_name})</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -375,6 +496,7 @@ export default function CalendarPage() {
                   <input
                     type="date"
                     required
+                    min={todayStr}
                     value={blockStart}
                     onChange={(e) => setBlockStart(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
@@ -385,7 +507,7 @@ export default function CalendarPage() {
                   <input
                     type="date"
                     required
-                    min={blockStart}
+                    min={blockStart || todayStr}
                     value={blockEnd}
                     onChange={(e) => setBlockEnd(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
@@ -429,10 +551,14 @@ export default function CalendarPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={modalLoading}
+                  disabled={modalLoading || (blockMode === 'bulk' && selectedRoomIds.length === 0)}
                   className="flex-1 py-2 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 disabled:opacity-50"
                 >
-                  {modalLoading ? 'Blocking...' : 'Block Room'}
+                  {modalLoading
+                    ? 'Blocking...'
+                    : blockMode === 'bulk'
+                    ? `Block ${selectedRoomIds.length} Rooms`
+                    : 'Block Room'}
                 </button>
               </div>
             </form>
