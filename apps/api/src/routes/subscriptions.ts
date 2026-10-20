@@ -5,6 +5,33 @@ import { recordAuditLog } from '../services/audit';
 
 export const subscriptionRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
+
+
+// -----------------------------------------------------------------------------
+// LIST ALL ACTIVE PUBLIC PLANS (No Auth Required)
+// -----------------------------------------------------------------------------
+subscriptionRoutes.get('/plans', async (c) => {
+  try {
+    // Ensure exact plan alignment: Essential (₹499), Pro (₹999), Enterprise (₹1,999)
+    const now = Math.floor(Date.now() / 1000);
+    await c.env.DB.batch([
+      c.env.DB.prepare("UPDATE subscription_plans SET is_active = 0 WHERE id IN ('starter', 'growth')"),
+      c.env.DB.prepare("UPDATE subscription_plans SET name = 'Essential', monthly_price_paise = 49900, annual_price_paise = 499000, max_rooms = 30, max_users = 5, sort_order = 1, is_active = 1, updated_at = ? WHERE id = 'essential'").bind(now),
+      c.env.DB.prepare("UPDATE subscription_plans SET name = 'Pro', description = 'Everything in Essential plus 2-Way Live OTA Channel Manager, Wedding Engine, Custom Website with Free Domain, Hosting & Maintenance', monthly_price_paise = 99900, annual_price_paise = 999000, max_rooms = 75, max_users = 15, has_channel_manager = 1, max_channel_connections = 10, sort_order = 2, is_active = 1, updated_at = ? WHERE id = 'pro'").bind(now),
+      c.env.DB.prepare("UPDATE subscription_plans SET name = 'Enterprise', monthly_price_paise = 199900, annual_price_paise = 1999000, sort_order = 3, is_active = 1, updated_at = ? WHERE id = 'enterprise'").bind(now),
+    ]);
+  } catch (syncErr) {
+    console.error('Plan sync error:', syncErr);
+  }
+
+  const rows = await c.env.DB.prepare(
+    "SELECT * FROM subscription_plans WHERE is_active = 1 AND id != 'starter' ORDER BY sort_order ASC"
+  ).all();
+
+  return c.json({ plans: rows.results || [] });
+});
+
+// Protected routes below require authenticating user and tenant
 subscriptionRoutes.use('*', authMiddleware, tenantMiddleware);
 
 // Helper: Verify Razorpay Payment Signature
@@ -94,78 +121,15 @@ subscriptionRoutes.get('/current', async (c) => {
   });
 });
 
-// -----------------------------------------------------------------------------
-// LIST ALL ACTIVE PUBLIC PLANS
-// -----------------------------------------------------------------------------
-subscriptionRoutes.get('/plans', async (c) => {
-  const rows = await c.env.DB.prepare(
-    'SELECT * FROM subscription_plans WHERE is_active = 1 ORDER BY sort_order ASC'
-  ).all();
 
-  return c.json({ plans: rows.results || [] });
-});
 
 // -----------------------------------------------------------------------------
-// SWITCH TO FREE STARTER PLAN (₹0 - strictly free tier)
+// SWITCH TO FREE STARTER PLAN (Retired)
 // -----------------------------------------------------------------------------
 subscriptionRoutes.post('/switch-free', requireRole(['owner']), async (c) => {
-  const tenantId = c.get('tenantId')!;
-  const now = Math.floor(Date.now() / 1000);
-
-  const starterPlan: any = await c.env.DB.prepare(
-    "SELECT * FROM subscription_plans WHERE id = 'starter'"
-  ).first();
-
-  if (!starterPlan) {
-    return c.json({ error: 'Starter plan not configured in database' }, 500);
-  }
-
-  // Update tenant to active starter plan and unlock account immediately
-  await c.env.DB.prepare(
-    `UPDATE tenants
-     SET current_plan_id = 'starter',
-         subscription_status = 'active',
-         account_access_status = 'active',
-         suspension_reason = NULL,
-         current_period_ends_at = NULL,
-         updated_at = ?
-     WHERE id = ?`
-  )
-    .bind(now, tenantId)
-    .run();
-
-  // Enforce strict Starter tier limits
-  await c.env.DB.prepare(
-    `UPDATE feature_entitlements
-     SET max_properties = 1,
-         max_rooms = 10,
-         max_users = 2,
-         has_pms = 1,
-         has_booking_engine = 1,
-         has_channel_manager = 0,
-         max_channel_connections = 0,
-         has_ai_agent = 1,
-         ai_monthly_limit = 60,
-         has_advanced_reports = 0,
-         has_accounting = 0,
-         has_multi_property = 0,
-         updated_at = ?
-     WHERE tenant_id = ?`
-  )
-    .bind(now, tenantId)
-    .run();
-
-  await recordAuditLog(c, {
-    action: 'subscription.switched_free_starter',
-    resourceType: 'tenant_subscription',
-    resourceId: tenantId,
-    newValues: { planId: 'starter', planName: 'Free Starter' },
-  });
-
   return c.json({
-    success: true,
-    message: 'Switched to Free Starter plan successfully. Your hotel workspace is unlocked.',
-  });
+    error: 'The free starter tier has been discontinued. HotelFlexi now offers the Essential Plan (₹499/mo) with a 14-day free trial on signup.',
+  }, 400);
 });
 
 // -----------------------------------------------------------------------------

@@ -160,9 +160,18 @@ roomRoutes.get('/', async (c) => {
 
   let query = `
     SELECT r.*, rt.name as room_type_name, rt.code as room_type_code,
-           rt.base_price_paise, rt.weekend_price_paise
+           rt.base_price_paise, rt.weekend_price_paise,
+           rb.id as active_block_id,
+           rb.reason as active_block_reason,
+           rb.notes as active_block_notes,
+           rb.start_date as active_block_start,
+           rb.end_date as active_block_end
     FROM rooms r
     JOIN room_types rt ON rt.id = r.room_type_id
+    LEFT JOIN room_blocks rb ON rb.room_id = r.id
+      AND rb.is_active = 1
+      AND rb.start_date <= date('now')
+      AND rb.end_date > date('now')
     WHERE r.tenant_id = ? AND r.is_active = 1
   `;
   const params: any[] = [tenantId];
@@ -171,15 +180,30 @@ roomRoutes.get('/', async (c) => {
     query += ` AND r.property_id = ?`;
     params.push(propertyId);
   }
-  if (status) {
-    query += ` AND r.status = ?`;
-    params.push(status);
-  }
 
   query += ` ORDER BY r.room_number ASC`;
 
   const rows = await c.env.DB.prepare(query).bind(...params).all();
-  return c.json({ rooms: rows.results || [] });
+  let mappedRooms = (rows.results || []).map((r: any) => {
+    const isBlocked = Boolean(r.active_block_id) || r.status === 'blocked';
+    const effectiveStatus = (isBlocked && r.status !== 'occupied') ? 'blocked' : r.status;
+    return {
+      ...r,
+      is_blocked: isBlocked ? 1 : 0,
+      block_reason: r.active_block_reason || null,
+      block_notes: r.active_block_notes || null,
+      blocked_from: r.active_block_start || null,
+      blocked_until: r.active_block_end || null,
+      block_id: r.active_block_id || null,
+      status: effectiveStatus,
+    };
+  });
+
+  if (status) {
+    mappedRooms = mappedRooms.filter((r: any) => r.status === status);
+  }
+
+  return c.json({ rooms: mappedRooms });
 });
 
 roomRoutes.post('/', requireRole(['owner', 'manager']), async (c) => {

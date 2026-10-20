@@ -26,6 +26,7 @@ export default function RoomsManagementPage() {
   const [propertyId, setPropertyId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   // Add Room Modal State
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -109,6 +110,31 @@ export default function RoomsManagementPage() {
   useEffect(() => {
     if (currentTenant) fetchData();
   }, [currentTenant]);
+
+  const handleUnblockRoom = async (room: any) => {
+    if (!room.block_id && !room.is_blocked) {
+      // Just reset status to available
+      return handleUpdateStatus(room.id, 'available');
+    }
+    if (!confirm(`Unblock room ${room.room_number}? It will immediately become available for bookings and occupancy.`)) {
+      return;
+    }
+    try {
+      if (room.block_id) {
+        await apiClient(`/calendar/blocks/${room.block_id}`, { method: 'DELETE' });
+      } else {
+        await apiClient(`/rooms/${room.id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'available' }),
+        });
+      }
+      setStatusMessage(`Room ${room.room_number} unblocked successfully!`);
+      setTimeout(() => setStatusMessage(null), 4000);
+      await fetchData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to unblock room');
+    }
+  };
 
   const handleUpdateStatus = async (roomId: string, status: string, housekeepingStatus?: string) => {
     try {
@@ -222,6 +248,22 @@ export default function RoomsManagementPage() {
     }
   };
 
+  const availableCount = rooms.filter((r) => (r.status === 'available' || !r.status) && !r.is_blocked && r.status !== 'blocked').length;
+  const occupiedCount = rooms.filter((r) => r.status === 'occupied').length;
+  const blockedCount = rooms.filter((r) => r.status === 'blocked' || r.is_blocked).length;
+  const dirtyCount = rooms.filter((r) => r.housekeeping_status === 'dirty').length;
+  const maintenanceCount = rooms.filter((r) => r.status === 'maintenance').length;
+
+  const filteredRooms = rooms.filter((r) => {
+    if (filterStatus === 'all') return true;
+    if (filterStatus === 'available') return (r.status === 'available' || !r.status) && !r.is_blocked && r.status !== 'blocked';
+    if (filterStatus === 'occupied') return r.status === 'occupied';
+    if (filterStatus === 'blocked') return r.status === 'blocked' || r.is_blocked;
+    if (filterStatus === 'dirty') return r.housekeeping_status === 'dirty';
+    if (filterStatus === 'maintenance') return r.status === 'maintenance';
+    return true;
+  });
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border-light">
@@ -291,7 +333,37 @@ export default function RoomsManagementPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">
+        <div className="space-y-3">
+          {/* Status Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { id: 'all', label: 'All Rooms', count: rooms.length },
+              { id: 'available', label: 'Available', count: availableCount, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+              { id: 'occupied', label: 'Occupied', count: occupiedCount, color: 'text-blue-700 bg-blue-50 border-blue-200' },
+              { id: 'blocked', label: 'Blocked', count: blockedCount, color: 'text-purple-700 bg-purple-50 border-purple-200' },
+              { id: 'dirty', label: 'Dirty', count: dirtyCount, color: 'text-amber-700 bg-amber-50 border-amber-200' },
+              { id: 'maintenance', label: 'Maintenance', count: maintenanceCount, color: 'text-red-700 bg-red-50 border-red-200' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setFilterStatus(tab.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 ${
+                  filterStatus === tab.id
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                  filterStatus === tab.id ? 'bg-white/20 text-white' : tab.color || 'bg-slate-100 text-slate-600'
+                }`}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
@@ -306,7 +378,7 @@ export default function RoomsManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light">
-                {rooms.map((room) => {
+                {filteredRooms.map((room) => {
                   const isOccupied = room.status === 'occupied';
                   const isClean = room.housekeeping_status === 'clean';
                   const isDirty = room.housekeeping_status === 'dirty';
@@ -333,15 +405,30 @@ export default function RoomsManagementPage() {
                         {formatINR(room.base_price_paise)}
                       </td>
                       <td className="py-3 px-4">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            isOccupied
-                              ? 'bg-rose-50 text-status-danger border border-rose-200'
-                              : 'bg-emerald-50 text-status-success border border-emerald-200'
-                          }`}
-                        >
-                          {isOccupied ? 'Occupied' : 'Available'}
-                        </span>
+                        {isOccupied ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-status-danger border border-rose-200">
+                            Occupied
+                          </span>
+                        ) : room.status === 'blocked' || room.is_blocked ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 w-fit">
+                              Blocked
+                            </span>
+                            {(room.block_reason || room.blocked_until) && (
+                              <span className="text-[9px] text-purple-600 font-medium">
+                                {room.block_reason || 'Blocked'} {room.blocked_until ? `until ${room.blocked_until}` : ''}
+                              </span>
+                            )}
+                          </div>
+                        ) : room.status === 'maintenance' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
+                            Maintenance
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-status-success border border-emerald-200">
+                            Available
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <span
@@ -358,6 +445,15 @@ export default function RoomsManagementPage() {
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {(room.status === 'blocked' || room.is_blocked) && (
+                            <button
+                              onClick={() => handleUnblockRoom(room)}
+                              className="px-2 py-1 rounded bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold transition"
+                              title="Unblock Room"
+                            >
+                              Unblock
+                            </button>
+                          )}
                           {isClean ? (
                             <button
                               onClick={() => handleUpdateStatus(room.id, room.status, 'dirty')}
@@ -398,6 +494,7 @@ export default function RoomsManagementPage() {
             </table>
           </div>
         </div>
+      </div>
       )}
 
       {/* Add Room Modal (Single & Bulk Range Generator) */}
@@ -699,6 +796,7 @@ export default function RoomsManagementPage() {
                   >
                     <option value="available">Available</option>
                     <option value="occupied">Occupied</option>
+                    <option value="blocked">Blocked</option>
                     <option value="maintenance">Maintenance</option>
                   </select>
                 </div>

@@ -635,3 +635,81 @@ bookingEngineRoutes.post('/properties/:slug/verify-payment', async (c) => {
     message: 'Payment verified and reservation updated successfully!',
   });
 });
+
+// -----------------------------------------------------------------------------
+// GOOGLE HOTEL CENTER / FREE BOOKING LINKS (FBL) XML FEED
+// -----------------------------------------------------------------------------
+bookingEngineRoutes.get('/properties/:slug/google-hotel-feed.xml', async (c) => {
+  const slug = c.req.param('slug');
+
+  const property: any = await c.env.DB.prepare(
+    `SELECT p.id, p.name, p.slug, p.currency, p.address_line1, p.city, p.state, p.country, p.postal_code, p.phone, p.email
+     FROM properties p WHERE p.slug = ?`
+  )
+    .bind(slug)
+    .first();
+
+  if (!property) {
+    return c.text('Property not found', 404);
+  }
+
+  const roomTypesQuery = await c.env.DB.prepare(
+    `SELECT rt.* FROM room_types rt WHERE rt.property_id = ? AND rt.is_active = 1 ORDER BY rt.base_price_paise ASC`
+  )
+    .bind(property.id)
+    .all();
+
+  const roomTypes = (roomTypesQuery.results || []) as any[];
+  const nowIso = new Date().toISOString();
+  const validUntilIso = new Date(Date.now() + 86400000 * 30).toISOString();
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Transaction timestamp="${nowIso}" id="hotelflexi-fbl-${property.slug}">
+  <PropertyDataSet>
+    <Property>${property.slug}</Property>
+    <Name><![CDATA[${property.name}]]></Name>
+    <Address>
+      <StreetAddress><![CDATA[${property.address_line1 || ''}]]></StreetAddress>
+      <City><![CDATA[${property.city || ''}]]></City>
+      <State><![CDATA[${property.state || ''}]]></State>
+      <PostalCode><![CDATA[${property.postal_code || ''}]]></PostalCode>
+      <Country><![CDATA[${property.country || 'IN'}]]></Country>
+    </Address>
+    <Phone>${property.phone || ''}</Phone>
+    <Email>${property.email || ''}</Email>
+    <OfficialWebsiteURL>https://hotelflexi.novaxai.in/book/${property.slug}?utm_source=google_hotel_official_site</OfficialWebsiteURL>
+  </PropertyDataSet>
+  <Result>`;
+
+  for (const rt of roomTypes) {
+    const basePaise = rt.base_price_paise || 200000;
+    const baseINR = (basePaise / 100).toFixed(2);
+    const taxINR = ((basePaise * 0.12) / 100).toFixed(2);
+    const totalINR = (Number(baseINR) + Number(taxINR)).toFixed(2);
+
+    xml += `
+    <RoomData>
+      <Property>${property.slug}</Property>
+      <RoomID>${rt.code || rt.id}</RoomID>
+      <RoomName><![CDATA[${rt.name}]]></RoomName>
+      <RatePlanID>STANDARD_OFFICIAL</RatePlanID>
+      <BaseRate currency="INR">${baseINR}</BaseRate>
+      <Tax currency="INR">${taxINR}</Tax>
+      <OtherFees currency="INR">0.00</OtherFees>
+      <TotalRate currency="INR">${totalINR}</TotalRate>
+      <Occupancy>${rt.base_occupancy || 2}</Occupancy>
+      <MaxOccupancy>${rt.max_occupancy || 3}</MaxOccupancy>
+      <BookingURL>https://hotelflexi.novaxai.in/book/${property.slug}?room_type=${rt.id}&amp;utm_source=google_free_booking_links&amp;utm_medium=organic&amp;utm_campaign=official_site</BookingURL>
+      <Expiration timestamp="${validUntilIso}"/>
+    </RoomData>`;
+  }
+
+  xml += `
+  </Result>
+</Transaction>`;
+
+  return c.text(xml, 200, {
+    'Content-Type': 'application/xml; charset=utf-8',
+    'Cache-Control': 'public, max-age=3600',
+  });
+});

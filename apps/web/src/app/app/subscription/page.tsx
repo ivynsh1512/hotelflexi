@@ -71,14 +71,8 @@ export default function SubscriptionPage() {
       setUpgradingPlanId(planId);
       setMessage(null);
 
-      // Free Starter Plan doesn't require payment gateway
       if (planId === 'starter') {
-        const res = await apiClient('/subscriptions/switch-free', {
-          method: 'POST',
-        });
-        setMessage({ type: 'success', text: res.message || 'Switched to Free Starter plan successfully!' });
-        await refreshUser();
-        await loadSub();
+        setMessage({ type: 'error', text: 'Free starter tier has been discontinued. Please choose an active Essential, Pro or Enterprise plan.' });
         return;
       }
 
@@ -239,21 +233,22 @@ export default function SubscriptionPage() {
   const activePlanId = currentPlan?.current_plan_id || 'starter';
 
   const comparisonRows = [
-    { name: 'Monthly Tariff (INR)', starter: '₹0 (Free)', essential: '₹499 / mo', growth: '₹1,499 / mo', enterprise: '₹3,999 / mo' },
-    { name: 'Room Inventory Capacity', starter: 'Up to 10 Rooms', essential: 'Up to 30 Rooms', growth: 'Up to 75 Rooms', enterprise: 'Unlimited' },
-    { name: 'Staff User Logins', starter: '2 Users', essential: '5 Users', growth: '15 Users', enterprise: 'Unlimited' },
-    { name: '2-Way Live Channel Manager (OTAs)', starter: 'No (Manual only)', essential: '4 Live Channels', growth: '10 Live Channels', enterprise: 'Unlimited Channels' },
-    { name: 'Housekeeping Urgency Siren', starter: false, essential: true, growth: true, enterprise: true },
-    { name: 'Direct Booking Engine', starter: true, essential: true, growth: true, enterprise: true },
-    { name: 'Guest Portal (FlexiLink)', starter: 'Basic link', essential: 'Full (ID & Child proof)', growth: 'Full (ID & Child proof)', enterprise: 'Full + Custom domain' },
-    { name: 'In-Stay Room Service Orders', starter: false, essential: true, growth: true, enterprise: true },
-    { name: 'Dine-Out Table Bookings (Non-Guests)', starter: false, essential: true, growth: true, enterprise: true },
-    { name: 'Custom Hotel Website + Annual AMC', starter: false, essential: false, growth: 'Included Free', enterprise: 'Included Free' },
-    { name: 'GST Billing & Invoicing (12%/18%)', starter: true, essential: true, growth: true, enterprise: true },
-    { name: 'AI Business Agent Prompts', starter: '2 / day', essential: '200 / mo', growth: '600 / mo', enterprise: 'Unlimited' },
-    { name: 'Financial P&L & Cash Flow', starter: false, essential: true, growth: true, enterprise: true },
-    { name: 'Multi-Property Management', starter: false, essential: false, growth: '3 Properties', enterprise: 'Unlimited' },
-    { name: 'Support SLA', starter: 'Community / Email', essential: 'WhatsApp & Email', growth: 'Priority WhatsApp & Phone', enterprise: '24/7 Dedicated Manager' },
+    { name: 'Monthly Tariff (INR)', essential: '₹499 / mo', pro: '₹999 / mo', enterprise: '₹1,999 / mo' },
+    { name: 'Room Inventory Capacity', essential: 'Up to 30 Rooms', pro: 'Up to 75 Rooms', enterprise: 'Unlimited Rooms' },
+    { name: 'Staff User Logins', essential: '5 Users', pro: '15 Users', enterprise: 'Unlimited Staff' },
+    { name: '2-Way Live Channel Manager (OTAs)', essential: 'No (Direct Only)', pro: '10 Live Channels (MMT, Agoda, Booking.com, Airbnb, Expedia)', enterprise: 'Unlimited Channels' },
+    { name: 'Destination Wedding Engine', essential: false, pro: true, enterprise: true },
+    { name: 'Housekeeping Urgency Siren', essential: true, pro: true, enterprise: true },
+    { name: 'Direct Booking Engine', essential: true, pro: true, enterprise: true },
+    { name: 'Google Hotel Center & FBL Feed', essential: true, pro: true, enterprise: true },
+    { name: 'Guest Portal (FlexiLink)', essential: 'Full (ID & Child proof)', pro: 'Full (ID & Child proof)', enterprise: 'Full + Custom domain' },
+    { name: 'In-Stay Room Service Orders', essential: true, pro: true, enterprise: true },
+    { name: 'Dine-Out Table Bookings', essential: true, pro: true, enterprise: true },
+    { name: 'Custom Hotel Website + Annual AMC', essential: false, pro: 'Included Free', enterprise: 'Included Free' },
+    { name: 'GST Billing & Invoicing (12%/18%)', essential: true, pro: true, enterprise: true },
+    { name: 'AI Business Agent Prompts', essential: '200 / mo', pro: '600 / mo', enterprise: 'Unlimited' },
+    { name: 'Multi-Property Management', essential: false, pro: 'Up to 3 Properties', enterprise: 'Unlimited' },
+    { name: 'Support SLA', essential: 'WhatsApp & Email', pro: 'Priority WhatsApp & Phone', enterprise: '24/7 Dedicated Manager' },
   ];
 
   return (
@@ -485,10 +480,9 @@ export default function SubscriptionPage() {
                 <thead className="bg-surface-light border-b border-border-light font-bold text-content-primary-light uppercase text-[10px]">
                   <tr>
                     <th className="p-3.5">Feature / Capability</th>
-                    <th className="p-3.5 text-center">Starter</th>
-                    <th className="p-3.5 text-center">Essential</th>
-                    <th className="p-3.5 text-center">Growth</th>
-                    <th className="p-3.5 text-center">Enterprise</th>
+                    <th className="p-3.5 text-center">Essential (₹499)</th>
+                    <th className="p-3.5 text-center text-brand-blue bg-blue-50/50">Pro (₹999)</th>
+                    <th className="p-3.5 text-center">Enterprise (₹1,999)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-light">
@@ -502,9 +496,8 @@ export default function SubscriptionPage() {
                     return (
                       <tr key={row.name} className="hover:bg-surface-light/40">
                         <td className="p-3.5 font-medium text-content-primary-light">{row.name}</td>
-                        <td className="p-3.5 text-center">{renderVal(row.starter)}</td>
                         <td className="p-3.5 text-center">{renderVal(row.essential)}</td>
-                        <td className="p-3.5 text-center">{renderVal(row.growth)}</td>
+                        <td className="p-3.5 text-center bg-blue-50/20">{renderVal(row.pro)}</td>
                         <td className="p-3.5 text-center">{renderVal(row.enterprise)}</td>
                       </tr>
                     );

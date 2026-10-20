@@ -40,8 +40,19 @@ export default function PublicWeddingEnginePage() {
     d.setMonth(d.getMonth() + 2);
     return d.toISOString().split('T')[0];
   });
+  const [numberOfDays, setNumberOfDays] = useState(2);
   const [guestCount, setGuestCount] = useState(250);
-  const [functionsCount, setFunctionsCount] = useState(2);
+  const [selectedEvents, setSelectedEvents] = useState<string[]>(['haldi', 'sangeet', 'wedding']);
+  const [eventVenues, setEventVenues] = useState<Record<string, string>>({
+    haldi: 'poolside',
+    sangeet: 'banquet',
+    wedding: 'lawn',
+    reception: 'banquet',
+    mehendi: 'garden',
+    ring: 'banquet',
+  });
+  const [djEntertainment, setDjEntertainment] = useState('dj_pro');
+  const [mandapStyle, setMandapStyle] = useState('royal_floral');
   const [mealPreference, setMealPreference] = useState<'veg' | 'non_veg' | 'multi_cuisine'>('veg');
   const [selectedDecorId, setSelectedDecorId] = useState<string>('');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('');
@@ -88,11 +99,11 @@ export default function PublicWeddingEnginePage() {
   const packages = data?.packages || [];
   const decorThemes = data?.decorThemes || [];
 
-  // Live Cost Estimation Breakdown
+  // Live Cost Estimation Breakdown (CATERING IS STRICTLY CALCULATED PER DAY, NOT PER EVENT!)
   const estimation = useMemo(() => {
     if (!settings) return null;
 
-    // 1. Catering
+    // 1. Catering calculated per DAY of hospitality across all guests
     const platePricePaise =
       mealPreference === 'multi_cuisine'
         ? (settings.base_multicuisine_plate_price_paise || 200000)
@@ -100,19 +111,21 @@ export default function PublicWeddingEnginePage() {
         ? (settings.base_nonveg_plate_price_paise || 160000)
         : (settings.base_veg_plate_price_paise || 120000);
 
-    const cateringPaise = guestCount * platePricePaise * functionsCount;
+    // Explicit Rule: guestCount * platePrice * numberOfDays
+    const cateringPaise = guestCount * platePricePaise * numberOfDays;
 
-    // 2. Venue & Staging Fee
-    const venuePerFunction = settings.base_function_venue_charge_paise || 5000000;
-    const venueStagingPaise = venuePerFunction * functionsCount;
+    // 2. Venue & Staging Fee per Selected Event Function
+    const venuePerEvent = settings.base_function_venue_charge_paise || 5000000;
+    const eventCount = Math.max(1, selectedEvents.length);
+    const venueStagingPaise = venuePerEvent * eventCount;
 
     // 3. Mandap & Decor Theme
     const chosenDecor = decorThemes.find((d: any) => d.id === selectedDecorId);
     const decorPaise = chosenDecor?.base_price_paise || 15000000;
 
-    // 4. Rooms Accommodation (assume ₹3,500/room/night for wedding rate)
+    // 4. Rooms Accommodation (Rooms * Nightly Rate * Number of Days)
     const roomRatePaise = 350000;
-    const accommodationPaise = roomsNeeded * roomRatePaise * Math.max(1, functionsCount - 1);
+    const accommodationPaise = roomsNeeded * roomRatePaise * numberOfDays;
 
     const subtotalPaise = cateringPaise + venueStagingPaise + decorPaise + accommodationPaise;
     const gstPaise = Math.round((subtotalPaise * 1800) / 10000); // 18% GST on events/banquet
@@ -121,6 +134,7 @@ export default function PublicWeddingEnginePage() {
     return {
       platePricePaise,
       cateringPaise,
+      eventCount,
       venueStagingPaise,
       decorPaise,
       chosenDecor,
@@ -129,7 +143,7 @@ export default function PublicWeddingEnginePage() {
       gstPaise,
       grandTotalPaise,
     };
-  }, [settings, decorThemes, guestCount, functionsCount, mealPreference, selectedDecorId, roomsNeeded]);
+  }, [settings, decorThemes, guestCount, numberOfDays, selectedEvents, mealPreference, selectedDecorId, roomsNeeded]);
 
   const formatINR = (paise: number) => `₹${Math.round(paise / 100).toLocaleString('en-IN')}`;
 
@@ -150,13 +164,13 @@ export default function PublicWeddingEnginePage() {
           guestEmail,
           eventDates: eventDate,
           guestCount,
-          functionsCount,
+          functionsCount: selectedEvents.length,
           mealPreference,
           selectedDecorId,
           selectedPackageId,
           roomsNeeded,
           estimatedTotalPaise: estimation?.grandTotalPaise || 0,
-          specialNotes,
+          specialNotes: `[Duration: ${numberOfDays} Days | Functions: ${selectedEvents.join(', ')}] ${specialNotes || ''}`.trim(),
         }),
       });
       const json = await res.json();
@@ -501,38 +515,161 @@ export default function PublicWeddingEnginePage() {
               </div>
             </div>
 
-            {/* Step 3: Number of Functions (MCQ) */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-black text-slate-900 uppercase tracking-wider">
-                  <span className="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs">3</span>
-                  <span>Number of Event Functions</span>
+            {/* Step 3: Event Duration (Days) & Specific Events Selection */}
+            <div className="space-y-6 p-5 rounded-2xl bg-gradient-to-br from-rose-50/50 to-amber-50/30 border border-rose-100">
+              {/* Part A: Number of Days */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-black text-slate-900 uppercase tracking-wider">
+                    <span className="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs">3A</span>
+                    <span>Total Celebration Duration (Days)</span>
+                  </div>
+                  <span className="font-black text-xs px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">
+                    {numberOfDays} {numberOfDays === 1 ? 'Day' : 'Days'} Hospitality
+                  </span>
                 </div>
-                <span className="font-extrabold text-sm text-rose-600">{functionsCount} Functions</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { days: 1, label: '1 Day Celebration' },
+                    { days: 2, label: '2 Days (Most Popular)' },
+                    { days: 3, label: '3 Days Destination' },
+                    { days: 4, label: '4 Days Royal Extravaganza' },
+                  ].map((d) => (
+                    <button
+                      key={d.days}
+                      type="button"
+                      onClick={() => setNumberOfDays(d.days)}
+                      className={`p-3 rounded-xl text-left border transition ${
+                        numberOfDays === d.days
+                          ? 'bg-rose-600 text-white border-rose-600 shadow'
+                          : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200'
+                      }`}
+                    >
+                      <div className="font-extrabold text-xs">{d.days} {d.days === 1 ? 'Day' : 'Days'}</div>
+                      <div className={`text-[10px] mt-0.5 ${numberOfDays === d.days ? 'text-rose-100' : 'text-slate-500'}`}>
+                        {d.label}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-slate-500 italic">
+                  💡 Catering is calculated per day ({numberOfDays} days) to ensure all meals, high-tea &amp; dinners are seamlessly covered.
+                </p>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {[
-                  { n: 1, label: '1 Function (Wedding Reception)' },
-                  { n: 2, label: '2 Functions (Haldi + Wedding)' },
-                  { n: 3, label: '3 Functions (Mehendi, Sangeet, Pheras)' },
-                  { n: 4, label: '4+ Multi-Day Grand Extravaganza' },
-                ].map((f) => (
-                  <button
-                    key={f.n}
-                    type="button"
-                    onClick={() => setFunctionsCount(f.n)}
-                    className={`p-3 rounded-2xl text-left border transition flex flex-col justify-between ${
-                      functionsCount === f.n
-                        ? 'bg-rose-600 text-white border-rose-600 shadow'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200'
-                    }`}
-                  >
-                    <span className="font-black text-xs">{f.n} Event{f.n > 1 ? 's' : ''}</span>
-                    <span className={`text-[10px] mt-1 ${functionsCount === f.n ? 'text-rose-100' : 'text-slate-500'}`}>
-                      {f.label}
-                    </span>
-                  </button>
-                ))}
+
+              {/* Part B: Select Specific Events */}
+              <div className="space-y-3 pt-3 border-t border-rose-200/60">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-black text-slate-900 uppercase tracking-wider">
+                    <span className="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs">3B</span>
+                    <span>Select Specific Functions &amp; Ceremonies</span>
+                  </div>
+                  <span className="font-extrabold text-xs text-rose-600">
+                    {selectedEvents.length} Events across {numberOfDays} Days
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {[
+                    { id: 'haldi', name: '🟡 Haldi & Pithi Ceremony', time: 'Morning / Sunlit Session' },
+                    { id: 'mehendi', name: '🌿 Mehendi & Henna Celebration', time: 'Afternoon / Garden High-Tea' },
+                    { id: 'sangeet', name: '💃 Sangeet & Cocktail Night', time: 'Evening / DJ, Dance & Drinks' },
+                    { id: 'ring', name: '💍 Engagement & Ring Ceremony', time: 'Evening / Stage Felicitations' },
+                    { id: 'wedding', name: '🪔 Main Wedding & Pheras', time: 'Mahurat / Sacred Mandap Stage' },
+                    { id: 'reception', name: '🥂 Grand Gala Reception', time: 'Night / Royal Banquet Feast' },
+                  ].map((evt) => {
+                    const isSelected = selectedEvents.includes(evt.id);
+                    return (
+                      <button
+                        key={evt.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            if (selectedEvents.length > 1) {
+                              setSelectedEvents(selectedEvents.filter((e) => e !== evt.id));
+                            }
+                          } else {
+                            setSelectedEvents([...selectedEvents, evt.id]);
+                          }
+                        }}
+                        className={`p-3 rounded-xl border text-left transition flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-rose-50 border-rose-500 ring-1 ring-rose-400 text-slate-900'
+                            : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
+                        }`}
+                      >
+                        <div>
+                          <div className="font-bold text-xs text-slate-900">{evt.name}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">{evt.time}</div>
+                        </div>
+                        <div className={`w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold ${
+                          isSelected ? 'bg-rose-600 text-white' : 'border border-slate-300'
+                        }`}>
+                          {isSelected ? '✓' : ''}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Part C: Dynamic Sub-Questions for Selected Events */}
+              <div className="space-y-4 pt-3 border-t border-rose-200/60">
+                <span className="text-[11px] font-black uppercase text-rose-800 tracking-wider block">
+                  Event Specific Customizations
+                </span>
+
+                {/* Sangeet Sub-Question */}
+                {selectedEvents.includes('sangeet') && (
+                  <div className="p-3.5 rounded-xl bg-white border border-rose-200 space-y-2">
+                    <label className="block text-xs font-bold text-slate-800">
+                      🎶 Sangeet Entertainment &amp; Audio-Visuals:
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {[
+                        { id: 'dj_pro', label: 'Pro DJ + LED Moving Heads & Truss' },
+                        { id: 'live_band', label: 'Live Folk/Sufi Band + Acoustic Setup' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setDjEntertainment(opt.id)}
+                          className={`p-2.5 rounded-lg border text-left font-medium ${
+                            djEntertainment === opt.id ? 'bg-rose-600 text-white border-rose-600' : 'bg-slate-50 text-slate-700 border-slate-200'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Main Wedding Mandap Sub-Question */}
+                {selectedEvents.includes('wedding') && (
+                  <div className="p-3.5 rounded-xl bg-white border border-rose-200 space-y-2">
+                    <label className="block text-xs font-bold text-slate-800">
+                      🏛️ Phera Mandap Ambience:
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {[
+                        { id: 'royal_floral', label: 'Royal Floral Dome Mandap (Fresh Flowers)' },
+                        { id: 'heritage_glass', label: 'Glass-Reflective Waterbody Mandap' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setMandapStyle(opt.id)}
+                          className={`p-2.5 rounded-lg border text-left font-medium ${
+                            mandapStyle === opt.id ? 'bg-rose-600 text-white border-rose-600' : 'bg-slate-50 text-slate-700 border-slate-200'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -650,21 +787,34 @@ export default function PublicWeddingEnginePage() {
 
               {/* Itemized Cost Breakdown */}
               <div className="space-y-3 text-xs">
-                <div className="flex justify-between items-center text-slate-600">
-                  <span>🍽️ Catering ({guestCount} Guests &times; {functionsCount} Events):</span>
-                  <strong className="text-slate-900">{formatINR(estimation?.cateringPaise || 0)}</strong>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-start text-slate-700">
+                  <div>
+                    <span className="font-bold block text-slate-900">🍽️ Guest Catering Hospitality</span>
+                    <span className="text-[10px] text-slate-500">
+                      {formatINR(estimation?.platePricePaise || 0)}/day &times; {guestCount} Guests &times; {numberOfDays} {numberOfDays === 1 ? 'Day' : 'Days'}
+                    </span>
+                  </div>
+                  <strong className="text-slate-900 font-extrabold text-sm">{formatINR(estimation?.cateringPaise || 0)}</strong>
                 </div>
-                <div className="flex justify-between items-center text-slate-600">
-                  <span>🎪 Staging &amp; Venue Charges ({functionsCount} Functions):</span>
-                  <strong className="text-slate-900">{formatINR(estimation?.venueStagingPaise || 0)}</strong>
+
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-start text-slate-700">
+                  <div>
+                    <span className="font-bold block text-slate-900">🎪 Event Staging &amp; Venue</span>
+                    <span className="text-[10px] text-slate-500">
+                      {selectedEvents.length} Functions ({selectedEvents.join(', ')})
+                    </span>
+                  </div>
+                  <strong className="text-slate-900 font-extrabold text-sm">{formatINR(estimation?.venueStagingPaise || 0)}</strong>
                 </div>
-                <div className="flex justify-between items-center text-slate-600">
-                  <span>💐 Mandap &amp; Decor Theme:</span>
+
+                <div className="flex justify-between items-center text-slate-600 px-1">
+                  <span>💐 Mandap &amp; Floral Decor Theme:</span>
                   <strong className="text-slate-900">{formatINR(estimation?.decorPaise || 0)}</strong>
                 </div>
+
                 {roomsNeeded > 0 && (
-                  <div className="flex justify-between items-center text-slate-600">
-                    <span>🛏️ Rooms Accommodation ({roomsNeeded} Deluxe Rooms):</span>
+                  <div className="flex justify-between items-center text-slate-600 px-1">
+                    <span>🛏️ Guest Rooms ({roomsNeeded} Rooms &times; {numberOfDays} Nights):</span>
                     <strong className="text-slate-900">{formatINR(estimation?.accommodationPaise || 0)}</strong>
                   </div>
                 )}

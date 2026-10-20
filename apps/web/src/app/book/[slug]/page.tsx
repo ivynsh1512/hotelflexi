@@ -243,8 +243,69 @@ export default function DirectBookingPage() {
     ? JSON.parse(property.amenities || '[]')
     : [];
 
+  // Google Hotel Center / Schema.org structured data JSON-LD for Google Free Booking Links
+  const jsonLd = property ? {
+    '@context': 'https://schema.org',
+    '@type': ['Hotel', 'LodgingBusiness'],
+    name: property.name,
+    description: property.description || `${property.name} Official Direct Booking Engine with best rate guarantee and instant confirmation.`,
+    url: `https://hotelflexi.novaxai.in/book/${slug}`,
+    telephone: property.phone || '',
+    email: property.email || '',
+    image: galleryImages.length > 0 ? galleryImages : (property.logo_url ? [property.logo_url] : []),
+    priceRange: roomTypes.length > 0 ? `₹${Math.round(roomTypes[0].base_price_paise / 100)} - ₹${Math.round(roomTypes[roomTypes.length - 1].base_price_paise / 100)}` : '₹1,500 - ₹5,000',
+    currenciesAccepted: 'INR',
+    paymentAccepted: 'Cash, UPI, Credit Card, Debit Card, Net Banking',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: property.address_line1 || '',
+      addressLocality: property.city || '',
+      addressRegion: property.state || '',
+      postalCode: property.postal_code || '',
+      addressCountry: property.country || 'IN',
+    },
+    checkinTime: property.check_in_time || '12:00',
+    checkoutTime: property.check_out_time || '11:00',
+    amenityFeature: propertyAmenities.map((a: string) => ({
+      '@type': 'LocationFeatureSpecification',
+      name: a,
+      value: true,
+    })),
+    makesOffer: roomTypes.map((rt: any) => ({
+      '@type': 'Offer',
+      name: rt.name,
+      description: rt.description || `${rt.name} at ${property.name}`,
+      price: (rt.base_price_paise / 100).toFixed(2),
+      priceCurrency: 'INR',
+      availability: 'https://schema.org/InStock',
+      validFrom: new Date().toISOString(),
+      url: `https://hotelflexi.novaxai.in/book/${slug}?room_type=${rt.id}`,
+    })),
+  } : null;
+
   return (
     <div className="min-h-screen bg-surface-light text-content-primary-light">
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+
+      {/* Official Website & Google Best Rate Guarantee Ribbon */}
+      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white text-[11px] font-bold py-2 px-4 shadow-sm">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-200 animate-pulse"></span>
+            <span>⭐ Official Hotel Website &bull; Direct Reservation Portal</span>
+          </div>
+          <div className="flex items-center gap-4 text-emerald-100 font-semibold text-[10px]">
+            <span>✓ Best Rate Guaranteed (0% Middleman Fees)</span>
+            <span>✓ Instant Direct Confirmation</span>
+            <span>✓ Pay at Property Available</span>
+          </div>
+        </div>
+      </div>
       {/* Property Header */}
       <header className="bg-white border-b border-border-light shadow-sm sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">

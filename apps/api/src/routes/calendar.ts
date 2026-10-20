@@ -191,6 +191,16 @@ calendarRoutes.post('/blocks', requireRole(['owner', 'manager', 'receptionist'])
       .bind(id, propertyId, tenantId, rId, startDate, endDate, reason, notes || null, user.uid, now, now)
       .run();
 
+    // If block is active today, immediately update room status
+    if (startDate <= todayStr && endDate > todayStr) {
+      await c.env.DB.prepare(
+        "UPDATE rooms SET status = 'blocked', updated_at = ? WHERE id = ? AND status != 'occupied'"
+      )
+        .bind(now, rId)
+        .run()
+        .catch(() => {});
+    }
+
     blocked.push(rId);
 
     await recordAuditLog(c, {
@@ -237,6 +247,27 @@ calendarRoutes.delete('/blocks/:id', requireRole(['owner', 'manager', 'reception
   )
     .bind(now, id, tenantId)
     .run();
+
+  // Restore room status to available if no other active block exists for today
+  if (existing.room_id) {
+    const otherBlock: any = await c.env.DB.prepare(
+      `SELECT id FROM room_blocks
+       WHERE room_id = ? AND tenant_id = ? AND is_active = 1
+         AND start_date <= date('now') AND end_date > date('now')`
+    )
+      .bind(existing.room_id, tenantId)
+      .first()
+      .catch(() => null);
+
+    if (!otherBlock) {
+      await c.env.DB.prepare(
+        "UPDATE rooms SET status = 'available', updated_at = ? WHERE id = ? AND status = 'blocked'"
+      )
+        .bind(now, existing.room_id)
+        .run()
+        .catch(() => {});
+    }
+  }
 
   await recordAuditLog(c, {
     action: 'room.unblocked',

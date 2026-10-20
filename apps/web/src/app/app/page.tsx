@@ -72,7 +72,8 @@ export default function DashboardOverviewPage() {
   const occupiedRooms = rooms.filter((r) => r.status === 'occupied').length;
   const dirtyRooms = rooms.filter((r) => r.housekeeping_status === 'dirty').length;
   const maintenanceRooms = rooms.filter((r) => r.status === 'maintenance').length;
-  const availableRooms = rooms.filter((r) => r.status === 'available').length;
+  const blockedRooms = rooms.filter((r) => r.status === 'blocked' || r.is_blocked).length;
+  const availableRooms = rooms.filter((r) => (r.status === 'available' || !r.status) && !r.is_blocked && r.status !== 'blocked').length;
   const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
   return (
@@ -225,6 +226,10 @@ export default function DashboardOverviewPage() {
               <span>Occupied ({occupiedRooms})</span>
             </div>
             <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-purple-600" />
+              <span>Blocked ({blockedRooms})</span>
+            </div>
+            <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-amber-500" />
               <span>Dirty / Cleaning ({dirtyRooms})</span>
             </div>
@@ -255,17 +260,21 @@ export default function DashboardOverviewPage() {
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
               {rooms.map((room) => {
                 const isOccupied = room.status === 'occupied';
-                const isDirty = room.housekeeping_status === 'dirty';
+                const isBlocked = room.status === 'blocked' || Boolean(room.is_blocked);
                 const isMaint = room.status === 'maintenance';
+                const isDirty = room.housekeeping_status === 'dirty';
 
                 return (
                   <div
                     key={room.id}
+                    title={isBlocked ? `Blocked${room.block_reason ? `: ${room.block_reason}` : ''}${room.blocked_until ? ` until ${room.blocked_until}` : ''}` : undefined}
                     className={`p-3 rounded-xl border text-center transition ${
                       isMaint
                         ? 'bg-red-50 border-red-200 text-red-700'
                         : isOccupied
                         ? 'bg-blue-50 border-blue-200 text-brand-blue'
+                        : isBlocked
+                        ? 'bg-purple-50 border-purple-300 text-purple-900 ring-1 ring-purple-300'
                         : isDirty
                         ? 'bg-amber-50 border-amber-200 text-amber-700'
                         : 'bg-emerald-50 border-emerald-200 text-emerald-800'
@@ -274,7 +283,7 @@ export default function DashboardOverviewPage() {
                     <div className="font-extrabold text-sm">{room.room_number}</div>
                     <div className="text-[10px] font-medium opacity-80 truncate">{room.room_type_name || 'Room'}</div>
                     <div className="text-[9px] uppercase font-bold mt-1">
-                      {isMaint ? 'Maint' : isOccupied ? 'Occupied' : isDirty ? 'Dirty' : 'Clean'}
+                      {isMaint ? 'Maint' : isOccupied ? 'Occupied' : isBlocked ? 'Blocked' : isDirty ? 'Dirty' : 'Clean'}
                     </div>
                   </div>
                 );

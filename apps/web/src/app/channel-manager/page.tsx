@@ -125,9 +125,9 @@ export default function ChannelManagerPage() {
       {/* Hero Section */}
       <section className="pt-20 pb-16 bg-gradient-to-b from-blue-50/60 via-surface-light to-white border-b border-border-light text-center relative overflow-hidden">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold mb-4 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
-            <span>2-Way OTA Channel Manager — Phase 2 Beta (Coming Soon)</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold mb-4 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <span>2-Way Live OTA Channel Manager &bull; Sub-3s Sync Active</span>
           </div>
           <h1 className="text-4xl sm:text-6xl font-black text-content-primary-light tracking-tight leading-[1.15]">
             Sell Rooms Across All OTAs.<br />

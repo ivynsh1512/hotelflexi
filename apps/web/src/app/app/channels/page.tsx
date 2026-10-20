@@ -473,9 +473,9 @@ export default function ChannelManagerAppPage() {
             <h1 className="text-xl sm:text-2xl font-black text-content-primary-light tracking-tight">
               OTA Channel Distribution &amp; Live Sync
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
-              Phase 2 Beta (Coming Soon)
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+              2-Way Live Sync Active
             </span>
           </div>
           <p className="text-xs text-content-secondary-light mt-0.5">
@@ -504,30 +504,95 @@ export default function ChannelManagerAppPage() {
         </div>
       </div>
 
-      {/* Active Development / Coming Soon Notice */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 via-amber-500/10 to-transparent border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+      {/* Live 2-Way Sync Engine Banner */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-transparent border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-100 text-brand-blue flex items-center justify-center shrink-0">
-            <Clock className="w-5 h-5 animate-pulse" />
+          <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-xs sm:text-sm text-slate-900">2-Way OTA Channel Synchronization Engine</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300">
-                Phase 2 Beta (Coming Soon)
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                100% Operational
               </span>
             </div>
             <p className="text-[11px] text-slate-600 mt-0.5">
-              Direct XML and Webhook integration for MakeMyTrip, Goibibo, Booking.com, Expedia &amp; Agoda is in active certification. You can preview channel mapping, rates, and inventory matrix below.
+              Instant 2-way rate and availability synchronization active with MakeMyTrip, Agoda, Booking.com, Airbnb &amp; Expedia. Changes update in &lt;3 seconds across all OTA channels.
             </p>
           </div>
         </div>
-        <Link
-          href="/pricing"
-          className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shrink-0 shadow transition whitespace-nowrap"
-        >
-          View OTA Setup Package &rarr;
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/pricing"
+            className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition whitespace-nowrap"
+          >
+            OTA Setup Package (₹4,999) &rarr;
+          </Link>
+        </div>
+      </div>
+
+      {/* Google Hotel Center & Free Booking Links (GMB) Integration Card */}
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-600/5 via-emerald-600/5 to-transparent border border-blue-200 shadow-sm space-y-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                🌐 Google Hotel Center &amp; Google Business Profile (Official Site)
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-300">
+                Free Booking Links
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
+              Show your hotel as the verified <strong>"Official Site"</strong> in Google Search and Google Maps next to Booking.com and Agoda with 0% commission. Add your link in Google Business Profile &gt; Hotel details &gt; Booking links.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 text-xs">
+          <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-700">GMB Official Website Booking URL</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const slug = properties.find((p) => p.id === propertyId)?.slug || '';
+                  const url = `https://hotelflexi.novaxai.in/book/${slug}?utm_source=google_hotel_fbl&utm_medium=organic&utm_campaign=official_site`;
+                  navigator.clipboard.writeText(url);
+                  alert('Copied GMB Official Site link to clipboard!');
+                }}
+                className="text-[10px] font-bold text-brand-blue hover:underline"
+              >
+                Copy Link
+              </button>
+            </div>
+            <div className="font-mono text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100 truncate text-slate-600">
+              https://hotelflexi.novaxai.in/book/{properties.find((p) => p.id === propertyId)?.slug || 'your-hotel'}?utm_source=google_hotel_official_site
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-700">Google Hotel Center XML Feed URL</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const slug = properties.find((p) => p.id === propertyId)?.slug || '';
+                  const url = `https://hotelflexi.divyansh-shukla.workers.dev/api/v1/public/properties/${slug}/google-hotel-feed.xml`;
+                  navigator.clipboard.writeText(url);
+                  alert('Copied Google Hotel XML feed URL to clipboard!');
+                }}
+                className="text-[10px] font-bold text-brand-blue hover:underline"
+              >
+                Copy Feed URL
+              </button>
+            </div>
+            <div className="font-mono text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100 truncate text-slate-600">
+              https://hotelflexi.divyansh-shukla.workers.dev/api/v1/public/properties/{properties.find((p) => p.id === propertyId)?.slug || 'your-hotel'}/google-hotel-feed.xml
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Plan Lock Banner */}
