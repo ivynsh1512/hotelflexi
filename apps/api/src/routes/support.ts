@@ -1,8 +1,51 @@
 import { Hono } from 'hono';
 import { Env, AppVariables } from '../types';
 import { authMiddleware, tenantMiddleware, superAdminMiddleware } from '../auth/middleware';
+import { sendComplaintNotificationEmail, sendDemoRequestNotificationEmail } from '../services/email';
 
 export const supportRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
+
+// -----------------------------------------------------------------------------
+// PUBLIC DEMO REQUEST ROUTE
+// -----------------------------------------------------------------------------
+supportRoutes.post('/demo', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const {
+    hotelName,
+    contactName,
+    phone,
+    email,
+    city,
+    propertyType,
+    roomCount,
+    preferredDate,
+    preferredTime,
+  } = body;
+
+  if (!hotelName || !contactName || !phone) {
+    return c.json({ error: 'Hotel name, contact person, and phone number are required.' }, 400);
+  }
+
+  // Dispatch email to superadmin
+  c.executionCtx.waitUntil(
+    sendDemoRequestNotificationEmail(c.env, {
+      hotelName,
+      contactName,
+      phone,
+      email,
+      city,
+      propertyType,
+      roomCount,
+      preferredDate,
+      preferredTime,
+    }).catch((err) => console.error('[Demo Request Email Error]', err))
+  );
+
+  return c.json({
+    success: true,
+    message: 'Demo request registered. Our team will contact you shortly.',
+  });
+});
 
 // -----------------------------------------------------------------------------
 // HOTELIER SUPPORT ROUTES (Raise Complaints & Technical Bugs)
@@ -86,6 +129,22 @@ supportRoutes.post('/tickets', async (c) => {
       now
     )
     .run();
+
+  // Dispatch email notification to superadmin immediately
+  c.executionCtx.waitUntil(
+    sendComplaintNotificationEmail(c.env, {
+      ticketNumber,
+      hotelName,
+      hotelCode,
+      category,
+      priority,
+      subject,
+      description,
+      requesterName: user.name || user.email.split('@')[0],
+      requesterEmail: user.email,
+      requesterPhone,
+    }).catch((e) => console.error('[Complaint Notification Email Error]', e))
+  );
 
   return c.json({
     success: true,

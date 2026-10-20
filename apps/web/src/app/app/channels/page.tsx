@@ -87,6 +87,14 @@ function ExpediaLogo({ className = "w-8 h-8" }: { className?: string }) {
   );
 }
 
+function TripAdvisorLogo({ className = "w-8 h-8" }: { className?: string }) {
+  return (
+    <div className={`${className} bg-[#00AF87] rounded-xl flex items-center justify-center shrink-0 shadow-sm text-white font-black text-[9px] tracking-tighter`}>
+      TA
+    </div>
+  );
+}
+
 export default function ChannelManagerAppPage() {
   const { currentTenant } = useAuth();
   const [activeTab, setActiveTab] = useState<'channels' | 'matrix' | 'queue' | 'simulator'>('channels');
@@ -160,6 +168,7 @@ export default function ChannelManagerAppPage() {
     { id: 'makemytrip', name: 'MakeMyTrip / Goibibo', component: MakeMyTripLogo, category: 'Domestic Indian OTA', desc: 'IngoMMT automated ARI sync' },
     { id: 'airbnb', name: 'Airbnb', component: AirbnbLogo, category: 'Vacation & Homestays', desc: 'Boutique rooms & direct guest bookings' },
     { id: 'expedia', name: 'Expedia Group', component: ExpediaLogo, category: 'Global Distribution', desc: 'Expedia QuickConnect & Hotels.com' },
+    { id: 'tripadvisor', name: 'Tripadvisor', component: TripAdvisorLogo, category: 'Metasearch & Direct Connect', desc: 'Tripadvisor Instant Booking & Plus (Global Metasearch)', isComingSoon: true },
   ];
 
   // Load properties & initial data
@@ -630,7 +639,7 @@ export default function ChannelManagerAppPage() {
           </span>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-black text-content-primary-light">{connectedCount}</span>
-            <span className="text-xs text-content-secondary-light">/ 5 OTAs</span>
+            <span className="text-xs text-content-secondary-light">/ 6 OTAs</span>
           </div>
         </div>
 
@@ -758,12 +767,14 @@ export default function ChannelManagerAppPage() {
                           <div className="flex flex-col items-end gap-1">
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                isConnected
+                                (ch as any).isComingSoon
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                  : isConnected
                                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                   : 'bg-gray-100 text-gray-600'
                               }`}
                             >
-                              {isConnected ? 'Active' : 'Unlinked'}
+                              {(ch as any).isComingSoon ? 'Coming Soon' : isConnected ? 'Active' : 'Unlinked'}
                             </span>
                             {isConnected && (
                               <span
@@ -844,6 +855,14 @@ export default function ChannelManagerAppPage() {
                               Disconnect Channel
                             </button>
                           </>
+                        ) : (ch as any).isComingSoon ? (
+                          <button
+                            disabled
+                            className="w-full py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-90 shadow-sm"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                            Integration In Development — Coming Soon
+                          </button>
                         ) : isLocked ? (
                           <Link
                             href="/app/subscription"

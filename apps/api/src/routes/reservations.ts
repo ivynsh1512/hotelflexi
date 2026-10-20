@@ -307,7 +307,14 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
   // Admin can select cutoff age (default <= 10 yrs is child; > 10 yrs is extra adult)
   const childCutoffAge = property?.child_cutoff_age ?? 10;
   const configuredChildRatePaise = property?.child_rate_paise ?? roomType.extra_child_price_paise ?? 0;
-  const extraAdultPricePaise = roomType.extra_adult_price_paise || Math.round(roomType.base_price_paise * 0.3);
+  const extraAdultPricePaise = roomType.extra_adult_price_paise !== undefined && roomType.extra_adult_price_paise !== null
+    ? roomType.extra_adult_price_paise
+    : Math.round(roomType.base_price_paise * 0.3);
+
+  // Extra Adult Surcharge (when adults > base_occupancy)
+  const baseOccupancy = roomType.base_occupancy || 2;
+  const extraAdultsCount = Math.max(0, adults - baseOccupancy);
+  const extraAdultSurchargePaise = extraAdultsCount * extraAdultPricePaise * nights;
 
   let childSurchargePaise = 0;
   if (Array.isArray(body.childAges) && body.childAges.length > 0) {
@@ -322,7 +329,7 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
     childSurchargePaise = children * configuredChildRatePaise * nights;
   }
 
-  const totalRoomChargePaise = calculatedRoomChargePaise + childSurchargePaise;
+  const totalRoomChargePaise = calculatedRoomChargePaise + extraAdultSurchargePaise + childSurchargePaise;
 
   // Coupon Code Application
   let discountPaise = body.discountPaise ? Math.round(body.discountPaise) : 0;

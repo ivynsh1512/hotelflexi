@@ -95,12 +95,28 @@ export default function NewReservationPage() {
   );
 
   // Financial calculations
+  const todayStr = new Date().toISOString().split('T')[0];
   const d1 = new Date(checkInDate);
   const d2 = new Date(checkOutDate);
   const nights = Math.max(1, Math.round(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
   const currentRatePaise = customNightlyRate !== '' ? Math.round((parseFloat(customNightlyRate) || 0) * 100) : 250000;
-  const totalRoomChargePaise = currentRatePaise * nights;
-  const gstRateBasisPoints = currentRatePaise > 750000 ? 1800 : 1200;
+
+  const selectedRoomType = roomTypes.find((r) => r.id === roomTypeId);
+  const baseOccupancy = selectedRoomType?.base_occupancy || 2;
+  const extraAdultsCount = Math.max(0, adults - baseOccupancy);
+  const extraAdultRatePaise = selectedRoomType?.extra_adult_price_paise !== undefined && selectedRoomType?.extra_adult_price_paise !== null
+    ? selectedRoomType.extra_adult_price_paise
+    : Math.round((selectedRoomType?.base_price_paise || currentRatePaise) * 0.3);
+  const extraAdultTotalChargePaise = extraAdultsCount * extraAdultRatePaise * nights;
+
+  const extraChildRatePaise = selectedRoomType?.extra_child_price_paise || 0;
+  const extraChildTotalChargePaise = children * extraChildRatePaise * nights;
+
+  const baseRoomChargePaise = currentRatePaise * nights;
+  const totalRoomChargePaise = baseRoomChargePaise + extraAdultTotalChargePaise + extraChildTotalChargePaise;
+  const effectiveNightlyRatePaise = Math.round(totalRoomChargePaise / nights);
+
+  const gstRateBasisPoints = effectiveNightlyRatePaise > 750000 ? 1800 : 1200;
   const totalTaxPaise = Math.round((totalRoomChargePaise * gstRateBasisPoints) / 10000);
   const grossAmountPaise = Math.max(0, totalRoomChargePaise + totalTaxPaise - discountPaise);
   const advancePaidPaise = Math.round((parseFloat(advancePaid) || 0) * 100);
@@ -128,6 +144,7 @@ export default function NewReservationPage() {
           adults,
           children,
           nightlyRatePaise: currentRatePaise,
+          extraAdultChargePaise: extraAdultTotalChargePaise,
           discountPaise,
           advancePaidPaise,
           paymentMethod,
@@ -285,8 +302,16 @@ export default function NewReservationPage() {
               <input
                 type="date"
                 required
+                min={todayStr}
                 value={checkInDate}
-                onChange={(e) => setCheckInDate(e.target.value)}
+                onChange={(e) => {
+                  setCheckInDate(e.target.value);
+                  if (checkOutDate <= e.target.value) {
+                    const n = new Date(e.target.value);
+                    n.setDate(n.getDate() + 1);
+                    setCheckOutDate(n.toISOString().split('T')[0]);
+                  }
+                }}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
               />
             </div>
@@ -297,7 +322,7 @@ export default function NewReservationPage() {
               <input
                 type="date"
                 required
-                min={checkInDate}
+                min={checkInDate || todayStr}
                 value={checkOutDate}
                 onChange={(e) => setCheckOutDate(e.target.value)}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
@@ -312,8 +337,10 @@ export default function NewReservationPage() {
                 onChange={(e) => setAdults(parseInt(e.target.value, 10))}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
               >
-                {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <option key={n} value={n}>{n} Adult{n > 1 ? 's' : ''}</option>
+                {Array.from({ length: Math.max(16, selectedRoomType?.max_occupancy || 6) }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n} Adult{n > 1 ? 's' : ''} {selectedRoomType?.base_occupancy && n > selectedRoomType.base_occupancy ? `(+${n - selectedRoomType.base_occupancy} Extra)` : ''}
+                  </option>
                 ))}
               </select>
             </div>
@@ -326,7 +353,7 @@ export default function NewReservationPage() {
                 onChange={(e) => setChildren(parseInt(e.target.value, 10))}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
               >
-                {[0, 1, 2, 3].map((n) => (
+                {[0, 1, 2, 3, 4, 5, 6].map((n) => (
                   <option key={n} value={n}>{n} Child{n > 1 ? 'ren' : ''}</option>
                 ))}
               </select>
@@ -425,11 +452,30 @@ export default function NewReservationPage() {
           {/* Real-time Tax Folio Breakdown */}
           <div className="p-4 rounded-xl bg-surface-light border border-border-light text-xs space-y-1.5">
             <div className="flex justify-between text-content-secondary-light">
-              <span>Room Charges ({nights} Night{nights > 1 ? 's' : ''} @ {formatINR(currentRatePaise)})</span>
-              <span className="font-semibold text-content-primary-light">{formatINR(totalRoomChargePaise)}</span>
+              <span>Base Room Charges ({nights} Night{nights > 1 ? 's' : ''} @ {formatINR(currentRatePaise)})</span>
+              <span className="font-semibold text-content-primary-light">{formatINR(baseRoomChargePaise)}</span>
             </div>
+
+            {extraAdultsCount > 0 && (
+              <div className="flex justify-between text-indigo-700 bg-indigo-50/70 px-2.5 py-1 rounded-lg border border-indigo-100">
+                <span>
+                  Extra Adult Surcharge ({extraAdultsCount} Extra Adult{extraAdultsCount > 1 ? 's' : ''} &gt; {baseOccupancy} Base &times; {formatINR(extraAdultRatePaise)} &times; {nights}N)
+                </span>
+                <span className="font-bold">+{formatINR(extraAdultTotalChargePaise)}</span>
+              </div>
+            )}
+
+            {children > 0 && extraChildTotalChargePaise > 0 && (
+              <div className="flex justify-between text-amber-800 bg-amber-50/70 px-2.5 py-1 rounded-lg border border-amber-100">
+                <span>
+                  Child Surcharge ({children} Child{children > 1 ? 'ren' : ''} &times; {formatINR(extraChildRatePaise)} &times; {nights}N)
+                </span>
+                <span className="font-bold">+{formatINR(extraChildTotalChargePaise)}</span>
+              </div>
+            )}
+
             <div className="flex justify-between text-content-secondary-light">
-              <span>GST Applied ({gstRateBasisPoints / 100}% Standard Slab)</span>
+              <span>GST Applied ({gstRateBasisPoints / 100}% {gstRateBasisPoints === 1800 ? 'Luxury (Tariff > ₹7,500)' : 'Standard'} Slab)</span>
               <span className="font-semibold text-content-primary-light">{formatINR(totalTaxPaise)}</span>
             </div>
             <div className="flex justify-between font-bold text-sm text-content-primary-light pt-2 border-t border-border-light">

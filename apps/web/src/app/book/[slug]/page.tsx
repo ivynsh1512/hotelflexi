@@ -400,7 +400,14 @@ export default function DirectBookingPage() {
                 type="date"
                 value={checkInDate}
                 min={new Date().toISOString().split('T')[0]}
-                onChange={(e) => setCheckInDate(e.target.value)}
+                onChange={(e) => {
+                  setCheckInDate(e.target.value);
+                  if (checkOutDate <= e.target.value) {
+                    const next = new Date(e.target.value);
+                    next.setDate(next.getDate() + 1);
+                    setCheckOutDate(next.toISOString().split('T')[0]);
+                  }
+                }}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
               />
             </div>
@@ -427,7 +434,7 @@ export default function DirectBookingPage() {
                 onChange={(e) => setAdults(parseInt(e.target.value, 10))}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white"
               >
-                {[1, 2, 3, 4, 5, 6].map((num) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
                   <option key={num} value={num}>
                     {num} Adult{num > 1 ? 's' : ''}
                   </option>
@@ -812,6 +819,18 @@ export default function DirectBookingPage() {
                           <span>Room Tariff</span>
                           <span>{formatINR(selectedRoom.totalRoomChargePaise)}</span>
                         </div>
+                        {selectedRoom.roomsNeeded > 1 && (
+                          <div className="flex justify-between text-indigo-800 bg-indigo-50/80 px-2 py-1 rounded">
+                            <span>Allocated Rooms:</span>
+                            <span className="font-bold">{selectedRoom.roomsNeeded} Rooms ({adults} Guests)</span>
+                          </div>
+                        )}
+                        {selectedRoom.extraAdultsCount > 0 && (
+                          <div className="flex justify-between text-indigo-800 bg-indigo-50/80 px-2 py-1 rounded">
+                            <span>Extra Guest Charge ({selectedRoom.extraAdultsCount} &times; {formatINR(selectedRoom.extraAdultPricePaise)}/N):</span>
+                            <span className="font-bold">+{formatINR(selectedRoom.totalExtraAdultChargePaise)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between text-content-secondary-light">
                           <span>Applicable GST</span>
                           <span>{formatINR(selectedRoom.taxPaise)}</span>

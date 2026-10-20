@@ -408,3 +408,155 @@ export async function sendEmail(
     return { success: false, error: err.message };
   }
 }
+
+// -----------------------------------------------------------------------------
+// NOTIFY SUPERADMIN OF HOTELIER COMPLAINTS & TECHNICAL BUGS
+// -----------------------------------------------------------------------------
+export async function sendComplaintNotificationEmail(
+  env: Env,
+  data: {
+    ticketNumber: string;
+    hotelName: string;
+    hotelCode: string;
+    category: string;
+    priority: string;
+    subject: string;
+    description: string;
+    requesterName: string;
+    requesterEmail: string;
+    requesterPhone?: string;
+  }
+) {
+  const adminEmail = env.ADMIN_NOTIFICATION_EMAIL || 'info@novaxai.in';
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; color: #1e293b; padding: 20px; }
+      .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; }
+      .header { background: #dc2626; color: #ffffff; padding: 24px; text-align: center; }
+      .content { padding: 24px; }
+      .card { background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin: 16px 0; }
+      .btn { display: inline-block; background: #0f172a; color: #ffffff !important; font-weight: 700; text-decoration: none; padding: 12px 24px; border-radius: 8px; margin-top: 16px; font-size: 13px; }
+      .footer { padding: 16px; text-align: center; font-size: 11px; color: #64748b; background: #f1f5f9; }
+    </style></head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2 style="margin:0;font-size:20px;">🚨 New Hotel Complaint / Bug Raised</h2>
+          <p style="margin:6px 0 0 0;opacity:0.9;font-size:13px;">${data.hotelName} (Code: #${data.hotelCode})</p>
+        </div>
+        <div class="content">
+          <p style="font-size:14px;margin-bottom:12px;">A hotelier has raised an urgent support ticket on HotelFlexi Central Command:</p>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:12px;color:#991b1b;font-weight:700;">Ticket Reference:</span>
+              <span style="font-family:monospace;font-weight:800;color:#991b1b;">${data.ticketNumber}</span>
+            </div>
+            <div style="font-size:13px;line-height:1.6;color:#1e293b;">
+              <div><strong>Property:</strong> ${data.hotelName} (Code: #${data.hotelCode})</div>
+              <div><strong>Category:</strong> ${data.category} &bull; <strong>Priority:</strong> <span style="color:#b91c1c;font-weight:700;">${data.priority.toUpperCase()}</span></div>
+              <div><strong>Requester:</strong> ${data.requesterName} (<a href="mailto:${data.requesterEmail}">${data.requesterEmail}</a>${data.requesterPhone ? ` &bull; <a href="tel:${data.requesterPhone}">${data.requesterPhone}</a>` : ''})</div>
+              <div style="margin-top:10px;padding-top:10px;border-top:1px solid #fecaca;">
+                <strong>Subject:</strong> ${data.subject}
+              </div>
+              <div style="margin-top:8px;background:#ffffff;padding:12px;border-radius:8px;border:1px solid #fed7d7;white-space:pre-wrap;font-family:inherit;">
+${data.description}
+              </div>
+            </div>
+          </div>
+          <div style="text-align:center;">
+            <a href="https://hotelflexi.com/central-command/complaints" class="btn" target="_blank">
+              Open Central Command &rarr;
+            </a>
+          </div>
+        </div>
+        <div class="footer">
+          HotelFlexi Core Alert &bull; Automated SuperAdmin Dispatch
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(env, {
+    to: adminEmail,
+    subject: `🚨 [Hotel Complaint] #${data.ticketNumber} from ${data.hotelName} (Code: #${data.hotelCode}): ${data.subject}`,
+    html,
+  });
+}
+
+// -----------------------------------------------------------------------------
+// NOTIFY SUPERADMIN OF NEW DEMO REQUEST
+// -----------------------------------------------------------------------------
+export async function sendDemoRequestNotificationEmail(
+  env: Env,
+  data: {
+    hotelName: string;
+    contactName: string;
+    phone: string;
+    email?: string;
+    city?: string;
+    propertyType?: string;
+    roomCount?: string;
+    preferredDate?: string;
+    preferredTime?: string;
+  }
+) {
+  const adminEmail = env.ADMIN_NOTIFICATION_EMAIL || 'info@novaxai.in';
+  const cleanPhone = (data.phone || '').replace(/\D/g, '');
+  const waLink = cleanPhone ? `https://wa.me/${cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone}` : null;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; color: #1e293b; padding: 20px; }
+      .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; }
+      .header { background: #2563eb; color: #ffffff; padding: 24px; text-align: center; }
+      .content { padding: 24px; }
+      .card { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px; margin: 16px 0; }
+      .btn { display: inline-block; background: #16a34a; color: #ffffff !important; font-weight: 700; text-decoration: none; padding: 12px 24px; border-radius: 8px; margin: 8px 4px; font-size: 13px; }
+      .footer { padding: 16px; text-align: center; font-size: 11px; color: #64748b; background: #f1f5f9; }
+    </style></head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2 style="margin:0;font-size:22px;">🎯 New 1-on-1 VIP Demo Scheduled</h2>
+          <p style="margin:6px 0 0 0;opacity:0.9;font-size:13px;">${data.hotelName} (${data.city || 'India'})</p>
+        </div>
+        <div class="content">
+          <p style="font-size:14px;margin-bottom:12px;">A hotelier has requested a personalized demonstration of HotelFlexi:</p>
+          <div class="card">
+            <div style="font-size:14px;line-height:1.7;color:#1e293b;">
+              <div><strong>Hotel / Property:</strong> ${data.hotelName}</div>
+              <div><strong>Contact Person:</strong> ${data.contactName}</div>
+              <div><strong>Phone Number:</strong> <a href="tel:${data.phone}" style="font-weight:700;color:#2563eb;">${data.phone}</a></div>
+              <div><strong>Email:</strong> <a href="mailto:${data.email || ''}">${data.email || 'N/A'}</a></div>
+              <div><strong>Location:</strong> ${data.city || 'India'}</div>
+              <div><strong>Property Type:</strong> ${data.propertyType || 'Hotel'}</div>
+              <div><strong>Inventory:</strong> ${data.roomCount || 'N/A'} Rooms</div>
+              <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #93c5fd;">
+                <strong>Preferred Slot:</strong> ${data.preferredDate || 'Earliest Available'} at ${data.preferredTime || '11:00 AM'}
+              </div>
+            </div>
+          </div>
+          <div style="text-align:center;margin-top:16px;">
+            ${waLink ? `<a href="${waLink}" class="btn" target="_blank">Chat on WhatsApp &rarr;</a>` : ''}
+            <a href="tel:${data.phone}" class="btn" style="background:#2563eb;" target="_blank">Call Hotelier &rarr;</a>
+          </div>
+        </div>
+        <div class="footer">
+          HotelFlexi Lead Dispatch &bull; novaxai.in
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(env, {
+    to: adminEmail,
+    subject: `🎯 [New Demo Request] ${data.hotelName} (${data.city || 'India'}) - ${data.contactName} (${data.phone})`,
+    html,
+  });
+}

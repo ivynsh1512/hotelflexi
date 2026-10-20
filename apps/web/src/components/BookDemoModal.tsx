@@ -33,26 +33,19 @@ export function BookDemoModal({ isOpen, onClose }: BookDemoModalProps) {
 
     setSubmitting(true);
     try {
-      // Record lead in support / CRM system
-      await apiClient('/support/tickets', {
+      // Record lead in support / CRM system and notify superadmin immediately
+      await apiClient('/support/demo', {
         method: 'POST',
         body: JSON.stringify({
-          ticketType: 'sales_demo',
-          subject: `VIP Demo Request: ${hotelName} (${city || 'India'}) - ${roomCount} Rooms`,
-          description: `HOTEL DEMO REQUEST DETAILS:
-- Hotel/Property: ${hotelName}
-- Contact Person: ${contactName}
-- Phone: ${phone}
-- Email: ${email || 'N/A'}
-- City / State: ${city || 'N/A'}
-- Property Type: ${propertyType}
-- Room Count: ${roomCount}
-- Preferred Date: ${preferredDate || 'Earliest Available'}
-- Preferred Slot: ${preferredTime}`,
-          priority: 'high',
-          requesterEmail: email || 'demo-request@novaxai.in',
-          requesterPhone: phone,
-          propertyCode: 'DEMO',
+          hotelName,
+          contactName,
+          phone,
+          email,
+          city,
+          propertyType,
+          roomCount,
+          preferredDate,
+          preferredTime,
         }),
       }).catch(() => {
         // Fallback gracefully
