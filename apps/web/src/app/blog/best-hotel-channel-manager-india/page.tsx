@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     title: 'Best Hotel Channel Managers in India (2026) — Live 2-Way Sync Guide',
     description:
       'Learn how 2-way OTA synchronization works in India and how HotelFlexi eliminates duplicate bookings and rate parity issues.',
-    url: 'https://hotelflexi.novaxai.in/blog/best-hotel-channel-manager-india',
+    url: 'https://hotelflexi.com/blog/best-hotel-channel-manager-india',
   },
 };
 
@@ -52,12 +52,12 @@ export default function BestChannelManagerBlogPage() {
       name: 'HotelFlexi',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://hotelflexi.novaxai.in/light-logo.png',
+        url: 'https://hotelflexi.com/light-logo.png',
       },
     },
     datePublished: '2026-10-18',
     dateModified: '2026-10-18',
-    mainEntityOfPage: 'https://hotelflexi.novaxai.in/blog/best-hotel-channel-manager-india',
+    mainEntityOfPage: 'https://hotelflexi.com/blog/best-hotel-channel-manager-india',
   };
 
   return (

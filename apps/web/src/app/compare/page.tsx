@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     title: 'HotelFlexi Competitor Comparisons — Modern Indian Hotel PMS & Channel Manager',
     description:
       'Compare features, pricing, autonomous AI, and 2-way OTA synchronization between HotelFlexi and other hotel management systems.',
-    url: 'https://hotelflexi.novaxai.in/compare',
+    url: 'https://hotelflexi.com/compare',
   },
 };
 

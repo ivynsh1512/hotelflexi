@@ -1,7 +1,7 @@
 Contact: mailto:security@novaxai.in
-Contact: https://hotelflexi.novaxai.in/contact
+Contact: https://hotelflexi.com/contact
 Expires: 2027-12-31T23:59:59.000Z
 Preferred-Languages: en, hi
-Canonical: https://hotelflexi.novaxai.in/.well-known/security.txt
-Policy: https://hotelflexi.novaxai.in/privacy
+Canonical: https://hotelflexi.com/.well-known/security.txt
+Policy: https://hotelflexi.com/privacy
 Hiring: https://novaxai.in/careers

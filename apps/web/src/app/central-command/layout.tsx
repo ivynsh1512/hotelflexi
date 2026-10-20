@@ -70,7 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             Platform infrastructure, complaints, finances, and push broadcasts are managed exclusively via the desktop web portal to maintain security and operational oversight.
           </p>
           <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-800/40 text-[11px] text-purple-300 font-mono">
-            Open https://hotelflexi.novaxai.in/central-command on your laptop or desktop browser.
+            Open https://hotelflexi.com/central-command on your laptop or desktop browser.
           </div>
           <Link
             href="/app"

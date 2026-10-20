@@ -451,3 +451,54 @@ roomRoutes.post('/rate-plans', requireRole(['owner', 'manager']), async (c) => {
 
   return c.json({ success: true, id });
 });
+
+roomRoutes.patch('/rate-plans/:id', requireRole(['owner', 'manager']), async (c) => {
+  const tenantId = c.get('tenantId')!;
+  const id = c.req.param('id');
+  const body = await c.req.json();
+  const now = Math.floor(Date.now() / 1000);
+
+  const existing: any = await c.env.DB.prepare(
+    'SELECT id FROM rate_plans WHERE id = ? AND tenant_id = ?'
+  ).bind(id, tenantId).first();
+
+  if (!existing) {
+    return c.json({ error: 'Rate plan not found' }, 404);
+  }
+
+  await c.env.DB.prepare(
+    `UPDATE rate_plans SET
+       name = COALESCE(?, name),
+       code = COALESCE(?, code),
+       meal_plan = COALESCE(?, meal_plan),
+       price_multiplier = COALESCE(?, price_multiplier),
+       surcharge_paise = COALESCE(?, surcharge_paise),
+       is_non_refundable = COALESCE(?, is_non_refundable),
+       updated_at = ?
+     WHERE id = ? AND tenant_id = ?`
+  ).bind(
+    body.name ?? null,
+    body.code ?? null,
+    body.mealPlan ?? null,
+    body.priceMultiplier !== undefined ? body.priceMultiplier : null,
+    body.surchargePaise !== undefined ? Math.round(body.surchargePaise) : null,
+    body.isNonRefundable !== undefined ? (body.isNonRefundable ? 1 : 0) : null,
+    now,
+    id,
+    tenantId
+  ).run();
+
+  return c.json({ success: true, message: 'Rate plan updated' });
+});
+
+roomRoutes.delete('/rate-plans/:id', requireRole(['owner', 'manager']), async (c) => {
+  const tenantId = c.get('tenantId')!;
+  const id = c.req.param('id');
+  const now = Math.floor(Date.now() / 1000);
+
+  await c.env.DB.prepare(
+    'UPDATE rate_plans SET is_active = 0, updated_at = ? WHERE id = ? AND tenant_id = ?'
+  ).bind(now, id, tenantId).run();
+
+  return c.json({ success: true, message: 'Rate plan deactivated' });
+});

@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     title: 'HotelFlexi vs Yojna Cloud Solution — Modern AI PMS Comparison',
     description:
       'Tired of clunky legacy interfaces and expensive AMCs? See why HotelFlexi is the modern choice for Indian hospitality.',
-    url: 'https://hotelflexi.novaxai.in/compare/yojna-cloud',
+    url: 'https://hotelflexi.com/compare/yojna-cloud',
   },
 };
 

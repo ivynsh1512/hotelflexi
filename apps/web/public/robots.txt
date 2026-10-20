@@ -62,5 +62,5 @@ Disallow: /central-command/
 Disallow: /guest/
 
 # XML Sitemap Location
-Sitemap: https://hotelflexi.novaxai.in/sitemap.xml
-Host: https://hotelflexi.novaxai.in
+Sitemap: https://hotelflexi.com/sitemap.xml
+Host: https://hotelflexi.com

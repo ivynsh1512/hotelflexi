@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     title: 'Why Urgent Siren Alerts for Housekeeping Solve Guest Complaints in Under 7 Minutes',
     description:
       'Learn how audio-visual emergency alarms on staff devices end intercom delays and elevate hotel guest satisfaction.',
-    url: 'https://hotelflexi.novaxai.in/blog/streamline-housekeeping-with-urgent-siren-alerts',
+    url: 'https://hotelflexi.com/blog/streamline-housekeeping-with-urgent-siren-alerts',
   },
 };
 
@@ -52,12 +52,12 @@ export default function HousekeepingSirenBlogPage() {
       name: 'HotelFlexi',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://hotelflexi.novaxai.in/light-logo.png',
+        url: 'https://hotelflexi.com/light-logo.png',
       },
     },
     datePublished: '2026-10-16',
     dateModified: '2026-10-16',
-    mainEntityOfPage: 'https://hotelflexi.novaxai.in/blog/streamline-housekeeping-with-urgent-siren-alerts',
+    mainEntityOfPage: 'https://hotelflexi.com/blog/streamline-housekeeping-with-urgent-siren-alerts',
   };
 
   return (

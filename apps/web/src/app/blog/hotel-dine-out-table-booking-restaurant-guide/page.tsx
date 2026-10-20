@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title: 'How Hotels & Resorts Unlock 35%+ F&B Revenue With Dine-Out Table Bookings',
     description:
       'Learn how to turn your resort kitchen into an independent profit center using 5-digit hotel codes, public table booking links, and contactless menu ordering.',
-    url: 'https://hotelflexi.novaxai.in/blog/hotel-dine-out-table-booking-restaurant-guide',
+    url: 'https://hotelflexi.com/blog/hotel-dine-out-table-booking-restaurant-guide',
   },
 };
 
@@ -53,20 +53,20 @@ export default function HotelDineOutGuidePage() {
         author: {
           '@type': 'Organization',
           name: 'HotelFlexi Hospitality Intelligence Team',
-          url: 'https://hotelflexi.novaxai.in',
+          url: 'https://hotelflexi.com',
         },
         publisher: {
           '@type': 'Organization',
           name: 'HotelFlexi',
           logo: {
             '@type': 'ImageObject',
-            url: 'https://hotelflexi.novaxai.in/logo-dark.png',
+            url: 'https://hotelflexi.com/logo-dark.png',
           },
         },
         datePublished: '2026-10-20',
         dateModified: '2026-10-20',
         mainEntityOfPage:
-          'https://hotelflexi.novaxai.in/blog/hotel-dine-out-table-booking-restaurant-guide',
+          'https://hotelflexi.com/blog/hotel-dine-out-table-booking-restaurant-guide',
       },
       {
         '@type': 'FAQPage',
@@ -76,7 +76,7 @@ export default function HotelDineOutGuidePage() {
             name: 'Can guests staying at other resorts book a table at my hotel restaurant?',
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Yes! With HotelFlexi Dine-Out, every hotel receives a dedicated public reservation URL (e.g., hotelflexi.novaxai.in/dine/58291) and 5-digit code. Guests from neighboring resorts, homestays, or passing tourists can view your digital menu, reserve a table, and even pre-order dishes.',
+              text: 'Yes! With HotelFlexi Dine-Out, every hotel receives a dedicated public reservation URL (e.g., hotelflexi.com/dine/58291) and 5-digit code. Guests from neighboring resorts, homestays, or passing tourists can view your digital menu, reserve a table, and even pre-order dishes.',
             },
           },
           {
@@ -163,7 +163,7 @@ export default function HotelDineOutGuidePage() {
             <ul className="space-y-3 pl-4 border-l-2 border-amber-500">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-1" />
-                <span><strong>Unique 5-Digit Property Code (e.g. #58291):</strong> Easy for guests staying in neighboring resorts or homestays to remember and search at <Link href="/dine-out" className="text-amber-600 font-bold underline">hotelflexi.novaxai.in/dine-out</Link>.</span>
+                <span><strong>Unique 5-Digit Property Code (e.g. #58291):</strong> Easy for guests staying in neighboring resorts or homestays to remember and search at <Link href="/dine-out" className="text-amber-600 font-bold underline">hotelflexi.com/dine-out</Link>.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-1" />

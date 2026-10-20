@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     title: 'Complete Guide to Indian Hotel GST Invoicing (12% vs 18% SAC 9963)',
     description:
       'Everything Indian hoteliers need to know about GST tax rates, room tariff thresholds, and automated invoicing folios.',
-    url: 'https://hotelflexi.novaxai.in/blog/hotel-pms-gst-billing-guide-india',
+    url: 'https://hotelflexi.com/blog/hotel-pms-gst-billing-guide-india',
   },
 };
 
@@ -51,12 +51,12 @@ export default function HotelGstGuideBlogPage() {
       name: 'HotelFlexi',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://hotelflexi.novaxai.in/light-logo.png',
+        url: 'https://hotelflexi.com/light-logo.png',
       },
     },
     datePublished: '2026-10-14',
     dateModified: '2026-10-14',
-    mainEntityOfPage: 'https://hotelflexi.novaxai.in/blog/hotel-pms-gst-billing-guide-india',
+    mainEntityOfPage: 'https://hotelflexi.com/blog/hotel-pms-gst-billing-guide-india',
   };
 
   return (

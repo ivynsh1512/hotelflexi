@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     title: 'The Ultimate Guide to FlexiLink: Contactless Guest Self Check-In & In-Stay Orders',
     description:
       'Learn how Indian hotels eliminate front-desk queues, collect verified government IDs, and boost room service revenue using automated WhatsApp and Email FlexiLinks.',
-    url: 'https://hotelflexi.novaxai.in/blog/contactless-guest-portal-self-check-in-flexilink',
+    url: 'https://hotelflexi.com/blog/contactless-guest-portal-self-check-in-flexilink',
   },
 };
 
@@ -51,20 +51,20 @@ export default function FlexiLinkGuidePage() {
         author: {
           '@type': 'Organization',
           name: 'HotelFlexi Hospitality Intelligence Team',
-          url: 'https://hotelflexi.novaxai.in',
+          url: 'https://hotelflexi.com',
         },
         publisher: {
           '@type': 'Organization',
           name: 'HotelFlexi',
           logo: {
             '@type': 'ImageObject',
-            url: 'https://hotelflexi.novaxai.in/logo-dark.png',
+            url: 'https://hotelflexi.com/logo-dark.png',
           },
         },
         datePublished: '2026-10-20',
         dateModified: '2026-10-20',
         mainEntityOfPage:
-          'https://hotelflexi.novaxai.in/blog/contactless-guest-portal-self-check-in-flexilink',
+          'https://hotelflexi.com/blog/contactless-guest-portal-self-check-in-flexilink',
       },
       {
         '@type': 'FAQPage',

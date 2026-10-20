@@ -1,7 +1,7 @@
 /* TEAM */
   Developer & AI Systems: NovaX AI Team
   Product: HotelFlexi
-  Website: https://hotelflexi.novaxai.in
+  Website: https://hotelflexi.com
   Contact: contact@novaxai.in
   Location: India
 

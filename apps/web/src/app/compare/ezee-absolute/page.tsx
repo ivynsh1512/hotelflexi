@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     title: 'HotelFlexi vs eZee Absolute — Modern Hospitality Software Comparison',
     description:
       'Skip the steep training curve. Switch to HotelFlexi with autonomous AI, real-time OTA sync, and urgency siren starting at ₹499/mo.',
-    url: 'https://hotelflexi.novaxai.in/compare/ezee-absolute',
+    url: 'https://hotelflexi.com/compare/ezee-absolute',
   },
 };
 

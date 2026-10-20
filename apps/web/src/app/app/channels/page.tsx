@@ -556,7 +556,7 @@ export default function ChannelManagerAppPage() {
                 type="button"
                 onClick={() => {
                   const slug = properties.find((p) => p.id === propertyId)?.slug || '';
-                  const url = `https://hotelflexi.novaxai.in/book/${slug}?utm_source=google_hotel_fbl&utm_medium=organic&utm_campaign=official_site`;
+                  const url = `https://hotelflexi.com/book/${slug}?utm_source=google_hotel_fbl&utm_medium=organic&utm_campaign=official_site`;
                   navigator.clipboard.writeText(url);
                   alert('Copied GMB Official Site link to clipboard!');
                 }}
@@ -566,7 +566,7 @@ export default function ChannelManagerAppPage() {
               </button>
             </div>
             <div className="font-mono text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100 truncate text-slate-600">
-              https://hotelflexi.novaxai.in/book/{properties.find((p) => p.id === propertyId)?.slug || 'your-hotel'}?utm_source=google_hotel_official_site
+              https://hotelflexi.com/book/{properties.find((p) => p.id === propertyId)?.slug || 'your-hotel'}?utm_source=google_hotel_official_site
             </div>
           </div>
 

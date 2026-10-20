@@ -1,6 +1,6 @@
 {
   "packageId": "in.novaxai.hotelflexi",
-  "host": "hotelflexi.novaxai.in",
+  "host": "hotelflexi.com",
   "name": "HotelFlexi",
   "launcherName": "HotelFlexi",
   "themeColor": "#0A0F1D",
@@ -12,13 +12,13 @@
   "backgroundColor": "#0A0F1D",
   "enableNotifications": true,
   "startUrl": "/login",
-  "iconUrl": "https://hotelflexi.novaxai.in/icon-512.png",
-  "maskableIconUrl": "https://hotelflexi.novaxai.in/icon-maskable-512.png",
-  "appVersionName": "1.0.7",
-  "appVersionCode": 10,
+  "iconUrl": "https://hotelflexi.com/icon-512.png",
+  "maskableIconUrl": "https://hotelflexi.com/icon-maskable-512.png",
+  "appVersionName": "1.0.9",
+  "appVersionCode": 12,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://hotelflexi.novaxai.in/manifest.webmanifest",
+  "webManifestUrl": "https://hotelflexi.com/manifest.webmanifest",
   "fallbackType": "webview",
   "features": {
     "locationDelegation": {
@@ -34,5 +34,5 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://hotelflexi.novaxai.in/"
+  "fullScopeUrl": "https://hotelflexi.com/"
 }

@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     title: 'HotelFlexi vs Djubo — Channel Manager & PMS Comparison',
     description:
       'Avoid separate modular billing and booking commissions. Switch to HotelFlexi for ₹499/mo all-in-one.',
-    url: 'https://hotelflexi.novaxai.in/compare/djubo',
+    url: 'https://hotelflexi.com/compare/djubo',
   },
 };
 

@@ -26,14 +26,14 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
             <img
               src="/light-logo.png"
               alt="HotelFlexi"
-              className="h-8 sm:h-9 w-auto max-w-[155px] object-contain"
+              className="h-7 sm:h-7.5 w-auto max-w-[145px] object-contain"
             />
           </Link>
 
@@ -85,10 +85,10 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Right Action Cluster */}
-          <div className="hidden sm:flex items-center gap-3 shrink-0">
+          <div className="hidden sm:flex items-center gap-2.5 shrink-0">
             <Link
               href="/download-app"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition"
               title="Install official Android App (APK & Play Store Bundle)"
             >
               <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
@@ -97,7 +97,7 @@ export const Navbar: React.FC = () => {
 
             <button
               onClick={() => setDemoModalOpen(true)}
-              className="px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-brand-blue hover:bg-slate-50 border border-slate-200 rounded-xl transition"
+              className="px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-brand-blue hover:bg-slate-50 border border-slate-200 rounded-lg transition"
             >
               Book Demo
             </button>
@@ -105,7 +105,7 @@ export const Navbar: React.FC = () => {
             {user ? (
               <Link
                 href="/app"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-extrabold rounded-xl bg-brand-blue hover:bg-blue-700 text-white shadow-sm transition"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-extrabold rounded-lg bg-brand-blue hover:bg-blue-700 text-white shadow-sm transition"
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
                 <span>Dashboard</span>
@@ -114,13 +114,13 @@ export const Navbar: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-brand-blue transition"
+                  className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-brand-blue transition"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/signup"
-                  className="inline-flex items-center gap-1 px-4 py-2 text-xs font-extrabold rounded-xl bg-brand-blue hover:bg-blue-700 text-white shadow-sm transition"
+                  className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-extrabold rounded-lg bg-brand-blue hover:bg-blue-700 text-white shadow-sm transition"
                 >
                   <span>Start Free Trial</span>
                   <ChevronRight className="w-3.5 h-3.5" />

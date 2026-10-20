@@ -363,7 +363,7 @@ export default function HomePage() {
       {/* ═══════════════════════════
           1. HERO SECTION
       ═══════════════════════════ */}
-      <section className="relative pt-16 sm:pt-24 pb-0 overflow-hidden bg-white border-b border-slate-100">
+      <section className="relative pt-6 sm:pt-10 pb-0 overflow-hidden bg-white border-b border-slate-100">
         {/* subtle radial gradient */}
         <div
           aria-hidden
@@ -465,7 +465,7 @@ export default function HomePage() {
                   <span className="hf-win-dot green" />
                 </div>
                 <div className="flex-1 bg-white rounded-md border border-slate-200 px-3 py-1 text-xs text-slate-400 font-mono text-left">
-                  hotelflexi.novaxai.in/dashboard
+                  hotelflexi.com/dashboard
                 </div>
                 <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
                   ● Live

@@ -3,16 +3,16 @@
 **Product Name:** HotelFlexi  
 **Company:** NovaX AI  
 **Package ID:** `in.novaxai.hotelflexi`  
-**Production Host:** `https://hotelflexi.novaxai.in`  
-**Mandatory Launch URL:** `https://hotelflexi.novaxai.in/login`  
+**Production Host:** `https://hotelflexi.com`  
+**Mandatory Launch URL:** `https://hotelflexi.com/login`  
 
 ---
 
 ## 1. Prerequisites Verified
 
-- [x] **Web App Manifest**: Live at `https://hotelflexi.novaxai.in/manifest.webmanifest` (`start_url: "/login"`, `display: "standalone"`, icons 192, 512, maskable).
-- [x] **Safe Production Service Worker**: Live at `https://hotelflexi.novaxai.in/sw.js` (offline fallback to `/offline`, API & auth bypass).
-- [x] **Digital Asset Links**: Configured at `https://hotelflexi.novaxai.in/.well-known/assetlinks.json`.
+- [x] **Web App Manifest**: Live at `https://hotelflexi.com/manifest.webmanifest` (`start_url: "/login"`, `display: "standalone"`, icons 192, 512, maskable).
+- [x] **Safe Production Service Worker**: Live at `https://hotelflexi.com/sw.js` (offline fallback to `/offline`, API & auth bypass).
+- [x] **Digital Asset Links**: Configured at `https://hotelflexi.com/.well-known/assetlinks.json`.
 - [x] **Android Launcher Icons**: Generated at `android/app/src/main/res/mipmap-*` (48px to 192px).
 - [x] **Bubblewrap TWA Manifest**: Generated at `android/twa-manifest.json`.
 
@@ -79,7 +79,7 @@ Bubblewrap reads `twa-manifest.json` and outputs `app-release-bundle.aab`.
    - **Feature Graphic:** 1024×500 PNG.
    - **Phone Screenshots:** At least 4 screenshots (PMS calendar, booking engine, housekeeping, GST invoice).
 3. **App Content & Declarations:**
-   - **Privacy Policy URL:** `https://hotelflexi.novaxai.in/privacy`
+   - **Privacy Policy URL:** `https://hotelflexi.com/privacy`
    - **App Access:** "All functionality is available without special access" or provide test credentials (`demo@novaxai.in`).
    - **Content Rating:** Everyone (Complete the questionnaire).
    - **Target Audience:** 18 and older (Business / Hospitality).

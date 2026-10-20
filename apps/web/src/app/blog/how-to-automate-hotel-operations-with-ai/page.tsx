@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     title: 'How Indian Hoteliers Are Automating Hotel Operations with AI',
     description:
       'Step-by-step guide to deploying an autonomous AI concierge that handles guest reservations, questions, and check-ins 24/7.',
-    url: 'https://hotelflexi.novaxai.in/blog/how-to-automate-hotel-operations-with-ai',
+    url: 'https://hotelflexi.com/blog/how-to-automate-hotel-operations-with-ai',
   },
 };
 
@@ -52,12 +52,12 @@ export default function AiHotelOperationsBlogPage() {
       name: 'HotelFlexi',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://hotelflexi.novaxai.in/light-logo.png',
+        url: 'https://hotelflexi.com/light-logo.png',
       },
     },
     datePublished: '2026-10-19',
     dateModified: '2026-10-19',
-    mainEntityOfPage: 'https://hotelflexi.novaxai.in/blog/how-to-automate-hotel-operations-with-ai',
+    mainEntityOfPage: 'https://hotelflexi.com/blog/how-to-automate-hotel-operations-with-ai',
   };
 
   return (

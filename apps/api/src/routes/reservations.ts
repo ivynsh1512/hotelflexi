@@ -782,3 +782,39 @@ reservationRoutes.patch('/:id/cancel', requireRole(['owner', 'manager', 'recepti
 
   return c.json({ success: true, message: 'Reservation cancelled' });
 });
+
+// -----------------------------------------------------------------------------
+// DELETE RESERVATION & GUEST RECORD
+// -----------------------------------------------------------------------------
+reservationRoutes.delete('/:id', requireRole(['owner', 'manager']), async (c) => {
+  const tenantId = c.get('tenantId')!;
+  const id = c.req.param('id');
+
+  const res: any = await c.env.DB.prepare(
+    'SELECT id, reservation_number, room_id FROM reservations WHERE id = ? AND tenant_id = ?'
+  ).bind(id, tenantId).first();
+
+  if (!res) {
+    return c.json({ error: 'Reservation not found' }, 404);
+  }
+
+  // Batch delete related records
+  await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM reservation_guests WHERE reservation_id = ?').bind(id),
+    c.env.DB.prepare('DELETE FROM invoices WHERE reservation_id = ?').bind(id),
+    c.env.DB.prepare('DELETE FROM payments WHERE reservation_id = ?').bind(id),
+    c.env.DB.prepare('DELETE FROM reservations WHERE id = ? AND tenant_id = ?').bind(id, tenantId),
+  ]);
+
+  await recordAuditLog(c, {
+    action: 'reservation.deleted',
+    resourceType: 'reservation',
+    resourceId: id,
+    oldValues: { reservation_number: res.reservation_number },
+  });
+
+  return c.json({
+    success: true,
+    message: `Guest profile and reservation #${res.reservation_number} deleted successfully`,
+  });
+});

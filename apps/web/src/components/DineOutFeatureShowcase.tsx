@@ -177,7 +177,7 @@ export const DineOutFeatureShowcase: React.FC = () => {
               {/* Action */}
               <div className="pt-2 flex items-center justify-between text-xs text-slate-400">
                 <span>Guest Dine-Out URL:</span>
-                <span className="text-blue-400 font-mono underline">hotelflexi.novaxai.in/dine/58291</span>
+                <span className="text-blue-400 font-mono underline">hotelflexi.com/dine/58291</span>
               </div>
             </div>
           </div>

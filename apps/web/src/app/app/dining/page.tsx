@@ -59,7 +59,7 @@ export default function AppDiningPage() {
   const [copiedLink, setCopiedLink] = useState(false);
 
   const hotelCode = currentTenant?.tenant_id ? (currentTenant as any).hotel_code || '58291' : '58291';
-  const dineOutPublicUrl = `https://hotelflexi.novaxai.in/dine/${currentTenant?.tenant_slug || hotelCode}`;
+  const dineOutPublicUrl = `https://hotelflexi.com/dine/${currentTenant?.tenant_slug || hotelCode}`;
 
   const fetchData = async () => {
     if (!currentTenant) return;

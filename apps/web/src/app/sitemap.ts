@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://hotelflexi.novaxai.in';
+  const baseUrl = 'https://hotelflexi.com';
   const lastModified = new Date();
 
   const routes: MetadataRoute.Sitemap = [

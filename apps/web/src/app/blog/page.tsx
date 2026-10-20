@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     title: 'HotelFlexi Hospitality & Tech Blog',
     description:
       'Guides and strategies to increase direct hotel bookings, prevent OTA overselling, and automate front-desk operations.',
-    url: 'https://hotelflexi.novaxai.in/blog',
+    url: 'https://hotelflexi.com/blog',
   },
 };
 

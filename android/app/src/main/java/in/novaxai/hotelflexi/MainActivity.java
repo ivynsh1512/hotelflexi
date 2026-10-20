@@ -44,7 +44,7 @@ import org.json.JSONObject;
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQ_CODE = 1001;
     private static final int FILE_CHOOSER_REQ_CODE = 2001;
-    private static final String DEFAULT_LAUNCH_URL = "https://hotelflexi.novaxai.in/login";
+    private static final String DEFAULT_LAUNCH_URL = "https://hotelflexi.com/login";
 
     private WebView webView;
     private SwipeRefreshLayout swipeRefresh;
@@ -185,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 // Keep all HotelFlexi internal links strictly inside the native app
-                if (url.contains("hotelflexi.novaxai.in") ||
+                if (url.contains("hotelflexi.com") ||
                     url.contains("hotelflexi.divyansh-shukla.workers.dev") ||
                     url.contains("accounts.google.com") ||
                     url.contains("firebaseapp.com")) {
@@ -297,7 +297,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             // Direct WebView navigation to staff operations console
-            webView.loadUrl("https://hotelflexi.novaxai.in/app/housekeeping");
+            webView.loadUrl("https://hotelflexi.com/app/housekeeping");
         });
     }
 

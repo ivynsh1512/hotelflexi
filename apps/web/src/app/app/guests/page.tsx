@@ -15,6 +15,7 @@ import {
   FileText,
   ExternalLink,
   Baby,
+  Trash2,
 } from 'lucide-react';
 
 export default function GuestsDirectoryPage() {
@@ -51,6 +52,20 @@ export default function GuestsDirectoryPage() {
     ).toLowerCase();
     return text.includes(query.toLowerCase());
   });
+
+  const handleDeleteGuest = async (resId: string, guestName: string, resNumber: string) => {
+    if (!confirm(`Are you sure you want to delete ${guestName || 'this guest'} (Booking #${resNumber}) from the ledger? This will permanently remove their profile, ID documents, and invoice history.`)) {
+      return;
+    }
+
+    try {
+      await apiClient(`/reservations/${resId}`, { method: 'DELETE' });
+      setReservations((prev) => prev.filter((r) => r.id !== resId));
+      alert('Guest record deleted successfully.');
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete guest record.');
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -99,16 +114,26 @@ export default function GuestsDirectoryPage() {
                     </span>
                   </div>
 
-                  {res.self_checkin_completed ? (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1 shrink-0">
-                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                      ID Verified
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[10px] font-semibold border border-amber-200 shrink-0">
-                      ID Pending
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {res.self_checkin_completed ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                        ID Verified
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[10px] font-semibold border border-amber-200">
+                        ID Pending
+                      </span>
+                    )}
+
+                    <button
+                      onClick={() => handleDeleteGuest(res.id, res.guest_name, res.reservation_number)}
+                      className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                      title="Delete guest record from ledger"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="text-xs text-content-secondary-light space-y-1.5 pt-1">

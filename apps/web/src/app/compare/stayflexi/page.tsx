@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     title: 'HotelFlexi vs StayFlexi — In-Depth Feature & Price Comparison',
     description:
       'Why pay high USD pricing for StayFlexi when you can get autonomous AI, 2-way OTA sync, and urgency siren for ₹499/mo in India?',
-    url: 'https://hotelflexi.novaxai.in/compare/stayflexi',
+    url: 'https://hotelflexi.com/compare/stayflexi',
   },
 };
 

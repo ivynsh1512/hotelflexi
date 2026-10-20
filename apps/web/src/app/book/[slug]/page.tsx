@@ -249,7 +249,7 @@ export default function DirectBookingPage() {
     '@type': ['Hotel', 'LodgingBusiness'],
     name: property.name,
     description: property.description || `${property.name} Official Direct Booking Engine with best rate guarantee and instant confirmation.`,
-    url: `https://hotelflexi.novaxai.in/book/${slug}`,
+    url: `https://hotelflexi.com/book/${slug}`,
     telephone: property.phone || '',
     email: property.email || '',
     image: galleryImages.length > 0 ? galleryImages : (property.logo_url ? [property.logo_url] : []),
@@ -279,7 +279,7 @@ export default function DirectBookingPage() {
       priceCurrency: 'INR',
       availability: 'https://schema.org/InStock',
       validFrom: new Date().toISOString(),
-      url: `https://hotelflexi.novaxai.in/book/${slug}?room_type=${rt.id}`,
+      url: `https://hotelflexi.com/book/${slug}?room_type=${rt.id}`,
     })),
   } : null;
 

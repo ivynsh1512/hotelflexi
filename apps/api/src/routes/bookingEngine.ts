@@ -695,7 +695,7 @@ bookingEngineRoutes.get('/properties/:slug/google-hotel-feed.xml', async (c) => 
     </Address>
     <Phone>${property.phone || ''}</Phone>
     <Email>${property.email || ''}</Email>
-    <OfficialWebsiteURL>https://hotelflexi.novaxai.in/book/${property.slug}?utm_source=google_hotel_official_site</OfficialWebsiteURL>
+    <OfficialWebsiteURL>https://hotelflexi.com/book/${property.slug}?utm_source=google_hotel_official_site</OfficialWebsiteURL>
   </PropertyDataSet>
   <Result>`;
 
@@ -717,7 +717,7 @@ bookingEngineRoutes.get('/properties/:slug/google-hotel-feed.xml', async (c) => 
       <TotalRate currency="INR">${totalINR}</TotalRate>
       <Occupancy>${rt.base_occupancy || 2}</Occupancy>
       <MaxOccupancy>${rt.max_occupancy || 3}</MaxOccupancy>
-      <BookingURL>https://hotelflexi.novaxai.in/book/${property.slug}?room_type=${rt.id}&amp;utm_source=google_free_booking_links&amp;utm_medium=organic&amp;utm_campaign=official_site</BookingURL>
+      <BookingURL>https://hotelflexi.com/book/${property.slug}?room_type=${rt.id}&amp;utm_source=google_free_booking_links&amp;utm_medium=organic&amp;utm_campaign=official_site</BookingURL>
       <Expiration timestamp="${validUntilIso}"/>
     </RoomData>`;
   }
