@@ -421,42 +421,7 @@ export async function executeAiTool(
         break;
       }
 
-      // -----------------------------------------------------------------------
-      // 8. UNBLOCK ROOM
-      // -----------------------------------------------------------------------
-      case 'unblock_room': {
-        const { roomNumber } = params;
-        if (!roomNumber) {
-          throw new Error('Room number is required');
-        }
 
-        const room: any = await env.DB.prepare(
-          'SELECT id FROM rooms WHERE room_number = ? AND tenant_id = ?'
-        )
-          .bind(String(roomNumber), tenantId)
-          .first();
-
-        if (!room) {
-          throw new Error(`Room ${roomNumber} not found.`);
-        }
-
-        await env.DB.prepare(
-          'UPDATE room_blocks SET is_active = 0, updated_at = ? WHERE room_id = ? AND tenant_id = ? AND is_active = 1'
-        )
-          .bind(now, room.id, tenantId)
-          .run();
-
-        await env.DB.prepare('UPDATE rooms SET status = "available", updated_at = ? WHERE id = ?')
-          .bind(now, room.id)
-          .run();
-
-        success = true;
-        result = { roomNumber, unblocked: true };
-        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
-          ? `Room ${roomNumber} ko unblock kar diya gaya hai aur ab booking ke liye available hai.`
-          : `Room ${roomNumber} has been unblocked and is now marked as available.`;
-        break;
-      }
 
       // -----------------------------------------------------------------------
       // 9. SET DATE-SPECIFIC RATE
