@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class HotelFlexiApiClient {
-    public static final String BASE_URL = "https://hotelflexi.divyansh-shukla.workers.dev/api";
+    public static final String BASE_URL = "https://hotelflexi.divyansh-shukla.workers.dev/api/v1";
     private static final String PREF_NAME = "hotelflexi_prefs";
     private static final String KEY_TOKEN = "auth_token";
     private static final String KEY_TENANT_ID = "tenant_id";

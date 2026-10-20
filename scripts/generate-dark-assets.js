@@ -2,14 +2,55 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-async function generateAll() {
-  console.log('--- Generating Dark Theme Icons and Splash Screens ---');
+async function makeTransparent(buffer, width, height, channels) {
+  const out = Buffer.alloc(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    const r = buffer[i * channels];
+    const g = buffer[i * channels + 1];
+    const b = buffer[i * channels + 2];
+    const maxC = Math.max(r, g, b);
 
-  // 1. Prepare Base Icon (512x512)
-  // Emblem safe zone: 320x238 centered on 512x512 jet dark background
-  const emblemBuf = await sharp('apps/web/public/dark-icon-512.png')
+    let alpha = 255;
+    if (maxC < 14) {
+      alpha = 0;
+    } else if (maxC < 55) {
+      alpha = Math.round(((maxC - 14) / 41) * 255);
+    }
+
+    out[i * 4] = r;
+    out[i * 4 + 1] = g;
+    out[i * 4 + 2] = b;
+    out[i * 4 + 3] = alpha;
+  }
+  return sharp(out, { raw: { width, height, channels: 4 } }).png().toBuffer();
+}
+
+async function generateAll() {
+  console.log('--- Generating High-Res Dark Theme Icons and Splash Screens ---');
+
+  // Background color: #0A0F1D
+  const BG_COLOR = { r: 10, g: 15, b: 29, alpha: 1 };
+
+  // 1. Transparent Emblem from dark-icon-512.png
+  const emblemRaw = await sharp('apps/web/public/dark-icon-512.png')
     .extract({ left: 56, top: 107, width: 400, height: 297 })
-    .resize(320, 238, { fit: 'contain' })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const transparentEmblem = await makeTransparent(
+    emblemRaw.data,
+    emblemRaw.info.width,
+    emblemRaw.info.height,
+    emblemRaw.info.channels
+  );
+
+  // 2. Base App Icon (512x512)
+  // Adaptive icon safe zone diameter is 338px. Emblem at 330x245 fits perfectly inside safe zone.
+  const targetEmblemW = 330;
+  const targetEmblemH = Math.round((297 * targetEmblemW) / 400);
+
+  const resizedEmblem = await sharp(transparentEmblem)
+    .resize(targetEmblemW, targetEmblemH, { fit: 'contain' })
     .toBuffer();
 
   const baseIcon512 = await sharp({
@@ -17,14 +58,14 @@ async function generateAll() {
       width: 512,
       height: 512,
       channels: 4,
-      background: { r: 10, g: 15, b: 29, alpha: 1 }, // Luxury Deep Navy/Black
+      background: BG_COLOR,
     },
   })
     .composite([
       {
-        input: emblemBuf,
-        top: Math.round((512 - 238) / 2),
-        left: Math.round((512 - 320) / 2),
+        input: resizedEmblem,
+        top: Math.round((512 - targetEmblemH) / 2),
+        left: Math.round((512 - targetEmblemW) / 2),
       },
     ])
     .png()
@@ -39,7 +80,7 @@ async function generateAll() {
   console.log('✓ Web icons updated (icon-512, icon-192, apple-touch-icon)');
 
   // Save Play Store icon (512x512 RGB no alpha)
-  await sharp(baseIcon512).flatten({ background: { r: 10, g: 15, b: 29 } }).toFile('android/store_icon.png');
+  await sharp(baseIcon512).flatten({ background: BG_COLOR }).toFile('android/store_icon.png');
   console.log('✓ Play Store icon updated (android/store_icon.png)');
 
   // Save Android Mipmap Icons
@@ -60,35 +101,46 @@ async function generateAll() {
     console.log(`✓ ${folder} (${size}x${size}) generated`);
   }
 
-  // 2. Prepare Splash Screens
+  // 3. Prepare Seamless Splash Screens
   // Extract full logo (emblem + HotelFlexi text) from dark-logo.png
-  const fullLogoBuf = await sharp('apps/web/public/dark-logo.png')
-    .extract({ left: 336, top: 165, width: 1000, height: 600 })
-    .toBuffer();
+  const fullLogoRaw = await sharp('apps/web/public/dark-logo.png')
+    .extract({ left: 336, top: 165, width: 1002, height: 600 })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const transparentFullLogo = await makeTransparent(
+    fullLogoRaw.data,
+    fullLogoRaw.info.width,
+    fullLogoRaw.info.height,
+    fullLogoRaw.info.channels
+  );
 
   const splashSizes = {
-    'drawable-mdpi': 300,
-    'drawable-hdpi': 450,
-    'drawable-xhdpi': 600,
-    'drawable-xxhdpi': 900,
-    'drawable-xxxhdpi': 1200,
+    'drawable-mdpi': 360,
+    'drawable-hdpi': 540,
+    'drawable-xhdpi': 720,
+    'drawable-xxhdpi': 1080,
+    'drawable-xxxhdpi': 1440,
   };
 
   for (const [folder, S] of Object.entries(splashSizes)) {
     const dir = path.join('android', 'app', 'src', 'main', 'res', folder);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-    const targetW = Math.round(S * 0.65);
-    const targetH = Math.round((600 * targetW) / 1000);
+    // Logo width should be ~75% of splash screen width
+    const targetW = Math.round(S * 0.75);
+    const targetH = Math.round((600 * targetW) / 1002);
 
-    const resizedLogo = await sharp(fullLogoBuf).resize(targetW, targetH).toBuffer();
+    const resizedLogo = await sharp(transparentFullLogo)
+      .resize(targetW, targetH, { fit: 'contain' })
+      .toBuffer();
 
     await sharp({
       create: {
         width: S,
         height: S,
         channels: 4,
-        background: { r: 10, g: 15, b: 29, alpha: 1 }, // Same deep navy/black
+        background: BG_COLOR,
       },
     })
       .composite([
@@ -101,20 +153,10 @@ async function generateAll() {
       .png()
       .toFile(path.join(dir, 'splash.png'));
 
-    console.log(`✓ ${folder} splash.png (${S}x${S}) generated`);
+    console.log(`✓ ${folder}/splash.png (${S}x${S}) generated seamlessly`);
   }
 
-  // 3. Crop light-logo.png to remove huge excess whitespace for web display
-  const croppedLightLogo = await sharp('apps/web/public/light-logo.png')
-    .extract({ left: 277, top: 149, width: 1117, height: 646 })
-    .toBuffer();
-  await sharp(croppedLightLogo).toFile('apps/web/public/light-logo.png');
-  console.log('✓ light-logo.png cropped to exact content bounds (1117x646)');
-
-  console.log('--- All Dark Theme Assets Generated Successfully! ---');
+  console.log('--- All Mobile Assets Successfully Generated! ---');
 }
 
-generateAll().catch((err) => {
-  console.error('Error generating assets:', err);
-  process.exit(1);
-});
+generateAll().catch(console.error);

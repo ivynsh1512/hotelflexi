@@ -28,17 +28,13 @@
             android:name="twa_generator"
             android:value="@string/generatorApp" />
 
-        <!-- Native Primary Activity -->
+        <!-- Native Secondary / Emergency Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/appName"
             android:theme="@style/AppTheme"
             android:configChanges="orientation|screenSize|keyboardHidden">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
 
         <activity android:name="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
@@ -54,11 +50,16 @@
             </intent-filter>
         </activity>
 
-        <!-- Full PMS Browser / Console Activity -->
+        <!-- Full PMS Browser / Console Activity (Primary Launcher) -->
         <activity android:name=".LauncherActivity"
             android:alwaysRetainTaskState="true"
             android:label="@string/launcherName"
             android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
             <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL"
                 android:value="@string/launchUrl" />
 
