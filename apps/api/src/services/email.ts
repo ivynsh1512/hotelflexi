@@ -251,6 +251,128 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
   return { success: true, results };
 }
 
+export interface CancellationNotificationData {
+  reservationNumber: string;
+  guestName: string;
+  guestEmail?: string;
+  guestPhone?: string;
+  propertyName: string;
+  propertyAddress?: string;
+  propertyPhone?: string;
+  propertyEmail?: string;
+  ownerEmail?: string;
+  checkInDate: string;
+  checkOutDate: string;
+  roomTypeName: string;
+  reason?: string;
+  totalAmountRupees: string;
+  paidAmountRupees: string;
+}
+
+export async function sendCancellationEmail(env: Env, data: CancellationNotificationData) {
+  const apiKey = env.RESEND_API_KEY;
+  const fromEmail = env.RESEND_FROM_EMAIL || 'HotelFlexi <info@novaxai.in>';
+  const adminEmail = env.ADMIN_NOTIFICATION_EMAIL || 'info@novaxai.in';
+
+  const safeRoomTypeName =
+    data.roomTypeName &&
+    String(data.roomTypeName).toLowerCase() !== 'undefined' &&
+    String(data.roomTypeName).trim() !== ''
+      ? String(data.roomTypeName).trim()
+      : 'Deluxe Room';
+
+  const guestHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; color: #1e293b; padding: 20px; }
+      .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; }
+      .header { background: #dc2626; color: #ffffff; padding: 32px 24px; text-align: center; }
+      .content { padding: 28px 24px; }
+      .card { background: #fef2f2; border-radius: 12px; border: 1px solid #fecaca; padding: 20px; margin: 20px 0; }
+      .btn { display: inline-block; background: #0f172a; color: #ffffff !important; font-weight: 700; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 13px; }
+      .footer { padding: 20px; text-align: center; font-size: 12px; color: #64748b; background: #f1f5f9; }
+    </style></head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin:0;font-size:24px;">Booking Cancelled</h1>
+          <p style="margin:8px 0 0 0;opacity:0.9;">${data.propertyName}</p>
+        </div>
+        <div class="content">
+          <p>Dear <strong>${data.guestName}</strong>,</p>
+          <p>This email is to confirm that your reservation at <strong>${data.propertyName}</strong> has been cancelled.</p>
+          
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+              <span style="font-size:12px;color:#991b1b;font-weight:700;">Booking Reference:</span>
+              <strong style="color:#b91c1c;font-family:monospace;">${data.reservationNumber}</strong>
+            </div>
+            <div style="border-top:1px dashed #f87171;padding-top:12px;font-size:14px;line-height:1.6;color:#7f1d1d;">
+              <div><strong>Dates:</strong> ${data.checkInDate} &rarr; ${data.checkOutDate}</div>
+              <div><strong>Room Category:</strong> ${safeRoomTypeName}</div>
+              <div><strong>Cancellation Reason:</strong> ${data.reason || 'Requested by guest / hotelier'}</div>
+              <div><strong>Total Booking Tariff:</strong> ${data.totalAmountRupees}</div>
+              <div><strong>Advance Paid:</strong> ${data.paidAmountRupees}</div>
+            </div>
+          </div>
+
+          <p style="font-size:13px;color:#475569;line-height:1.6;">
+            If you made an advance deposit, our front-desk accounts team will process applicable refunds in accordance with the property's cancellation terms.
+          </p>
+
+          ${data.propertyPhone || data.propertyEmail ? `
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:20px 0;font-size:13px;">
+              <strong>Property Front Desk:</strong><br/>
+              ${data.propertyPhone ? `📞 Phone: <a href="tel:${data.propertyPhone}">${data.propertyPhone}</a><br/>` : ''}
+              ${data.propertyEmail ? `✉️ Email: <a href="mailto:${data.propertyEmail}">${data.propertyEmail}</a><br/>` : ''}
+              ${data.propertyAddress ? `📍 Address: ${data.propertyAddress}` : ''}
+            </div>
+          ` : ''}
+
+          <p style="font-size:12px;color:#94a3b8;margin-top:20px;">
+            Thank you for considering ${data.propertyName}. We hope to welcome you again on future journeys.
+          </p>
+        </div>
+        <div class="footer">
+          &copy; ${new Date().getFullYear()} ${data.propertyName} &bull; Powered by HotelFlexi
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  if (!apiKey) {
+    console.log('[Resend Email Service] Simulation: Cancellation email to', data.guestEmail, 'for', data.reservationNumber);
+    return { success: false, simulated: true };
+  }
+
+  const results: any = {};
+  if (data.guestEmail && data.guestEmail.includes('@')) {
+    try {
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [data.guestEmail],
+          subject: `Booking Cancelled: ${data.reservationNumber} - ${data.propertyName}`,
+          html: guestHtml,
+        }),
+      });
+      results.guest = await resp.json();
+    } catch (e: any) {
+      console.error('[Resend Error] Cancellation email failed:', e);
+      results.error = e.message;
+    }
+  }
+
+  return { success: true, results };
+}
+
 // Generic transactional email sender for platform alerts, password resets, subscriptions
 export async function sendEmail(
   env: Env,

@@ -471,10 +471,11 @@ export default function ChannelManagerAppPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-black text-content-primary-light tracking-tight">
-              OTA Channel Distribution & Live Sync
+              OTA Channel Distribution &amp; Live Sync
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-brand-blue border border-blue-200">
-              Core ARI Engine
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+              Phase 2 Beta (Coming Soon)
             </span>
           </div>
           <p className="text-xs text-content-secondary-light mt-0.5">
@@ -501,6 +502,32 @@ export default function ChannelManagerAppPage() {
             Bulk Rate & Restrictions
           </button>
         </div>
+      </div>
+
+      {/* Active Development / Coming Soon Notice */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 via-amber-500/10 to-transparent border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-100 text-brand-blue flex items-center justify-center shrink-0">
+            <Clock className="w-5 h-5 animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-xs sm:text-sm text-slate-900">2-Way OTA Channel Synchronization Engine</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300">
+                Phase 2 Beta (Coming Soon)
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600 mt-0.5">
+              Direct XML and Webhook integration for MakeMyTrip, Goibibo, Booking.com, Expedia &amp; Agoda is in active certification. You can preview channel mapping, rates, and inventory matrix below.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/pricing"
+          className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shrink-0 shadow transition whitespace-nowrap"
+        >
+          View OTA Setup Package &rarr;
+        </Link>
       </div>
 
       {/* Plan Lock Banner */}

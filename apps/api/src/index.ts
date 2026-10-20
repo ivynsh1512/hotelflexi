@@ -24,6 +24,8 @@ import { teamRoutes } from './routes/team';
 import { diningRoutes } from './routes/dining';
 import { supportRoutes, adminSupportRoutes } from './routes/support';
 import { pushRoutes } from './routes/push';
+import { weddingRoutes, weddingAdminRoutes } from './routes/wedding';
+import { uploadRoutes } from './routes/upload';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -77,6 +79,9 @@ app.route('/api/v1/rooms/daily-rates', dailyRatesRoutes);
 app.route('/api/v1/developer-setup', developerSetupRoutes);
 app.route('/api/v1/team', teamRoutes);
 app.route('/api/v1/dining', diningRoutes);
+app.route('/api/v1/wedding', weddingAdminRoutes);
+app.route('/api/v1/public/wedding', weddingRoutes);
+app.route('/api/v1/upload', uploadRoutes);
 app.route('/api/v1/support', supportRoutes);
 app.route('/api/v1/admin/support', adminSupportRoutes);
 app.route('/api/v1/push', pushRoutes);

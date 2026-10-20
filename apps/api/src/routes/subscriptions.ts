@@ -169,31 +169,49 @@ subscriptionRoutes.post('/switch-free', requireRole(['owner']), async (c) => {
 });
 
 // -----------------------------------------------------------------------------
-// CREATE PAYMENT ORDER (Razorpay) FOR PAID PLANS
+// CREATE PAYMENT ORDER (Razorpay) FOR PAID PLANS & SERVICE PACKAGES
 // -----------------------------------------------------------------------------
 subscriptionRoutes.post('/create-order', requireRole(['owner']), async (c) => {
   const tenantId = c.get('tenantId')!;
   const user = c.get('user')!;
   const body = await c.req.json();
-  const planId = body.planId;
+  const { planId, packageId } = body;
 
-  if (!planId) {
-    return c.json({ error: 'Plan ID is required' }, 400);
-  }
+  let targetAmount = 0;
+  let targetName = '';
+  let isPackage = false;
 
-  const plan: any = await c.env.DB.prepare(
-    'SELECT * FROM subscription_plans WHERE id = ? AND is_active = 1'
-  )
-    .bind(planId)
-    .first();
+  if (packageId) {
+    isPackage = true;
+    if (packageId === 'developer_setup') {
+      targetAmount = 49900;
+      targetName = 'Dedicated Developer PMS Setup (₹499)';
+    } else if (packageId === 'ota_setup') {
+      targetAmount = 499900;
+      targetName = 'Complete OTA Listing & HotelFlexi 2-Way Setup (₹4,999)';
+    } else {
+      return c.json({ error: 'Invalid package ID' }, 400);
+    }
+  } else if (planId) {
+    const plan: any = await c.env.DB.prepare(
+      'SELECT * FROM subscription_plans WHERE id = ? AND is_active = 1'
+    )
+      .bind(planId)
+      .first();
 
-  if (!plan) {
-    return c.json({ error: 'Selected plan does not exist' }, 404);
-  }
+    if (!plan) {
+      return c.json({ error: 'Selected plan does not exist' }, 404);
+    }
 
-  // If free plan, no payment order needed
-  if (!plan.monthly_price_paise || plan.monthly_price_paise === 0) {
-    return c.json({ freePlan: true, planId: plan.id });
+    // If free plan, no payment order needed
+    if (!plan.monthly_price_paise || plan.monthly_price_paise === 0) {
+      return c.json({ freePlan: true, planId: plan.id });
+    }
+
+    targetAmount = plan.monthly_price_paise;
+    targetName = plan.name;
+  } else {
+    return c.json({ error: 'Either planId or packageId is required' }, 400);
   }
 
   const keyId = c.env.RAZORPAY_KEY_ID;
@@ -210,15 +228,15 @@ subscriptionRoutes.post('/create-order', requireRole(['owner']), async (c) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: plan.monthly_price_paise,
+          amount: targetAmount,
           currency: 'INR',
-          receipt: `SUB_${tenantId.slice(-6)}_${Date.now().toString().slice(-6)}`,
+          receipt: `ORD_${tenantId.slice(-6)}_${Date.now().toString().slice(-6)}`,
           notes: {
             tenantId,
-            planId: plan.id,
-            planName: plan.name,
+            planId: planId || undefined,
+            packageId: packageId || undefined,
+            service: targetName,
             userId: user.uid,
-            service: 'HotelFlexi SaaS Subscription',
           },
         }),
       });
@@ -233,9 +251,10 @@ subscriptionRoutes.post('/create-order', requireRole(['owner']), async (c) => {
         success: true,
         orderId: orderData.id,
         keyId,
-        amount: plan.monthly_price_paise,
+        amount: targetAmount,
         currency: 'INR',
-        planName: plan.name,
+        planName: targetName,
+        packageId,
         isSimulated: false,
       });
     } catch (err: any) {
@@ -243,40 +262,31 @@ subscriptionRoutes.post('/create-order', requireRole(['owner']), async (c) => {
     }
   }
 
-  // In test/demo mode when Razorpay credentials are not yet configured on the worker:
+  // In test/demo mode when Razorpay credentials are not yet configured on worker:
   const simOrderId = `order_sim_${crypto.randomUUID()}`;
   return c.json({
     success: true,
     orderId: simOrderId,
     keyId: 'rzp_test_simulated',
-    amount: plan.monthly_price_paise,
+    amount: targetAmount,
     currency: 'INR',
-    planName: plan.name,
+    planName: targetName,
+    packageId,
     isSimulated: true,
   });
 });
 
 // -----------------------------------------------------------------------------
-// VERIFY PAYMENT & ACTIVATE PAID PLAN (Enforce genuine payment)
+// VERIFY PAYMENT & ACTIVATE PAID PLAN OR SERVICE PACKAGE
 // -----------------------------------------------------------------------------
 subscriptionRoutes.post('/verify-payment', requireRole(['owner']), async (c) => {
   const tenantId = c.get('tenantId')!;
   const body = await c.req.json();
   const now = Math.floor(Date.now() / 1000);
-  const { planId, orderId, paymentId, signature } = body;
+  const { planId, packageId, orderId, paymentId, signature } = body;
 
-  if (!planId || !orderId || !paymentId) {
-    return c.json({ error: 'Plan ID, Order ID, and Payment ID are required' }, 400);
-  }
-
-  const plan: any = await c.env.DB.prepare(
-    'SELECT * FROM subscription_plans WHERE id = ? AND is_active = 1'
-  )
-    .bind(planId)
-    .first();
-
-  if (!plan) {
-    return c.json({ error: 'Selected plan not found' }, 404);
+  if (!orderId || !paymentId) {
+    return c.json({ error: 'Order ID and Payment ID are required' }, 400);
   }
 
   const keySecret = c.env.RAZORPAY_KEY_SECRET;
@@ -290,6 +300,67 @@ subscriptionRoutes.post('/verify-payment', requireRole(['owner']), async (c) => 
     if (!isValid) {
       return c.json({ error: 'Payment signature verification failed. Tampering detected.' }, 400);
     }
+  }
+
+  // Handle Developer / OTA Setup Package Purchase
+  if (packageId) {
+    const reqId = `devreq_${crypto.randomUUID()}`;
+    const amountPaise = packageId === 'developer_setup' ? 49900 : 499900;
+    const packageName = packageId === 'developer_setup' ? 'Dedicated Developer PMS Setup' : 'Complete OTA Listing & HotelFlexi 2-Way Setup';
+
+    await c.env.DB.prepare(
+      `INSERT INTO developer_setup_requests (
+         id, tenant_id, user_id, amount_paise, status, payment_id, razorpay_order_id, notes, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?)`
+    ).bind(
+      reqId,
+      tenantId,
+      c.get('user')?.uid || 'user',
+      amountPaise,
+      paymentId,
+      orderId,
+      packageName,
+      now,
+      now
+    ).run();
+
+    await recordAuditLog(c, {
+      tenantId,
+      userId: c.get('user')?.uid,
+      action: 'service_package.purchased',
+      resourceType: 'developer_setup',
+      resourceId: reqId,
+      newValues: { packageId, packageName, amountPaise, paymentId },
+    });
+
+    return c.json({
+      success: true,
+      servicePackage: true,
+      packageId,
+      packageName,
+      message: 'Payment verified! Here is your assigned developer. Kindly reach him out directly to begin your setup immediately.',
+      assignedDeveloper: {
+        name: 'Divyansh Shukla (Lead Technical Specialist)',
+        phone: '+91 8400999966',
+        whatsappUrl: 'https://wa.me/918400999966',
+        contactText: 'Kindly reach out to your assigned developer at wa.me/918400999966 (+91 8400999966) with your property details.',
+      },
+    });
+  }
+
+  // Handle Subscription Plan Upgrade
+  if (!planId) {
+    return c.json({ error: 'Plan ID is required for subscription upgrades' }, 400);
+  }
+
+  const plan: any = await c.env.DB.prepare(
+    'SELECT * FROM subscription_plans WHERE id = ? AND is_active = 1'
+  )
+    .bind(planId)
+    .first();
+
+  if (!plan) {
+    return c.json({ error: 'Selected plan not found' }, 404);
   }
 
   // 30 days validity from now

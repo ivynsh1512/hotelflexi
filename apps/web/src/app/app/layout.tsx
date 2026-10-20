@@ -140,6 +140,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { label: 'Channel Manager', href: '/app/channels', icon: Layers },
         { label: 'Booking Engine', href: '/app/booking-engine', icon: Globe },
         { label: 'Dine-Out & Restaurant', href: '/app/dining', icon: UtensilsCrossed, badge: 'New' },
+        { label: 'Wedding & Events', href: '/app/wedding', icon: Sparkles, badge: 'Premium' },
       ],
     },
     {

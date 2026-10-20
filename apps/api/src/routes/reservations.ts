@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { Env, AppVariables } from '../types';
 import { authMiddleware, tenantMiddleware, requireRole } from '../auth/middleware';
 import { recordAuditLog } from '../services/audit';
-import { sendBookingEmails } from '../services/email';
+import { sendBookingEmails, sendCancellationEmail } from '../services/email';
 
 export const reservationRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -709,6 +709,44 @@ reservationRoutes.patch('/:id/cancel', requireRole(['owner', 'manager', 'recepti
     resourceId: id,
     newValues: { reason: body.reason },
   });
+
+  const formatINR = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`;
+
+  // Dispatch cancellation email to guest
+  try {
+    const primaryGuest: any = await c.env.DB.prepare(
+      'SELECT full_name, email, phone FROM reservation_guests WHERE reservation_id = ? AND is_primary = 1 LIMIT 1'
+    ).bind(id).first();
+
+    const property: any = await c.env.DB.prepare(
+      'SELECT name, address_line1, city, state, phone, email FROM properties WHERE id = ?'
+    ).bind(res.property_id).first();
+
+    const roomType: any = res.room_type_id
+      ? await c.env.DB.prepare('SELECT name FROM room_types WHERE id = ?').bind(res.room_type_id).first()
+      : null;
+
+    if (primaryGuest?.email) {
+      sendCancellationEmail(c.env, {
+        reservationNumber: res.reservation_number,
+        guestName: primaryGuest.full_name || 'Valued Guest',
+        guestEmail: primaryGuest.email,
+        guestPhone: primaryGuest.phone,
+        propertyName: property?.name || 'HotelFlexi Property',
+        propertyAddress: [property?.address_line1, property?.city, property?.state].filter(Boolean).join(', '),
+        propertyPhone: property?.phone,
+        propertyEmail: property?.email,
+        checkInDate: res.check_in_date,
+        checkOutDate: res.check_out_date,
+        roomTypeName: roomType?.name || 'Deluxe Room',
+        reason: body.reason || 'Guest requested cancellation',
+        totalAmountRupees: formatINR(res.total_amount_paise || 0),
+        paidAmountRupees: formatINR(res.paid_amount_paise || 0),
+      }).catch((e) => console.error('[Cancellation Email Error]', e));
+    }
+  } catch (emailErr) {
+    console.error('[Cancellation Email Error]', emailErr);
+  }
 
   return c.json({ success: true, message: 'Reservation cancelled' });
 });

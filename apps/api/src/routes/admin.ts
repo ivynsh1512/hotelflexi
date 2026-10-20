@@ -194,94 +194,96 @@ adminRoutes.patch('/tenants/:id/status', async (c) => {
 
 // Update Property & Tenant Details (Full Super Admin Override)
 adminRoutes.patch('/tenants/:id/details', async (c) => {
-  const id = c.req.param('id');
-  const user = c.get('user')!;
-  const body = await c.req.json();
-  const now = Math.floor(Date.now() / 1000);
+  try {
+    const id = c.req.param('id');
+    const user = c.get('user')!;
+    const body = await c.req.json();
+    const now = Math.floor(Date.now() / 1000);
 
-  const tenant: any = await c.env.DB.prepare('SELECT * FROM tenants WHERE id = ?').bind(id).first();
-  if (!tenant) return c.json({ error: 'Tenant not found' }, 404);
+    const tenant: any = await c.env.DB.prepare('SELECT * FROM tenants WHERE id = ?').bind(id).first();
+    if (!tenant) return c.json({ error: 'Tenant not found' }, 404);
 
-  const {
-    tenantName,
-    tenantSlug,
-    propertyId,
-    propertyName,
-    propertyAddress,
-    propertyCity,
-    propertyState,
-    propertyPostalCode,
-    propertyCountry,
-    propertyPhone,
-    propertyEmail,
-    propertyDescription,
-    propertyStarRating,
-  } = body;
+    const {
+      tenantName,
+      tenantSlug,
+      propertyId,
+      propertyName,
+      propertyAddress,
+      propertyCity,
+      propertyState,
+      propertyPostalCode,
+      propertyCountry,
+      propertyPhone,
+      propertyEmail,
+      propertyDescription,
+    } = body;
 
-  // 1. Update Tenant Name & Slug if specified
-  if (tenantName || tenantSlug) {
-    await c.env.DB.prepare(
-      `UPDATE tenants SET
-         name = COALESCE(?, name),
-         slug = COALESCE(?, slug),
-         updated_at = ?
-       WHERE id = ?`
-    )
-      .bind(tenantName || null, tenantSlug || null, now, id)
-      .run();
-  }
-
-  // 2. Update Primary Property Details
-  if (propertyName || propertyAddress || propertyPhone || propertyEmail || propertyDescription) {
-    const targetProperty: any = propertyId
-      ? await c.env.DB.prepare('SELECT id FROM properties WHERE id = ? AND tenant_id = ?').bind(propertyId, id).first()
-      : await c.env.DB.prepare('SELECT id FROM properties WHERE tenant_id = ? ORDER BY created_at ASC LIMIT 1').bind(id).first();
-
-    if (targetProperty) {
+    // 1. Update Tenant Name & Slug if specified
+    if (tenantName || tenantSlug) {
       await c.env.DB.prepare(
-        `UPDATE properties SET
+        `UPDATE tenants SET
            name = COALESCE(?, name),
-           address = COALESCE(?, address),
-           city = COALESCE(?, city),
-           state = COALESCE(?, state),
-           postal_code = COALESCE(?, postal_code),
-           country = COALESCE(?, country),
-           phone = COALESCE(?, phone),
-           email = COALESCE(?, email),
-           description = COALESCE(?, description),
-           star_rating = COALESCE(?, star_rating),
+           slug = COALESCE(?, slug),
            updated_at = ?
          WHERE id = ?`
       )
-        .bind(
-          propertyName || null,
-          propertyAddress || null,
-          propertyCity || null,
-          propertyState || null,
-          propertyPostalCode || null,
-          propertyCountry || null,
-          propertyPhone || null,
-          propertyEmail || null,
-          propertyDescription || null,
-          propertyStarRating !== undefined ? Number(propertyStarRating) : null,
-          now,
-          targetProperty.id
-        )
+        .bind(tenantName || null, tenantSlug || null, now, id)
         .run();
     }
+
+    // 2. Update Primary Property Details
+    if (propertyName || propertyAddress || propertyPhone || propertyEmail || propertyDescription || propertyCity || propertyState || propertyPostalCode) {
+      const targetProperty: any = propertyId
+        ? await c.env.DB.prepare('SELECT id FROM properties WHERE id = ? AND tenant_id = ?').bind(propertyId, id).first()
+        : await c.env.DB.prepare('SELECT id FROM properties WHERE tenant_id = ? ORDER BY created_at ASC LIMIT 1').bind(id).first();
+
+      if (targetProperty) {
+        await c.env.DB.prepare(
+          `UPDATE properties SET
+             name = COALESCE(?, name),
+             address_line1 = COALESCE(?, address_line1),
+             city = COALESCE(?, city),
+             state = COALESCE(?, state),
+             postal_code = COALESCE(?, postal_code),
+             country = COALESCE(?, country),
+             phone = COALESCE(?, phone),
+             email = COALESCE(?, email),
+             description = COALESCE(?, description),
+             updated_at = ?
+           WHERE id = ?`
+        )
+          .bind(
+            propertyName || null,
+            propertyAddress || null,
+            propertyCity || null,
+            propertyState || null,
+            propertyPostalCode || null,
+            propertyCountry || null,
+            propertyPhone || null,
+            propertyEmail || null,
+            propertyDescription || null,
+            now,
+            targetProperty.id
+          )
+          .run();
+      }
+    }
+
+    await recordAuditLog(c, {
+      tenantId: id,
+      userId: user.uid,
+      actorType: 'super_admin',
+      action: 'tenant.details_updated_by_admin',
+      resourceType: 'tenant',
+      resourceId: id,
+      newValues: { tenantName, propertyName, propertyCity, propertyPhone },
+    });
+
+    return c.json({ success: true, message: 'Tenant & Property details updated successfully' });
+  } catch (err: any) {
+    console.error('[Admin Update Details Error]', err);
+    return c.json({ error: err.message || 'Failed to update tenant details' }, 500);
   }
-
-  await recordAuditLog(c, {
-    tenantId: id,
-    userId: user.uid,
-    actorType: 'super_admin',
-    action: 'tenant.details_updated_by_admin',
-    resourceType: 'tenant',
-    resourceId: id,
-    newValues: { tenantName, propertyName, propertyCity, propertyPhone },
-  });
-
-  return c.json({ success: true, message: 'Tenant & Property details updated successfully' });
 });
 
 // Clear All Test & Operational Data (Fresh Slate Reset)
