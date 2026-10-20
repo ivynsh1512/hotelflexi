@@ -1,10 +1,11 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { HospitalityOSShowcase } from '@/components/HospitalityOSShowcase';
-import { WhyHotelsChooseUs } from '@/components/WhyHotelsChooseUs';
-import { DineOutFeatureShowcase } from '@/components/DineOutFeatureShowcase';
+import { InteractiveProductShowcase } from '@/components/InteractiveProductShowcase';
+import { BookDemoModal } from '@/components/BookDemoModal';
 import {
   Calendar,
   Sparkles,
@@ -19,66 +20,134 @@ import {
   ArrowRight,
   Layers,
   HelpCircle,
+  Smartphone,
+  Download,
+  UtensilsCrossed,
+  Volume2,
+  Users,
+  Check,
+  Star,
+  Building,
+  HeartHandshake,
+  Zap,
 } from 'lucide-react';
 
 export default function HomePage() {
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
+
   const plans = [
     {
       id: 'starter',
       name: 'Starter',
-      price: '₹499',
-      interval: '/month',
-      desc: 'Ideal for homestays, guesthouses & boutique stays.',
-      features: ['Up to 10 Rooms', '1 Property', '2-Way OTA Channel Manager (2 OTAs)', 'Housekeeping Urgency Siren', 'Room Calendar & PMS', 'Direct Booking Engine', 'Bilingual AI Assistant', 'GST Invoicing'],
+      price: '₹0',
+      interval: 'Free Forever',
+      desc: 'Ideal for small homestays & independent guesthouses.',
+      features: [
+        'Up to 10 Rooms',
+        '1 Property',
+        'Room Calendar & PMS Grid',
+        'Direct Booking Engine (/book/slug)',
+        'Indian GST Invoicing (12% & 18%)',
+        'Guest FlexiLink Contactless Portal',
+        'Community & Email Support',
+      ],
       highlighted: false,
+      ctaText: 'Start Free Forever',
     },
     {
       id: 'essential',
       name: 'Essential',
-      price: '₹999',
+      price: '₹499',
       interval: '/month',
-      desc: 'Perfect for growing budget hotels & serviced apartments.',
-      features: ['Up to 25 Rooms', '1 Property', 'PMS & Fast Check-in', 'Direct Booking Engine', '5 OTA Channel Connections', 'Housekeeping Urgency Siren', 'Bilingual AI Agent', 'Daily Collections Reports'],
+      desc: 'Perfect for growing budget & boutique hotels.',
+      features: [
+        'Up to 25 Rooms',
+        '1 Property',
+        '2-Way OTA Channel Manager (MMT, Agoda, Booking.com)',
+        'Hardware Urgency Siren Alert on Staff Phones',
+        'Bilingual AI Business Agent (Hindi & English)',
+        'Direct Razorpay Payment Integration',
+        'Advance Payment Rules (Full / Partial % / Pay at Hotel)',
+        'Priority WhatsApp & Email Support',
+      ],
       highlighted: true,
-      badge: 'Most Popular',
+      badge: 'Most Popular for Hotels',
+      ctaText: 'Start 14-Day Free Trial',
     },
     {
       id: 'growth',
       name: 'Growth',
-      price: '₹2,499',
+      price: '₹1,499',
       interval: '/month',
-      desc: 'Designed for busy mid-scale resorts & boutique hotels.',
-      features: ['Up to 60 Rooms', '2 Properties', 'Advanced Room Grid', '5 OTA Channel Connections', 'Financial Reports & P&L', '500 AI Monthly Prompts', 'Priority Support'],
+      desc: 'Designed for busy mid-scale resorts & wedding banquets.',
+      features: [
+        'Up to 60 Rooms',
+        '2 Properties',
+        'Unlimited 2-Way OTA Channel Connections',
+        'Dino Restaurant & In-Stay Room POS with KOT',
+        'Banquets & Destination Wedding Group Blocking',
+        'Financial P&L & SAC 9963 Audit Reports',
+        'Staff Roster with Role Permissions',
+        'Dedicated 1-on-1 Onboarding Specialist',
+      ],
       highlighted: false,
+      ctaText: 'Start 14-Day Free Trial',
     },
     {
-      id: 'pro',
-      name: 'Pro',
-      price: '₹4,999',
+      id: 'enterprise',
+      name: 'Enterprise',
+      price: '₹2,999',
       interval: '/month',
-      desc: 'Full-power operations for hotel groups & large properties.',
-      features: ['Up to 150 Rooms', '5 Properties', 'Unlimited Channel Connections', 'Multi-property Switcher', 'Full Accounting Ledger', '2,000 AI Monthly Prompts', 'Dedicated Account Manager'],
+      desc: 'Full-power operations for multi-property resort groups.',
+      features: [
+        'Up to 150 Rooms',
+        'Multi-Property Central Switcher',
+        'Custom Central Reservation System (CRS)',
+        'Multi-Property Consolidated P&L',
+        'Custom SMS / WhatsApp Gateway Integration',
+        '24/7 Dedicated Account Manager',
+        '99.9% Uptime SLA Guarantee',
+      ],
       highlighted: false,
+      ctaText: 'Contact Enterprise Sales',
     },
   ];
 
   const faqs = [
     {
-      q: 'What is HotelFlexi?',
-      a: 'HotelFlexi by NovaX AI is an all-in-one hospitality SaaS platform that integrates a Property Management System (PMS), Channel Manager framework, Direct Booking Engine, Indian GST Billing, Housekeeping operations, and an AI Business Assistant into a single dashboard.',
+      q: 'How does the 2-Way Channel Manager prevent double-bookings?',
+      a: 'HotelFlexi connects directly to MakeMyTrip, Goibibo, Booking.com, Agoda, Airbnb, and Expedia. The moment a room is booked directly at your front desk, on your website, or via an OTA, availability counts are updated across all channels within seconds, automatically placing stop-sells on booked rooms.',
     },
     {
-      q: 'Can I operate HotelFlexi in Hindi or Hinglish?',
-      a: 'Yes! HotelFlexi includes a built-in AI Business Agent designed specifically for Indian hoteliers. You can speak or type commands like "Kal ke arrivals dikhao", "3 October ko Room 101 block kar do", or "Aaj kitni payment collect hui?".',
+      q: 'Do you charge commissions on direct bookings?',
+      a: 'No! HotelFlexi charges 0% commission on direct bookings. When guests book through your custom booking engine (/book/[slug]), payments go directly into your own Razorpay account with your preferred advance policy (full advance, partial percentage, or pay at hotel).',
     },
     {
-      q: 'How does Indian GST billing work?',
-      a: 'HotelFlexi supports standard hotel GST tiers (12% for room tariffs up to ₹7,500/night and 18% for tariffs above ₹7,500/night). Invoices record CGST, SGST, and IGST breakdowns in integer paise without rounding errors.',
+      q: 'What is the Housekeeping Urgency Siren and how does it work?',
+      a: 'When an in-house guest reports an urgent grievance via their mobile FlexiLink (such as dirty linen, plumbing leakage, or emergency assistance), staff smartphones sound a dual-tone European siren accompanied by continuous hardware vibrations until a staff member taps "Pick & Silence Siren". Floor staff can then rectify the issue within minutes, and the admin panel shows "Taken by [Staff Name]".',
     },
     {
-      q: 'Is there a free trial?',
-      a: 'Yes. Every new property registration starts with an immediate 14-day full feature trial without requiring a credit card up front.',
+      q: 'How does Indian GST (12% / 18%) billing work in HotelFlexi?',
+      a: 'HotelFlexi automatically applies statutory Indian GST rules based on room tariff slabs (12% for room tariffs up to ₹7,500/night and 18% for tariffs above ₹7,500/night). Invoices record CGST, SGST, and IGST breakdowns accurately in integer paise, preventing fractional rounding errors, with SAC 9963 classification.',
     },
+    {
+      q: 'Can our staff operate HotelFlexi in Hindi or Hinglish?',
+      a: 'Yes! HotelFlexi features a built-in Bilingual AI Business Assistant. Floor managers and receptionists can speak or type in English, Hindi, or Hinglish (e.g. "Kal Room 101 block kar do", "Today ke arrivals dikhao", or "Show today\'s cash collection") to execute PMS operations instantly.',
+    },
+    {
+      q: 'Is there an installable mobile app for floor staff?',
+      a: 'Yes. HotelFlexi provides an installable Android APK and Google Play Store package. The app runs in full-screen mode with zero URL bars, maintains persistent logins, and requests native operating system notification permissions for real-time siren alerts.',
+    },
+  ];
+
+  const comparisonData = [
+    { feature: '2-Way OTA Channel Manager (MMT, Agoda, Booking.com)', hotelflexi: 'Yes (Live 2-Way)', stayflexi: 'Yes', cloudbeds: 'Yes', axisrooms: 'Yes', ezee: 'Yes' },
+    { feature: 'Direct Booking Engine with Zero Commission', hotelflexi: 'Yes (0% Fee)', stayflexi: 'Yes', cloudbeds: 'Yes', axisrooms: 'Extra Add-on', ezee: 'Extra Fee' },
+    { feature: 'Emergency Housekeeping Siren & Vibration Alert', hotelflexi: 'Yes (Patented Audio-Visual Alert)', stayflexi: 'No', cloudbeds: 'No', axisrooms: 'No', ezee: 'No' },
+    { feature: 'Contactless Guest Portal (FlexiLink) with ID Upload', hotelflexi: 'Included Free', stayflexi: 'Yes (Magic Link)', cloudbeds: 'Add-on ($)', axisrooms: 'No', ezee: 'Add-on ($)' },
+    { feature: 'Bilingual AI Business Agent (Hindi & English Voice)', hotelflexi: 'Yes (Autonomous PMS Actions)', stayflexi: 'English Only', cloudbeds: 'No', axisrooms: 'No', ezee: 'No' },
+    { feature: 'Indian GST (12%/18% SAC 9963) Compliant Invoicing', hotelflexi: 'Native Integer-Paise', stayflexi: 'Partial', cloudbeds: 'Requires Plugin', axisrooms: 'Partial', ezee: 'Native' },
+    { feature: 'Entry Pricing for Indian Independent Hotels', hotelflexi: '₹499 / month', stayflexi: '$49+ (~₹4,100/mo)', cloudbeds: '$140+ (~₹11,500/mo)', axisrooms: '₹2,500+ / mo', ezee: '₹2,200+ / mo' },
   ];
 
   return (
@@ -86,272 +155,484 @@ export default function HomePage() {
       <Navbar />
 
       {/* 1. HERO SECTION */}
-      <section className="relative pt-20 pb-24 overflow-hidden border-b border-border-light bg-gradient-to-b from-surface-light via-white to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-blue-surface text-brand-blue border border-blue-200 text-xs font-semibold uppercase tracking-wider mb-6">
-            <Sparkles className="w-3.5 h-3.5" />
-            Empowering Indian Hospitality
+      <section className="relative pt-16 sm:pt-24 pb-20 overflow-hidden border-b border-border-light bg-gradient-to-b from-slate-50 via-white to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          {/* Top Pill */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-brand-blue border border-blue-200 text-xs font-bold uppercase tracking-wider mb-6 shadow-xs">
+            <Sparkles className="w-4 h-4 text-brand-blue" />
+            <span>India&apos;s Cloud Hospitality Operating System</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold text-content-primary-light tracking-tight max-w-4xl mx-auto leading-tight">
-            Your Hotel. <br className="hidden sm:inline" />
-            <span className="text-brand-blue">One Intelligent System.</span>
+          {/* Headline */}
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-slate-950 tracking-tight max-w-5xl mx-auto leading-[1.1]">
+            Run Your Entire Hotel, Resort &amp; Banquet From{' '}
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              One Unified Cloud System.
+            </span>
           </h1>
 
-          <p className="mt-6 text-lg sm:text-xl text-content-secondary-light max-w-2xl mx-auto leading-relaxed">
-            Eliminate fragmented software. HotelFlexi unifies your PMS calendar, OTA channel distribution,
-            direct booking engine, GST accounting, and a bilingual AI assistant into one intuitive platform.
+          {/* Subtitle */}
+          <p className="mt-6 text-base sm:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed font-normal">
+            Replace 6 disconnected softwares with HotelFlexi: 2-Way OTA Channel Manager (MakeMyTrip, Agoda, Booking.com), Zero-Commission Direct Engine, Contactless Guest FlexiLink, Urgent Housekeeping Siren Alert, and Indian GST Invoicing.
           </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          {/* Call to Actions */}
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
             <Link
               href="/signup"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 text-base font-semibold rounded-lg bg-brand-blue text-white hover:bg-brand-blue-hover shadow-md transition"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-brand-blue hover:bg-brand-blue-hover text-white font-extrabold text-sm shadow-xl hover:shadow-2xl transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
             >
-              Start 14-Day Free Trial
-              <ChevronRight className="w-5 h-5" />
+              <span>Start 14-Day Free Trial</span>
+              <ChevronRight className="w-4 h-4" />
             </Link>
+
+            <button
+              onClick={() => setDemoModalOpen(true)}
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white hover:bg-slate-50 text-slate-900 font-extrabold text-sm border border-slate-300 shadow-sm transition flex items-center justify-center gap-2"
+            >
+              <Calendar className="w-4 h-4 text-brand-blue" />
+              <span>Book a Live 1-on-1 Demo</span>
+            </button>
+
             <Link
-              href="/hotel-management"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-medium rounded-lg border border-border-light text-content-primary-light hover:bg-surface-light transition"
+              href="/download-app"
+              className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-sm border border-emerald-200 transition flex items-center justify-center gap-2"
             >
-              Explore PMS Features
+              <Smartphone className="w-4 h-4 text-emerald-600" />
+              <span>Download Android App</span>
             </Link>
           </div>
 
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-xs font-medium text-content-secondary-light">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-status-success" />
-              <span>Built for INR & Indian GST</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-status-success" />
-              <span>Cloudflare D1 & Worker Speed</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-status-success" />
-              <span>Hindi & Hinglish AI Commands</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-status-success" />
-              <span>No Credit Card Required for Trial</span>
-            </div>
+          {/* Trust Value Badges */}
+          <div className="mt-10 pt-6 border-t border-slate-200/80 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-semibold text-slate-600">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              0% Direct Booking Commission
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              2-Way Channel Sync (MMT, Agoda, Booking.com)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              12% &amp; 18% Indian GST Ready
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              Hardware Siren Alert on Staff Phones
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              No Credit Card Required
+            </span>
           </div>
 
-          {/* 2. PRODUCT DASHBOARD PREVIEW */}
-          <div className="mt-14 max-w-5xl mx-auto rounded-xl border border-border-light bg-surface-dark-bg p-2 shadow-2xl overflow-hidden">
-            <div className="rounded-lg bg-surface-dark-surface p-6 text-left">
-              {/* Window Bar */}
-              <div className="flex items-center justify-between pb-4 border-b border-border-dark mb-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                  <span className="text-xs text-content-secondary-dark font-mono ml-2">hotelflexi.app • The Grand Heritage Palace</span>
-                </div>
-                <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live PMS
-                </span>
-              </div>
-
-              {/* Sample Metrics Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="p-4 rounded-lg bg-surface-dark-elevated border border-border-dark">
-                  <span className="text-xs text-content-secondary-dark">Occupancy Today</span>
-                  <div className="text-2xl font-bold text-white mt-1">84%</div>
-                  <span className="text-[11px] text-emerald-400 font-medium">18 of 22 Rooms Occupied</span>
-                </div>
-                <div className="p-4 rounded-lg bg-surface-dark-elevated border border-border-dark">
-                  <span className="text-xs text-content-secondary-dark">Today's Collections</span>
-                  <div className="text-2xl font-bold text-white mt-1">₹42,800</div>
-                  <span className="text-[11px] text-content-secondary-dark">6 Payments Captured</span>
-                </div>
-                <div className="p-4 rounded-lg bg-surface-dark-elevated border border-border-dark">
-                  <span className="text-xs text-content-secondary-dark">Expected Arrivals</span>
-                  <div className="text-2xl font-bold text-white mt-1">5 Guests</div>
-                  <span className="text-[11px] text-blue-400">3 Checked-in</span>
-                </div>
-                <div className="p-4 rounded-lg bg-surface-dark-elevated border border-border-dark">
-                  <span className="text-xs text-content-secondary-dark">Housekeeping</span>
-                  <div className="text-2xl font-bold text-white mt-1">2 Dirty</div>
-                  <span className="text-[11px] text-amber-400">Tasks in progress</span>
-                </div>
-              </div>
-
-              {/* Sample Calendar Strip */}
-              <div className="p-4 rounded-lg bg-surface-dark-elevated border border-border-dark">
-                <div className="flex items-center justify-between mb-3 text-xs text-content-secondary-dark">
-                  <span className="font-semibold text-white">Live Room Grid Snapshot</span>
-                  <span>October 2026</span>
-                </div>
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 text-center text-xs">
-                  {['101 DLX', '102 DLX', '103 DLX', '104 DLX', '201 STE', '202 STE', '203 STE', '204 STE'].map((room, idx) => (
-                    <div
-                      key={room}
-                      className={`p-2.5 rounded border text-[11px] font-mono ${
-                        idx === 2
-                          ? 'bg-amber-950/40 border-amber-600/40 text-amber-300'
-                          : idx === 6
-                          ? 'bg-blue-950/40 border-blue-600/40 text-blue-300'
-                          : 'bg-emerald-950/40 border-emerald-600/40 text-emerald-300'
-                      }`}
-                    >
-                      <div className="font-bold">{room}</div>
-                      <div className="text-[10px] opacity-80 mt-0.5">
-                        {idx === 2 ? 'Maintenance' : idx === 6 ? 'Dirty' : 'Occupied'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {/* Interactive Operating System Showcase */}
+          <div className="mt-14 max-w-6xl mx-auto">
+            <div className="text-center mb-3">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                Interactive Product Simulation • Tap to Experience
+              </span>
             </div>
+            <InteractiveProductShowcase />
           </div>
         </div>
       </section>
 
-      {/* 2.5 THE HOSPITALITY OPERATING SYSTEM (Interactive Tabs Showcase) */}
-      <HospitalityOSShowcase />
-
-      {/* 2.6 WHY HOTELS CHOOSE HOTELFLEXI (6 Feature Pillars) */}
-      <WhyHotelsChooseUs />
-
-      {/* 2.7 DINE-OUT RESORT RESTAURANT PLATFORM */}
-      <DineOutFeatureShowcase />
-
-      {/* 3. AI AGENT DEMONSTRATION SECTION */}
-      <section className="py-20 bg-surface-light border-b border-border-light">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-blue">Intelligent Automation</span>
-            <h2 className="text-3xl font-extrabold text-content-primary-light mt-2">
-              Operate Your Hotel via Natural Language
-            </h2>
-            <p className="mt-3 text-content-secondary-light text-base">
-              Non-technical hotel staff can execute operations without complicated menus. Speak or type in English, Hindi, or Hinglish.
-            </p>
-          </div>
-
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-xl bg-white border border-border-light shadow-sm">
-              <div className="text-xs font-bold uppercase text-brand-blue mb-2">Hinglish / Hindi Command</div>
-              <div className="p-3 rounded-lg bg-surface-light font-mono text-sm text-content-primary-light border border-border-light">
-                "Kal ke arrivals dikhao."
-              </div>
-              <div className="mt-4 text-sm text-content-secondary-light">
-                Instantly queries D1 database for tomorrow's check-ins, returning guest names, room assignments, and balance amounts.
-              </div>
-            </div>
-
-            <div className="p-6 rounded-xl bg-white border border-border-light shadow-sm">
-              <div className="text-xs font-bold uppercase text-brand-blue mb-2">Room Blocking with Validation</div>
-              <div className="p-3 rounded-lg bg-surface-light font-mono text-sm text-content-primary-light border border-border-light">
-                "3 October ko Room 101 block kar do."
-              </div>
-              <div className="mt-4 text-sm text-content-secondary-light">
-                Verifies that no active bookings exist on Room 101, blocks the dates for maintenance, and updates the occupancy calendar.
-              </div>
-            </div>
-
-            <div className="p-6 rounded-xl bg-white border border-border-light shadow-sm">
-              <div className="text-xs font-bold uppercase text-brand-blue mb-2">Instant Financial Insights</div>
-              <div className="p-3 rounded-lg bg-surface-light font-mono text-sm text-content-primary-light border border-border-light">
-                "Aaj kitni payment collect hui?"
-              </div>
-              <div className="mt-4 text-sm text-content-secondary-light">
-                Sums all UPI, cash, card, and Razorpay transactions recorded today and states outstanding guest balances.
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. CORE FEATURES GRID */}
+      {/* 2. TAILORED FOR INDIAN HOSPITALITY VERTICALS */}
       <section className="py-20 bg-white border-b border-border-light">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-blue">Complete Hospitality Stack</span>
-            <h2 className="text-3xl font-extrabold text-content-primary-light mt-2">
-              Everything Your Hotel Needs in One Solution
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-brand-blue bg-blue-50 px-3 py-1 rounded-full">
+              Tailored For Every Hospitality Business
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight">
+              Built Specifically for the Realities of Indian Hotels
             </h2>
-            <p className="mt-3 text-content-secondary-light text-base">
-              Engineered with Cloudflare Workers and D1 database for sub-100ms response times and total reliability.
+            <p className="text-base text-slate-600">
+              From busy Goa beach resorts to heritage wedding palaces in Rajasthan, HotelFlexi adapts to your operational scale.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-6 rounded-xl border border-border-light hover:border-brand-blue transition group">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 text-brand-blue flex items-center justify-center mb-4">
-                <Calendar className="w-5 h-5" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* 1. Independent & Boutique Hotels */}
+            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-4 hover:shadow-md transition">
+              <div className="w-12 h-12 rounded-2xl bg-blue-100 text-brand-blue flex items-center justify-center font-bold">
+                <Building className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-content-primary-light">Property Management System</h3>
-              <p className="mt-2 text-sm text-content-secondary-light leading-relaxed">
-                Visual room calendar grid with day, week, and month views. Fast walk-in booking, guest check-in/out, and room block safeguards.
+              <h3 className="text-lg font-black text-slate-900">Boutique &amp; City Hotels</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Streamline front desk walk-ins, scan government IDs in 15 seconds, and eliminate OTA commission bleed with your custom direct booking engine.
               </p>
+              <ul className="space-y-1.5 text-xs text-slate-700 font-medium">
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Instant walk-in registration
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Indian GST 12%/18% invoices
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  2-Way MakeMyTrip &amp; Agoda sync
+                </li>
+              </ul>
             </div>
 
-            <div className="p-6 rounded-xl border border-border-light hover:border-brand-blue transition group">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 text-brand-blue flex items-center justify-center mb-4">
-                <Globe className="w-5 h-5" />
+            {/* 2. Destination Holiday Resorts */}
+            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-4 hover:shadow-md transition">
+              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                <Globe className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-content-primary-light">Direct Booking Engine</h3>
-              <p className="mt-2 text-sm text-content-secondary-light leading-relaxed">
-                Commission-free guest booking engine with live room availability, tax calculations, Razorpay payment processing, and instant confirmations.
+              <h3 className="text-lg font-black text-slate-900">Holiday &amp; Leisure Resorts</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Empower resort guests in Goa, Manali, and Rishikesh to order food by the pool or from their cottage via mobile FlexiLinks with instant room charge posting.
               </p>
+              <ul className="space-y-1.5 text-xs text-slate-700 font-medium">
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  In-stay dining &amp; cottage ordering
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  7-minute housekeeping siren
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Poolside &amp; restaurant table POS
+                </li>
+              </ul>
             </div>
 
-            <div className="p-6 rounded-xl border border-border-light hover:border-brand-blue transition group">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 text-brand-blue flex items-center justify-center mb-4">
-                <Layers className="w-5 h-5" />
+            {/* 3. Destination Wedding & Banquets */}
+            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-4 hover:shadow-md transition">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                <HeartHandshake className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-content-primary-light">OTA Channel Manager</h3>
-              <p className="mt-2 text-sm text-content-secondary-light leading-relaxed">
-                Multi-channel synchronization framework for Booking.com, Agoda, MakeMyTrip, and Airbnb. Prevents double-bookings with automated inventory reconciliation.
+              <h3 className="text-lg font-black text-slate-900">Weddings &amp; Banquets</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Block 20 to 50 rooms in bulk for wedding parties without OTA overbooking conflicts. Manage guest lists and banquet Hall packages seamlessly.
               </p>
+              <ul className="space-y-1.5 text-xs text-slate-700 font-medium">
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Bulk room group blocking
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Banquet &amp; event amenities
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Custom partial advance deposits
+                </li>
+              </ul>
             </div>
 
-            <div className="p-6 rounded-xl border border-border-light hover:border-brand-blue transition group">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 text-brand-blue flex items-center justify-center mb-4">
-                <Receipt className="w-5 h-5" />
+            {/* 4. Homestays & Luxury Villas */}
+            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-4 hover:shadow-md transition">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                <Smartphone className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-content-primary-light">Indian GST Billing & Invoicing</h3>
-              <p className="mt-2 text-sm text-content-secondary-light leading-relaxed">
-                Tax-compliant invoices with CGST/SGST breakdowns, invoice snapshots in integer paise, payment tracking (UPI, cash, card), and printable folios.
+              <h3 className="text-lg font-black text-slate-900">Homestays &amp; Villas</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Operate entirely from your phone. Sync with Airbnb and Booking.com, collect direct UPI payments, and let guests self-check-in with contactless FlexiLinks.
               </p>
+              <ul className="space-y-1.5 text-xs text-slate-700 font-medium">
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  100% Mobile app management
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Zero hardware or PC needed
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Free Starter tier available
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. CORE PLATFORM PILLARS (DEEP DIVE) */}
+      <section className="py-24 bg-slate-50/70 border-b border-border-light">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-24">
+          {/* Pillar 1: 2-Way Channel Manager */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-4">
+              <span className="text-xs font-black uppercase text-blue-600 tracking-wider">
+                PILLAR 01 • DISTRIBUTION
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight">
+                2-Way OTA Channel Synchronization Across 100+ Portals
+              </h2>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Connect your live inventory to MakeMyTrip, Goibibo, Booking.com, Agoda, Airbnb, and Expedia. When a room is booked anywhere, all OTAs are updated in under a second to eliminate double-booking penalties.
+              </p>
+              <div className="space-y-2.5 pt-2 text-xs text-slate-700 font-medium">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Sub-second 2-way Availability, Rates, and Inventory (ARI) push</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Channel-specific rate markups (+15% OTA price multiplier to preserve direct margins)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Scheduled automated daily reconciliation to audit rate parity</span>
+                </div>
+              </div>
+              <div className="pt-3">
+                <Link
+                  href="/channel-manager"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-blue hover:text-brand-blue-hover"
+                >
+                  <span>Explore Channel Manager Features</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             </div>
 
-            <div className="p-6 rounded-xl border border-border-light hover:border-brand-blue transition group">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 text-brand-blue flex items-center justify-center mb-4">
-                <BedDouble className="w-5 h-5" />
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 text-xs font-bold text-slate-900">
+                <span>Active OTA Rate Multiplier</span>
+                <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px]">
+                  All Synced ✓
+                </span>
               </div>
-              <h3 className="text-lg font-bold text-content-primary-light">Housekeeping & Maintenance</h3>
-              <p className="mt-2 text-sm text-content-secondary-light leading-relaxed">
-                Automatic dirty status triggers upon guest check-out, housekeeping task scheduling, room cleanliness inspection, and maintenance ticketing.
-              </p>
+              <div className="space-y-2.5 text-xs">
+                <div className="p-3 bg-slate-50 rounded-xl flex justify-between items-center">
+                  <div>
+                    <strong className="text-slate-900">Direct Booking Engine</strong>
+                    <div className="text-[10px] text-slate-500">Your Official Website</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-slate-900">₹3,500</span>
+                    <span className="block text-[9px] text-emerald-600 font-bold">0% Commission</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl flex justify-between items-center">
+                  <div>
+                    <strong className="text-slate-900">MakeMyTrip / Goibibo</strong>
+                    <div className="text-[10px] text-slate-500">+15% Markup Applied</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-slate-900">₹4,025</span>
+                    <span className="block text-[9px] text-slate-500">Covers OTA Cut</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl flex justify-between items-center">
+                  <div>
+                    <strong className="text-slate-900">Booking.com</strong>
+                    <div className="text-[10px] text-slate-500">+18% Markup Applied</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-slate-900">₹4,130</span>
+                    <span className="block text-[9px] text-slate-500">Covers OTA Cut</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pillar 2: Contactless FlexiLink & Direct Engine */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xl space-y-4 order-2 lg:order-1">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 text-xs font-bold text-slate-900">
+                <span>Direct Razorpay Payment Policy</span>
+                <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[10px]">
+                  Direct Bank Settlement
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-3 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-300">Advance Deposit Option:</span>
+                  <span className="font-bold text-blue-400">20% Partial Advance</span>
+                </div>
+                <div className="text-[11px] text-slate-300">
+                  Guest pays 20% advance via UPI/Card to guarantee booking; balance 80% is collected at front desk upon check-in.
+                </div>
+                <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-[11px]">
+                  <span>Payment Gateway:</span>
+                  <span className="font-mono text-emerald-400">Hotelier Direct Key ID</span>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6 rounded-xl border border-border-light hover:border-brand-blue transition group">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 text-brand-blue flex items-center justify-center mb-4">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <h3 className="text-lg font-bold text-content-primary-light">Role-Based Team Permissions</h3>
-              <p className="mt-2 text-sm text-content-secondary-light leading-relaxed">
-                Enforced server-side permission matrix for Owner, Manager, Receptionist, Accountant, and Housekeeping roles with complete audit logging.
+            <div className="space-y-4 order-1 lg:order-2">
+              <span className="text-xs font-black uppercase text-indigo-600 tracking-wider">
+                PILLAR 02 • DIRECT REVENUE
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight">
+                Zero-Commission Booking Engine with Custom Advance Rules
+              </h2>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Eliminate middlemen fees entirely. Publish your custom booking portal at <code>/book/[slug]</code> with your photos, amenities, and direct Razorpay checkout.
               </p>
+              <div className="space-y-2.5 pt-2 text-xs text-slate-700 font-medium">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Flexible advance rules: 100% Full, Partial %, Partial Fixed, or Pay at Hotel</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Automatic guest confirmation emails with encrypted FlexiLink check-in links</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Guests upload government Aadhaar/Passport before arrival to eliminate lobby queues</span>
+                </div>
+              </div>
+              <div className="pt-3">
+                <Link
+                  href="/booking-engine"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-blue hover:text-brand-blue-hover"
+                >
+                  <span>Explore Direct Booking Engine</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             </div>
+          </div>
+
+          {/* Pillar 3: Hardware Urgency Siren & Housekeeping */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-4">
+              <span className="text-xs font-black uppercase text-red-600 tracking-wider">
+                PILLAR 03 • STAFF SPEED
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight">
+                Patented Housekeeping Urgency Siren on Floor Staff Phones
+              </h2>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                In most hotels, guest complaints get lost on scratch pads or delayed in busy WhatsApp groups. HotelFlexi dispatches a high-priority audible siren and continuous hardware vibration directly to floor staff smartphones.
+              </p>
+              <div className="space-y-2.5 pt-2 text-xs text-slate-700 font-medium">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Dual-tone European siren (880Hz / 660Hz) cuts through noisy resort environments</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Continuous device vibration pulse loops until staff taps &quot;Pick &amp; Silence Siren&quot;</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Admin and owner dashboards monitor live dispatch: &quot;Taken by Suresh (Housekeeping)&quot;</span>
+                </div>
+              </div>
+              <div className="pt-3">
+                <Link
+                  href="/hotel-management"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-blue hover:text-brand-blue-hover"
+                >
+                  <span>See How Housekeeping Operations Work</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+
+            <div className="bg-red-600 text-white p-6 rounded-3xl shadow-2xl space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white text-red-600 flex items-center justify-center font-black text-2xl animate-bounce shrink-0">
+                  🚨
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase bg-white/20 px-2 py-0.5 rounded">
+                    7-Minute SLA Timer
+                  </span>
+                  <h3 className="font-extrabold text-base mt-1">
+                    Room 302: Emergency Linen Sanitation
+                  </h3>
+                </div>
+              </div>
+              <p className="text-xs text-red-100">
+                Dispatched by Guest via FlexiLink. Audible siren sounding on 4 active staff devices across Floor 3.
+              </p>
+              <div className="p-3 bg-red-700/80 rounded-2xl flex items-center justify-between text-xs font-bold">
+                <span>Staff Pickup Status:</span>
+                <span className="bg-white text-red-700 px-3 py-1 rounded-xl">
+                  Taken by Ramesh (Housekeeping)
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. COMPETITOR COMPARISON MATRIX */}
+      <section className="py-20 bg-white border-b border-border-light">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-brand-blue bg-blue-50 px-3 py-1 rounded-full">
+              COMPETITIVE BENCHMARK
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight">
+              Why Indian Hoteliers Switch to HotelFlexi
+            </h2>
+            <p className="text-base text-slate-600">
+              Compare HotelFlexi against legacy desktop software and expensive overseas platforms.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border border-slate-200 rounded-2xl overflow-hidden shadow-lg">
+              <thead className="bg-slate-900 text-white font-extrabold uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="p-4">Feature / Capability</th>
+                  <th className="p-4 bg-brand-blue text-white">HotelFlexi (NovaX AI)</th>
+                  <th className="p-4">StayFlexi</th>
+                  <th className="p-4">Cloudbeds</th>
+                  <th className="p-4">AxisRooms</th>
+                  <th className="p-4">eZee / Yanolja</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {comparisonData.map((row, idx) => (
+                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
+                    <td className="p-4 font-bold text-slate-900">{row.feature}</td>
+                    <td className="p-4 font-black text-brand-blue bg-blue-50/50">{row.hotelflexi}</td>
+                    <td className="p-4 text-slate-600">{row.stayflexi}</td>
+                    <td className="p-4 text-slate-600">{row.cloudbeds}</td>
+                    <td className="p-4 text-slate-600">{row.axisrooms}</td>
+                    <td className="p-4 text-slate-600">{row.ezee}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link
+              href="/compare"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-blue hover:underline"
+            >
+              <span>View In-Depth Technical Comparison Against Each Competitor</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </section>
 
       {/* 5. PRICING PLANS */}
-      <section className="py-20 bg-surface-light border-b border-border-light">
+      <section className="py-24 bg-slate-50/80 border-b border-border-light" id="pricing">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-blue">Transparent Pricing</span>
-            <h2 className="text-3xl font-extrabold text-content-primary-light mt-2">
-              Predictable Plans for Every Property Size
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-brand-blue bg-blue-50 px-3 py-1 rounded-full">
+              TRANSPARENT PRICING
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight">
+              Simple, Predictable Plans for Indian Hoteliers
             </h2>
-            <p className="mt-3 text-content-secondary-light text-base">
-              All plans include complete PMS access and a 14-day free trial. Prices in Indian Rupees (INR).
+            <p className="text-base text-slate-600">
+              Zero setup fees. Zero commission on direct bookings. 14-day free trial on all plans.
             </p>
           </div>
 
@@ -359,210 +640,101 @@ export default function HomePage() {
             {plans.map((p) => (
               <div
                 key={p.id}
-                className={`p-6 rounded-xl bg-white border flex flex-col justify-between ${
-                  p.highlighted ? 'border-brand-blue shadow-lg ring-1 ring-brand-blue' : 'border-border-light'
+                className={`rounded-3xl p-6 transition flex flex-col justify-between border ${
+                  p.highlighted
+                    ? 'bg-slate-950 text-white border-blue-600 shadow-2xl relative scale-[1.02]'
+                    : 'bg-white text-slate-900 border-slate-200 shadow-sm hover:shadow-md'
                 }`}
               >
+                {p.badge && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider shadow">
+                    {p.badge}
+                  </div>
+                )}
+
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-bold text-content-primary-light">{p.name}</h3>
-                    {p.badge && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-brand-blue-surface text-brand-blue">
-                        {p.badge}
-                      </span>
-                    )}
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-black text-lg">{p.name}</h3>
                   </div>
-                  <p className="text-xs text-content-secondary-light min-h-[32px]">{p.desc}</p>
-                  <div className="mt-4 pb-4 border-b border-border-light flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-content-primary-light">{p.price}</span>
-                    <span className="text-xs text-content-secondary-light">{p.interval}</span>
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="text-3xl sm:text-4xl font-black">{p.price}</span>
+                    <span className={`text-xs ${p.highlighted ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {p.interval}
+                    </span>
                   </div>
-                  <ul className="mt-5 space-y-2.5 text-xs text-content-secondary-light">
-                    {p.features.map((feat) => (
-                      <li key={feat} className="flex items-center gap-2">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-brand-blue shrink-0" />
-                        <span>{feat}</span>
-                      </li>
+                  <p className={`mt-2 text-xs leading-relaxed ${p.highlighted ? 'text-slate-300' : 'text-slate-600'}`}>
+                    {p.desc}
+                  </p>
+
+                  <div className="mt-6 pt-6 border-t border-slate-200/20 space-y-2.5 text-xs">
+                    {p.features.map((feat, fIdx) => (
+                      <div key={fIdx} className="flex items-start gap-2">
+                        <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                        <span className={p.highlighted ? 'text-slate-200' : 'text-slate-700'}>{feat}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
 
-                <div className="mt-8">
+                <div className="pt-8">
                   <Link
-                    href={`/signup?plan=${p.id}`}
-                    className={`w-full block text-center py-2.5 rounded-lg text-xs font-semibold transition ${
+                    href="/signup"
+                    className={`block w-full py-3 rounded-xl font-bold text-xs text-center transition shadow ${
                       p.highlighted
-                        ? 'bg-brand-blue text-white hover:bg-brand-blue-hover shadow-sm'
-                        : 'border border-border-light text-content-primary-light hover:bg-surface-light'
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
+                        : 'bg-slate-900 hover:bg-slate-800 text-white'
                     }`}
                   >
-                    Start Free Trial
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 6. COMPETITOR COMPARISONS SPOTLIGHT */}
-      <section className="py-20 bg-white border-b border-border-light">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-blue">Why Hoteliers Switch</span>
-            <h2 className="text-3xl font-extrabold text-content-primary-light mt-2">
-              See How HotelFlexi Outperforms Other Hotel PMS Platforms
-            </h2>
-            <p className="mt-3 text-content-secondary-light text-base">
-              Skip clunky legacy software and expensive USD subscriptions. Switch to autonomous AI, live 2-way OTA distribution, and emergency housekeeping sirens for ₹499/mo.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                name: 'StayFlexi',
-                slug: 'stayflexi',
-                badge: 'Cost & AI Advantage',
-                highlight: '₹499 flat INR pricing vs $30–$100+ USD subscription fees with autonomous bilingual AI front desk.',
-              },
-              {
-                name: 'Yojna Cloud',
-                slug: 'yojna-cloud',
-                badge: 'Zero AMC Upgrade',
-                highlight: 'Modern 2026 mobile PWA with zero Annual Maintenance Contracts (AMC) vs slow legacy desktop software.',
-              },
-              {
-                name: 'eZee Absolute',
-                slug: 'ezee-absolute',
-                badge: '15-Min Onboarding',
-                highlight: 'Intuitive zero-training interface vs complex multi-layered menus requiring days of staff training.',
-              },
-              {
-                name: 'Djubo',
-                slug: 'djubo',
-                badge: '0% Direct Commission',
-                highlight: 'PMS, Channel Manager, Booking Engine & AI in one single ₹499 package vs fragmented module bills.',
-              },
-            ].map((c) => (
-              <div key={c.slug} className="p-6 rounded-2xl bg-surface-light border border-border-light hover:border-brand-blue/40 transition flex flex-col justify-between">
-                <div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-brand-blue uppercase tracking-wider">
-                    {c.badge}
-                  </span>
-                  <h3 className="text-lg font-black text-content-primary-light mt-3">
-                    HotelFlexi <span className="text-slate-400 font-normal">vs</span> {c.name}
-                  </h3>
-                  <p className="text-xs text-content-secondary-light mt-2 leading-relaxed">
-                    {c.highlight}
-                  </p>
-                </div>
-                <div className="mt-5 pt-3 border-t border-border-light">
-                  <Link
-                    href={`/compare/${c.slug}`}
-                    className="text-xs font-bold text-brand-blue hover:text-brand-blue-hover flex items-center justify-between"
-                  >
-                    <span>Read Comparison</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    {p.ctaText}
                   </Link>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-8 text-center">
-            <Link
-              href="/compare"
-              className="inline-flex items-center gap-2 text-xs font-bold text-brand-blue hover:underline"
-            >
-              <span>Explore Complete Hotel PMS &amp; Channel Manager Comparison Matrix</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* 7. HOSPITALITY BLOG INSIGHTS */}
-      <section className="py-20 bg-surface-light border-b border-border-light">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-brand-blue">Hospitality Knowledge Base</span>
-              <h2 className="text-3xl font-extrabold text-content-primary-light mt-2">
-                Latest Strategies &amp; Tech Playbooks
-              </h2>
+          {/* Dedicated Developer Setup Callout */}
+          <div className="mt-12 max-w-4xl mx-auto p-6 rounded-3xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase text-brand-blue tracking-wider">
+                OPTIONAL WHITE-GLOVE SERVICE
+              </span>
+              <h4 className="text-base font-extrabold text-slate-900">
+                Want a Developer to Set Up Your Entire Hotel &amp; OTA Mapping?
+              </h4>
+              <p className="text-xs text-slate-600">
+                Hire a dedicated NovaX AI integration engineer for ₹499 one-time. We configure your rooms, rate plans, Razorpay keys, and MMT credentials.
+              </p>
             </div>
             <Link
-              href="/blog"
-              className="text-xs font-bold text-brand-blue hover:text-brand-blue-hover flex items-center gap-1 self-start md:self-auto"
+              href="/pricing"
+              className="px-6 py-2.5 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shrink-0 shadow"
             >
-              <span>View All Articles</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              Learn More &rarr;
             </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                slug: 'how-to-automate-hotel-operations-with-ai',
-                title: 'How Indian Hoteliers Are Automating Operations with Autonomous AI',
-                category: 'AI & Automation',
-                readTime: '6 min read',
-              },
-              {
-                slug: 'best-hotel-channel-manager-india',
-                title: 'Best Hotel Channel Managers in India (2026): Live 2-Way Sync Guide',
-                category: 'Channel Management',
-                readTime: '8 min read',
-              },
-              {
-                slug: 'streamline-housekeeping-with-urgent-siren-alerts',
-                title: 'Why Urgent Siren Alerts Solve Guest Complaints in Under 7 Minutes',
-                category: 'Housekeeping & Front Desk',
-                readTime: '5 min read',
-              },
-            ].map((art) => (
-              <div key={art.slug} className="p-6 rounded-2xl bg-white border border-border-light shadow-sm flex flex-col justify-between hover:shadow-md transition">
-                <div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
-                    {art.category}
-                  </span>
-                  <h3 className="text-base font-bold text-content-primary-light mt-3 leading-snug">
-                    <Link href={`/blog/${art.slug}`} className="hover:text-brand-blue transition">
-                      {art.title}
-                    </Link>
-                  </h3>
-                </div>
-                <div className="mt-5 pt-3 border-t border-border-light flex items-center justify-between text-xs text-content-secondary-light">
-                  <span>{art.readTime}</span>
-                  <Link href={`/blog/${art.slug}`} className="font-bold text-brand-blue flex items-center gap-1">
-                    Read <ArrowRight className="w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
 
-      {/* 8. FAQ SECTION */}
+      {/* 6. FAQ SECTION */}
       <section className="py-20 bg-white border-b border-border-light">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-blue">Got Questions?</span>
-            <h2 className="text-3xl font-extrabold text-content-primary-light mt-2">
-              Frequently Asked Questions
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center space-y-2">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-brand-blue bg-blue-50 px-3 py-1 rounded-full">
+              FREQUENTLY ASKED QUESTIONS
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight">
+              Everything You Need to Know
             </h2>
           </div>
 
-          <div className="space-y-6">
-            {faqs.map((faq) => (
-              <div key={faq.q} className="p-6 rounded-xl border border-border-light bg-surface-light">
-                <h3 className="text-base font-bold text-content-primary-light flex items-center gap-2">
-                  <HelpCircle className="w-4 h-4 text-brand-blue shrink-0" />
-                  {faq.q}
+          <div className="space-y-4">
+            {faqs.map((faq, idx) => (
+              <div key={idx} className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 flex items-start gap-2">
+                  <span className="text-brand-blue font-mono">Q.</span>
+                  <span>{faq.q}</span>
                 </h3>
-                <p className="mt-2 text-sm text-content-secondary-light leading-relaxed pl-6">
+                <p className="text-xs sm:text-sm text-slate-600 pl-5 leading-relaxed font-normal">
                   {faq.a}
                 </p>
               </div>
@@ -571,34 +743,46 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 7. CALL TO ACTION */}
-      <section className="py-20 bg-surface-dark-bg text-content-primary-dark text-center">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Ready to Streamline Your Hotel Operations?
+      {/* 7. FINAL HIGH-CONVERTING CTA BANNER */}
+      <section className="py-20 bg-slate-950 text-white relative overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6 relative z-10">
+          <span className="text-xs font-black uppercase text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full">
+            INSTANT ACTIVATION
+          </span>
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tight max-w-3xl mx-auto leading-tight">
+            Ready to Automate Your Hotel Operations and Stop Overpaying OTAs?
           </h2>
-          <p className="mt-4 text-base text-content-secondary-dark max-w-xl mx-auto">
-            Get started in under 3 minutes. Set up your rooms, configure your rates, and let the AI assistant handle your daily operations.
+          <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+            Join hundreds of forward-thinking hotels across India. Start your 14-day free trial now or book a live 1-on-1 walkthrough.
           </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/signup"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 text-base font-semibold rounded-lg bg-brand-blue text-white hover:bg-brand-blue-hover shadow-lg transition"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm shadow-xl transition"
             >
-              Start Your Free 14-Day Trial
-              <ChevronRight className="w-5 h-5" />
+              Start Free 14-Day Trial &rarr;
             </Link>
-            <Link
-              href="/contact"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-medium rounded-lg border border-border-dark text-content-primary-dark hover:bg-surface-dark-surface transition"
+            <button
+              onClick={() => setDemoModalOpen(true)}
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 transition"
             >
-              Contact NovaX AI Team
+              Book a Live Demo
+            </button>
+            <Link
+              href="/download-app"
+              className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-sm border border-emerald-500/30 transition flex items-center justify-center gap-2"
+            >
+              <Smartphone className="w-4 h-4 text-emerald-400" />
+              <span>Download Android App</span>
             </Link>
           </div>
         </div>
       </section>
 
       <Footer />
+
+      {/* Book Demo Modal */}
+      <BookDemoModal isOpen={demoModalOpen} onClose={() => setDemoModalOpen(false)} />
     </div>
   );
 }

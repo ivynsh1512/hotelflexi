@@ -41,6 +41,11 @@ export const Footer: React.FC = () => {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-white">Product</h4>
             <ul className="space-y-2 text-sm text-content-secondary-dark">
               <li>
+                <Link href="/download-app" className="text-emerald-400 font-semibold hover:text-white transition">
+                  Download Android App (APK)
+                </Link>
+              </li>
+              <li>
                 <Link href="/hotel-management" className="hover:text-white transition">PMS Calendar</Link>
               </li>
               <li>

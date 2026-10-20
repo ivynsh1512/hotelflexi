@@ -35,24 +35,25 @@ if errorlevel 1 (
 )
 
 echo [4/4] Generating Universal APK (.apk) and distributing files...
-copy /y "app\build\outputs\bundle\release\app-release.aab" "HotelFlexi-v1.0.3-release.aab" >nul
-copy /y "app\build\outputs\bundle\release\app-release.aab" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.3-release.aab" >nul
-copy /y "app\build\outputs\bundle\release\app-release.aab" "C:\Users\divya\Downloads\HotelFlexi-v1.0.3-release.aab" >nul
+copy /y "app\build\outputs\bundle\release\app-release.aab" "HotelFlexi-v1.0.4-release.aab" >nul
+copy /y "app\build\outputs\bundle\release\app-release.aab" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.4-release.aab" >nul
+copy /y "app\build\outputs\bundle\release\app-release.aab" "C:\Users\divya\Downloads\HotelFlexi-v1.0.4-release.aab" >nul
 
 if exist "bundletool.jar" (
-    if exist "HotelFlexi-v1.0.3.apks" del /f /q "HotelFlexi-v1.0.3.apks"
-    "%JAVA_HOME%\bin\java.exe" -jar bundletool.jar build-apks --bundle="HotelFlexi-v1.0.3-release.aab" --output="HotelFlexi-v1.0.3.apks" --mode=universal --ks="signing.keystore" --ks-pass=pass:dKbvBlLmwBhL --ks-key-alias=my-key-alias --key-pass=pass:dKbvBlLmwBhL
-    tar.exe -xf "HotelFlexi-v1.0.3.apks" universal.apk
+    if exist "HotelFlexi-v1.0.4.apks" del /f /q "HotelFlexi-v1.0.4.apks"
+    "%JAVA_HOME%\bin\java.exe" -jar bundletool.jar build-apks --bundle="HotelFlexi-v1.0.4-release.aab" --output="HotelFlexi-v1.0.4.apks" --mode=universal --ks="signing.keystore" --ks-pass=pass:dKbvBlLmwBhL --ks-key-alias=my-key-alias --key-pass=pass:dKbvBlLmwBhL
+    tar.exe -xf "HotelFlexi-v1.0.4.apks" universal.apk
     if exist "universal.apk" (
-        move /y "universal.apk" "HotelFlexi-v1.0.3-universal.apk" >nul
-        copy /y "HotelFlexi-v1.0.3-universal.apk" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.3-universal.apk" >nul
-        copy /y "HotelFlexi-v1.0.3-universal.apk" "C:\Users\divya\Downloads\HotelFlexi-v1.0.3-universal.apk" >nul
+        move /y "universal.apk" "HotelFlexi-v1.0.4-universal.apk" >nul
+        copy /y "HotelFlexi-v1.0.4-universal.apk" "C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.4-universal.apk" >nul
+        copy /y "HotelFlexi-v1.0.4-universal.apk" "C:\Users\divya\Downloads\HotelFlexi-v1.0.4-universal.apk" >nul
+        copy /y "HotelFlexi-v1.0.4-universal.apk" "..\apps\web\public\hotelflexi-app.apk" >nul
     )
-    if exist "HotelFlexi-v1.0.3.apks" del /f /q "HotelFlexi-v1.0.3.apks"
+    if exist "HotelFlexi-v1.0.4.apks" del /f /q "HotelFlexi-v1.0.4.apks"
 )
 
 echo ========================================================
-echo PLAY STORE BUNDLE ^& UNIVERSAL APK READY!
+echo PLAY STORE BUNDLE & UNIVERSAL APK READY!
 echo ========================================================
-echo AAB: C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.3-release.aab
-echo APK: C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.3-universal.apk
+echo AAB: C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.4-release.aab
+echo APK: C:\Users\divya\OneDrive\Desktop\HotelFlexi-v1.0.4-universal.apk
