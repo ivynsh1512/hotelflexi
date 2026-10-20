@@ -10,7 +10,7 @@ export const weddingRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }
 // -----------------------------------------------------------------------------
 
 // 1. GET Public Wedding Engine Data for Property Slug
-weddingRoutes.get('/public/:slug', async (c) => {
+weddingRoutes.get('/:slug', async (c) => {
   const slug = c.req.param('slug');
 
   // Find Property
@@ -94,7 +94,7 @@ weddingRoutes.get('/public/:slug', async (c) => {
 });
 
 // 2. POST Submit Wedding Quotation Lead & Coordination Request
-weddingRoutes.post('/public/:slug/inquire', async (c) => {
+weddingRoutes.post('/:slug/inquire', async (c) => {
   const slug = c.req.param('slug');
   const body = await c.req.json();
   const now = Math.floor(Date.now() / 1000);
