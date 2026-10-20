@@ -57,7 +57,7 @@ android {
         applicationId "in.novaxai.hotelflexi"
         minSdkVersion 24
         targetSdkVersion 36
-        versionCode 4
+        versionCode 5
         versionName "1.0.2"
 
         // The name for the application

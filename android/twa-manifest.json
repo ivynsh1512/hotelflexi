@@ -15,7 +15,7 @@
   "iconUrl": "https://hotelflexi.novaxai.in/icon-512.png",
   "maskableIconUrl": "https://hotelflexi.novaxai.in/icon-maskable-512.png",
   "appVersionName": "1.0.2",
-  "appVersionCode": 4,
+  "appVersionCode": 5,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://hotelflexi.novaxai.in/manifest.webmanifest",
