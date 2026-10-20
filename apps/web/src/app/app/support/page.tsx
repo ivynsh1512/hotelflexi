@@ -218,12 +218,12 @@ export default function AppSupportPage() {
               {submitting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Submitting to Super Admin...
+                  Submitting to Support Team...
                 </>
               ) : (
                 <>
                   <Send className="w-3.5 h-3.5" />
-                  Submit Ticket
+                  Submit to Support Team
                 </>
               )}
             </button>

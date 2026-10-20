@@ -330,7 +330,7 @@ operationsRoutes.get('/complaints/active-sirens', async (c) => {
   for (const alert of (urgentAlerts.results || [])) {
     sirens.push({
       id: alert.id,
-      guest_name: 'Super Admin Broadcast',
+      guest_name: 'Priority System Broadcast',
       room_number: 'URGENT',
       category: 'emergency_alert',
       description: alert.message || alert.title,
@@ -342,11 +342,11 @@ operationsRoutes.get('/complaints/active-sirens', async (c) => {
 
   // 3. Check for open urgent housekeeping requests
   const urgentHkTasks = await c.env.DB.prepare(
-    `SELECT hk.*, r.room_number 
+    `SELECT hk.*, COALESCE(r.room_number, hk.room_id, 'Room') as room_number 
      FROM housekeeping_tasks hk
-     JOIN rooms r ON r.id = hk.room_id
+     LEFT JOIN rooms r ON r.id = hk.room_id
      WHERE hk.tenant_id = ? AND hk.status = 'pending' AND hk.priority = 'urgent'
-     ORDER BY hk.created_at DESC LIMIT 3`
+     ORDER BY hk.created_at DESC LIMIT 5`
   )
     .bind(tenantId)
     .all()

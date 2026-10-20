@@ -207,13 +207,22 @@ export function playNotificationChime(): void {
   }
 }
 
-// 6. Test Siren (Runs for 3 seconds then automatically stops)
+// 6. Test Siren (Runs for 3.5 seconds then automatically stops)
 export function testSiren(): Promise<void> {
   return new Promise((resolve) => {
-    playSiren();
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().then(() => {
+        playSiren();
+      }).catch(() => {
+        playSiren();
+      });
+    } else {
+      playSiren();
+    }
     setTimeout(() => {
       stopSiren();
       resolve();
-    }, 3000);
+    }, 3500);
   });
 }

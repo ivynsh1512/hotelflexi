@@ -53,6 +53,19 @@ export async function apiClient<T = any>(
     err.status = res.status;
     err.code = data?.code;
     err.data = data;
+
+    // Trigger immediate, unbypassable UI lockdown on payment required / suspension
+    if (res.status === 402 && typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('hotelflexi:payment-locked', {
+          detail: {
+            reason: data?.reason || errorMsg,
+            status: data?.status || 'payment_issue',
+          },
+        })
+      );
+    }
+
     throw err;
   }
 

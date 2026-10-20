@@ -11,8 +11,11 @@ import {
   X,
   PlusCircle,
   Loader2,
+  Volume2,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { testSiren, setupAudioUnlock } from '@/lib/sound';
+import { showLocalNotification } from '@/lib/fcm';
 
 export interface UrgentTicket {
   id: string;
@@ -37,6 +40,24 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
   const [reportingRoom, setReportingRoom] = useState('');
   const [reportingCategory, setReportingCategory] = useState('dirty_bedsheet');
   const [reportingNotes, setReportingNotes] = useState('');
+  const [testingSiren, setTestingSiren] = useState(false);
+
+  const handleTestSiren = async () => {
+    setTestingSiren(true);
+    setupAudioUnlock();
+    try {
+      await showLocalNotification('🚨 HotelFlexi Siren & Vibration Test', {
+        body: 'Dual-tone urgent alarm active with mobile hardware vibration pulse!',
+        icon: '/icon-192.png',
+        soundType: 'siren',
+      });
+      await testSiren();
+    } catch (e: any) {
+      alert(`Could not play siren: ${e.message}`);
+    } finally {
+      setTestingSiren(false);
+    }
+  };
 
   // Poll or fetch active urgent tasks/complaints
   const fetchActiveUrgentTickets = useCallback(async () => {
@@ -273,6 +294,16 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-center">
+          <button
+            onClick={handleTestSiren}
+            disabled={testingSiren}
+            title="Test dual-tone European siren sound and mobile hardware vibration"
+            className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold flex items-center gap-1.5 transition disabled:opacity-50"
+          >
+            {testingSiren ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Volume2 className="w-3.5 h-3.5" />}
+            <span>{testingSiren ? 'Playing Siren...' : 'Test Siren Sound & Vibration'}</span>
+          </button>
+
           <button
             onClick={() => setQuickReportModalOpen(true)}
             className="px-3.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold flex items-center gap-1.5 transition"

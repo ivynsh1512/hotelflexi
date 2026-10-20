@@ -83,44 +83,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // Server-side allowlist security guard
+  // Security protection: To unauthorized users and scanners, /admin is completely disguised as a 404 Not Found
   if (!user || !isPlatformAdmin) {
     return (
-      <div className="min-h-screen bg-surface-dark-bg text-content-primary-dark flex items-center justify-center p-4">
-        <div className="max-w-md w-full p-8 rounded-2xl bg-surface-dark-surface border border-border-dark text-center space-y-4 shadow-2xl">
-          <div className="w-14 h-14 rounded-2xl bg-red-950/60 border border-red-800 text-status-danger flex items-center justify-center mx-auto">
-            <Lock className="w-7 h-7 text-red-500" />
-          </div>
-          <h1 className="text-xl font-extrabold text-white">403 Forbidden: Super-Admin Access Required</h1>
-          <p className="text-xs text-content-secondary-dark leading-relaxed">
-            Your current account (<span className="text-white font-mono">{user?.email || 'Anonymous'}</span>) is not authorized on the NovaX AI super-admin allowlist (<span className="text-purple-400 font-mono">ADMIN_EMAILS</span>).
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center space-y-4">
+          <div className="text-6xl font-extrabold text-slate-300">404</div>
+          <h1 className="text-xl font-bold text-slate-800">Page Not Found</h1>
+          <p className="text-xs text-slate-500">
+            The page you are looking for does not exist, has been removed, or is temporarily unavailable.
           </p>
-          <div className="pt-4 flex flex-col gap-2">
-            <button
-              onClick={handleRecheck}
-              disabled={rechecking}
-              className="py-2.5 px-4 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-500 transition flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {rechecking ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Checking Authorization...
-                </>
-              ) : (
-                'Re-verify Admin Status'
-              )}
-            </button>
+          <div className="pt-2">
             <Link
-              href="/app"
-              className="py-2.5 px-4 rounded-lg bg-surface-dark-elevated border border-border-dark text-xs font-semibold hover:bg-border-dark transition text-white"
+              href="/"
+              className="inline-block px-5 py-2.5 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition shadow-sm"
             >
-              Return to Hotel PMS Dashboard
-            </Link>
-            <Link
-              href="/login"
-              className="py-2.5 px-4 rounded-lg border border-border-dark text-content-secondary-dark text-xs font-semibold hover:bg-surface-dark-elevated transition"
-            >
-              Sign In with Different Account
+              Back to HotelFlexi Home
             </Link>
           </div>
         </div>

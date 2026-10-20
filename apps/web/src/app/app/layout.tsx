@@ -48,9 +48,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, loading, isPlatformAdmin, tenants, currentTenant, setCurrentTenant, logout } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [apiLockedReason, setApiLockedReason] = useState<string | null>(null);
 
   const userRole = (currentTenant?.role || 'owner').toLowerCase();
   const isAllowedForRole = isRouteAllowedForRole(userRole, pathname);
+
+  useEffect(() => {
+    // Listen for unbypassable 402 server payment lock
+    const onPaymentLocked = (e: any) => {
+      const reason = e.detail?.reason || 'Payment required: Please clear your outstanding software dues to unlock access.';
+      setApiLockedReason(reason);
+    };
+    window.addEventListener('hotelflexi:payment-locked', onPaymentLocked);
+    return () => window.removeEventListener('hotelflexi:payment-locked', onPaymentLocked);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -172,9 +183,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     currentTenant.current_period_ends_at < now
   );
 
+  const isPaymentIssue = Boolean(
+    apiLockedReason ||
+    currentTenant?.subscription_status === 'payment_issue' ||
+    (currentTenant?.suspension_reason && currentTenant.suspension_reason.toLowerCase().includes('due')) ||
+    currentTenant?.account_access_status === 'suspended'
+  );
+
   const isAccountRestricted =
+    Boolean(apiLockedReason) ||
     currentTenant?.account_access_status === 'suspended' ||
     currentTenant?.account_access_status === 'locked' ||
+    currentTenant?.subscription_status === 'payment_issue' ||
     currentTenant?.subscription_status === 'expired' ||
     currentTenant?.subscription_status === 'past_due' ||
     isTrialExpired ||
@@ -385,22 +405,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  {isTrialExpired
+                  {isPaymentIssue
+                    ? 'Payment Issue: Software Dues Pending'
+                    : isTrialExpired
                     ? '14-Day Free Trial Expired'
                     : isSubscriptionExpired
                     ? 'Subscription Period Expired'
                     : 'Property Profile Locked'}
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-content-primary-light tracking-tight">
-                  {isTrialExpired
+                  {isPaymentIssue
+                    ? 'Account Suspended: Outstanding Dues Pending'
+                    : isTrialExpired
                     ? 'Your 14-Day Free Trial Has Ended'
                     : isSubscriptionExpired
                     ? 'Your Subscription Has Expired'
                     : 'Hotel Workspace Access Locked'}
                 </h2>
                 <p className="text-sm text-content-secondary-light max-w-lg mx-auto leading-relaxed">
-                  {currentTenant?.suspension_reason ||
-                    (isTrialExpired
+                  {apiLockedReason ||
+                    currentTenant?.suspension_reason ||
+                    (isPaymentIssue
+                      ? 'Your property operations have been paused due to an unpaid subscription invoice. Please clear your dues or pay your bill to immediately restore full access to your bookings, rooms, and front desk.'
+                      : isTrialExpired
                       ? 'Your trial period has concluded. To reactivate your live Channel Manager, Housekeeping Urgency Siren, and Front Desk operations, please upgrade to a paid plan or switch to the Free Starter tier.'
                       : 'Your billing period has ended. Please renew your subscription to restore full access to your property workspace.')}
                 </p>
@@ -409,11 +436,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="p-4 rounded-2xl bg-surface-light border border-border-light text-left text-xs space-y-2">
                 <div className="font-bold text-content-primary-light flex items-center gap-1.5">
                   <Shield className="w-4 h-4 text-emerald-600" />
-                  Your hotel data is 100% safe and preserved
+                  Your hotel data is 100% safe and cryptographically preserved
                 </div>
                 <p className="text-content-secondary-light">
-                  All room types, rate plans, past reservations, and customer records are safely stored.
-                  Workspace unlocks instantly once payment is completed or Free Starter is selected.
+                  All room inventories, rate plans, guest records, and past folios are safely stored.
+                  Backend APIs are locked until dues are settled. Workspace unlocks instantly once your payment invoice is cleared.
                 </p>
               </div>
 
@@ -422,13 +449,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   href="/app/subscription"
                   className="w-full sm:w-auto px-6 py-3 rounded-xl bg-brand-blue text-white font-extrabold text-xs sm:text-sm hover:bg-blue-700 shadow-md transition text-center"
                 >
-                  Choose Plan &amp; Unlock Workspace &rarr;
+                  {isPaymentIssue ? 'Clear Dues & Pay Online →' : 'Choose Plan & Unlock Workspace →'}
                 </Link>
                 <Link
                   href="/app/support"
                   className="w-full sm:w-auto px-6 py-3 rounded-xl border border-border-light bg-surface-light text-content-primary-light font-bold text-xs sm:text-sm hover:bg-white transition text-center"
                 >
-                  Raise Support Complaint
+                  Submit Ticket to Support Team
                 </Link>
               </div>
             </div>

@@ -134,20 +134,20 @@ adminRoutes.get('/tenants/:id', async (c) => {
   });
 });
 
-// Suspend / Reactivate / Lock / Unlock Tenant Access
+// Suspend / Reactivate / Lock / Unlock Tenant Access (Supports Payment Lock)
 adminRoutes.patch('/tenants/:id/status', async (c) => {
   const id = c.req.param('id');
   const user = c.get('user')!;
   const body = await c.req.json();
   const now = Math.floor(Date.now() / 1000);
 
-  const { status, reason } = body; // 'active', 'suspended', 'locked'
+  const { status, reason, isPaymentIssue } = body; // 'active', 'suspended', 'locked'
 
   if (!status || !['active', 'suspended', 'locked'].includes(status)) {
     return c.json({ error: 'Status must be one of: active, suspended, locked' }, 400);
   }
 
-  const oldTenant: any = await c.env.DB.prepare('SELECT account_access_status FROM tenants WHERE id = ?')
+  const oldTenant: any = await c.env.DB.prepare('SELECT account_access_status, subscription_status FROM tenants WHERE id = ?')
     .bind(id)
     .first();
 
@@ -155,14 +155,22 @@ adminRoutes.patch('/tenants/:id/status', async (c) => {
     return c.json({ error: 'Tenant not found' }, 404);
   }
 
+  let newSubStatus = oldTenant.subscription_status;
+  if (status === 'active') {
+    newSubStatus = oldTenant.subscription_status === 'payment_issue' ? 'active' : oldTenant.subscription_status;
+  } else if (isPaymentIssue || (reason && reason.toLowerCase().includes('due'))) {
+    newSubStatus = 'payment_issue';
+  }
+
   await c.env.DB.prepare(
     `UPDATE tenants SET
        account_access_status = ?,
+       subscription_status = ?,
        suspension_reason = ?,
        updated_at = ?
      WHERE id = ?`
   )
-    .bind(status, reason || null, now, id)
+    .bind(status, newSubStatus, reason || null, now, id)
     .run();
 
   await recordAuditLog(c, {
@@ -172,11 +180,202 @@ adminRoutes.patch('/tenants/:id/status', async (c) => {
     action: `tenant.${status}`,
     resourceType: 'tenant',
     resourceId: id,
-    oldValues: { account_access_status: oldTenant.account_access_status },
-    newValues: { account_access_status: status, reason },
+    oldValues: { account_access_status: oldTenant.account_access_status, subscription_status: oldTenant.subscription_status },
+    newValues: { account_access_status: status, subscription_status: newSubStatus, reason },
   });
 
-  return c.json({ success: true, message: `Tenant account marked as ${status}` });
+  return c.json({
+    success: true,
+    message: status === 'active'
+      ? 'Tenant account restored to active status.'
+      : `Tenant account marked as ${status}${isPaymentIssue ? ' with payment lockout' : ''}.`,
+  });
+});
+
+// Update Property & Tenant Details (Full Super Admin Override)
+adminRoutes.patch('/tenants/:id/details', async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user')!;
+  const body = await c.req.json();
+  const now = Math.floor(Date.now() / 1000);
+
+  const tenant: any = await c.env.DB.prepare('SELECT * FROM tenants WHERE id = ?').bind(id).first();
+  if (!tenant) return c.json({ error: 'Tenant not found' }, 404);
+
+  const {
+    tenantName,
+    tenantSlug,
+    propertyId,
+    propertyName,
+    propertyAddress,
+    propertyCity,
+    propertyState,
+    propertyPostalCode,
+    propertyCountry,
+    propertyPhone,
+    propertyEmail,
+    propertyDescription,
+    propertyStarRating,
+  } = body;
+
+  // 1. Update Tenant Name & Slug if specified
+  if (tenantName || tenantSlug) {
+    await c.env.DB.prepare(
+      `UPDATE tenants SET
+         name = COALESCE(?, name),
+         slug = COALESCE(?, slug),
+         updated_at = ?
+       WHERE id = ?`
+    )
+      .bind(tenantName || null, tenantSlug || null, now, id)
+      .run();
+  }
+
+  // 2. Update Primary Property Details
+  if (propertyName || propertyAddress || propertyPhone || propertyEmail || propertyDescription) {
+    const targetProperty: any = propertyId
+      ? await c.env.DB.prepare('SELECT id FROM properties WHERE id = ? AND tenant_id = ?').bind(propertyId, id).first()
+      : await c.env.DB.prepare('SELECT id FROM properties WHERE tenant_id = ? ORDER BY created_at ASC LIMIT 1').bind(id).first();
+
+    if (targetProperty) {
+      await c.env.DB.prepare(
+        `UPDATE properties SET
+           name = COALESCE(?, name),
+           address = COALESCE(?, address),
+           city = COALESCE(?, city),
+           state = COALESCE(?, state),
+           postal_code = COALESCE(?, postal_code),
+           country = COALESCE(?, country),
+           phone = COALESCE(?, phone),
+           email = COALESCE(?, email),
+           description = COALESCE(?, description),
+           star_rating = COALESCE(?, star_rating),
+           updated_at = ?
+         WHERE id = ?`
+      )
+        .bind(
+          propertyName || null,
+          propertyAddress || null,
+          propertyCity || null,
+          propertyState || null,
+          propertyPostalCode || null,
+          propertyCountry || null,
+          propertyPhone || null,
+          propertyEmail || null,
+          propertyDescription || null,
+          propertyStarRating !== undefined ? Number(propertyStarRating) : null,
+          now,
+          targetProperty.id
+        )
+        .run();
+    }
+  }
+
+  await recordAuditLog(c, {
+    tenantId: id,
+    userId: user.uid,
+    actorType: 'super_admin',
+    action: 'tenant.details_updated_by_admin',
+    resourceType: 'tenant',
+    resourceId: id,
+    newValues: { tenantName, propertyName, propertyCity, propertyPhone },
+  });
+
+  return c.json({ success: true, message: 'Tenant & Property details updated successfully' });
+});
+
+// Clear All Test & Operational Data (Fresh Slate Reset)
+adminRoutes.post('/tenants/:id/clear-data', async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user')!;
+  const body = await c.req.json().catch(() => ({}));
+
+  if (body.confirmation !== 'CLEAR') {
+    return c.json({ error: 'Please provide confirmation: "CLEAR" to purge tenant data' }, 400);
+  }
+
+  const tenant: any = await c.env.DB.prepare('SELECT name FROM tenants WHERE id = ?').bind(id).first();
+  if (!tenant) return c.json({ error: 'Tenant not found' }, 404);
+
+  // Safely purge transactional records while preserving properties, room types, and rooms
+  try {
+    await c.env.DB.batch([
+      // 1. Delete reservation guests and reservations
+      c.env.DB.prepare('DELETE FROM reservation_guests WHERE reservation_id IN (SELECT id FROM reservations WHERE tenant_id = ?)').bind(id),
+      c.env.DB.prepare('DELETE FROM folio_transactions WHERE reservation_id IN (SELECT id FROM reservations WHERE tenant_id = ?)').bind(id),
+      c.env.DB.prepare('DELETE FROM reservations WHERE tenant_id = ?').bind(id),
+
+      // 2. Clear housekeeping & maintenance operations
+      c.env.DB.prepare('DELETE FROM housekeeping_tasks WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM maintenance_tickets WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM complaints WHERE tenant_id = ?').bind(id),
+
+      // 3. Clear billing invoices & payments
+      c.env.DB.prepare('DELETE FROM payments WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM invoices WHERE tenant_id = ?').bind(id),
+
+      // 4. Reset all rooms back to available / clean
+      c.env.DB.prepare("UPDATE rooms SET status = 'clean' WHERE tenant_id = ?").bind(id),
+    ]);
+  } catch (err: any) {
+    return c.json({ error: `Failed to clear data: ${err.message}` }, 500);
+  }
+
+  await recordAuditLog(c, {
+    tenantId: id,
+    userId: user.uid,
+    actorType: 'super_admin',
+    action: 'tenant.data_cleared',
+    resourceType: 'tenant',
+    resourceId: id,
+    newValues: { message: `All test reservations, housekeeping, and tickets cleared for ${tenant.name}` },
+  });
+
+  return c.json({
+    success: true,
+    message: `All test reservations, housekeeping, complaints, and billing data for ${tenant.name} have been purged. Properties and rooms are reset to clean!`,
+  });
+});
+
+// Delete Tenant & All Associated Records Permanently
+adminRoutes.delete('/tenants/:id', async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user')!;
+  const body = await c.req.json().catch(() => ({}));
+
+  if (body.confirmation !== 'DELETE') {
+    return c.json({ error: 'Please provide confirmation: "DELETE" to delete this hotel permanently' }, 400);
+  }
+
+  const tenant: any = await c.env.DB.prepare('SELECT name FROM tenants WHERE id = ?').bind(id).first();
+  if (!tenant) return c.json({ error: 'Tenant not found' }, 404);
+
+  try {
+    await c.env.DB.batch([
+      c.env.DB.prepare('DELETE FROM reservation_guests WHERE reservation_id IN (SELECT id FROM reservations WHERE tenant_id = ?)').bind(id),
+      c.env.DB.prepare('DELETE FROM reservations WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM housekeeping_tasks WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM maintenance_tickets WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM complaints WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM payments WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM invoices WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM rooms WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM room_types WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM properties WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM tenant_memberships WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM team_invitations WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM audit_logs WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM feature_entitlements WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM tenants WHERE id = ?').bind(id),
+    ]);
+  } catch (err: any) {
+    return c.json({ error: `Failed to delete tenant: ${err.message}` }, 500);
+  }
+
+  return c.json({
+    success: true,
+    message: `Tenant "${tenant.name}" and all associated data permanently removed.`,
+  });
 });
 
 // Update Tenant Subscription Plan or Extend Trial

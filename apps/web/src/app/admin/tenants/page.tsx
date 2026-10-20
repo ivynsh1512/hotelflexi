@@ -17,6 +17,12 @@ import {
   Phone,
   Mail,
   Building,
+  Edit3,
+  RotateCcw,
+  Trash2,
+  CreditCard,
+  AlertTriangle,
+  Hotel,
 } from 'lucide-react';
 
 export default function AdminTenantsPage() {
@@ -31,10 +37,36 @@ export default function AdminTenantsPage() {
   const [trialDays, setTrialDays] = useState(14);
   const [updatingPlan, setUpdatingPlan] = useState(false);
 
+  // Status & Lockout modal
   const [statusModalTenant, setStatusModalTenant] = useState<any>(null);
   const [targetStatus, setTargetStatus] = useState('active');
   const [statusReason, setStatusReason] = useState('Administrative compliance review');
+  const [isPaymentIssue, setIsPaymentIssue] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  // Edit Details modal
+  const [editModalTenant, setEditModalTenant] = useState<any>(null);
+  const [editTenantName, setEditTenantName] = useState('');
+  const [editPropertyName, setEditPropertyName] = useState('');
+  const [editPropertyPhone, setEditPropertyPhone] = useState('');
+  const [editPropertyEmail, setEditPropertyEmail] = useState('');
+  const [editPropertyAddress, setEditPropertyAddress] = useState('');
+  const [editPropertyCity, setEditPropertyCity] = useState('');
+  const [editPropertyState, setEditPropertyState] = useState('');
+  const [editPropertyPostalCode, setEditPropertyPostalCode] = useState('');
+  const [editPropertyDescription, setEditPropertyDescription] = useState('');
+  const [editPropertyStarRating, setEditPropertyStarRating] = useState('3');
+  const [savingDetails, setSavingDetails] = useState(false);
+
+  // Clear Data modal
+  const [clearDataModalTenant, setClearDataModalTenant] = useState<any>(null);
+  const [clearConfirmation, setClearConfirmation] = useState('');
+  const [clearingData, setClearingData] = useState(false);
+
+  // Delete Tenant modal
+  const [deleteModalTenant, setDeleteModalTenant] = useState<any>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deletingTenant, setDeletingTenant] = useState(false);
 
   const fetchTenants = async (q = '') => {
     setLoading(true);
@@ -82,14 +114,21 @@ export default function AdminTenantsPage() {
     }
   };
 
-  const openStatusModal = (tenant: any, defaultStatus: string) => {
+  const openStatusModal = (tenant: any, defaultStatus: string, defaultPaymentIssue = false) => {
     setStatusModalTenant(tenant);
     setTargetStatus(defaultStatus);
-    setStatusReason(
-      defaultStatus === 'active'
-        ? 'Account reviewed and verified by super-admin'
-        : 'Payment default / Terms compliance review'
-    );
+    setIsPaymentIssue(defaultPaymentIssue);
+    if (defaultPaymentIssue) {
+      setStatusReason(
+        'Software subscription bill unpaid. Please clear outstanding dues to restore hotel operations.'
+      );
+    } else {
+      setStatusReason(
+        defaultStatus === 'active'
+          ? 'Account reviewed and verified by platform administrator'
+          : 'Payment default / Terms compliance review'
+      );
+    }
   };
 
   const handleSaveStatus = async (e: React.FormEvent) => {
@@ -102,6 +141,7 @@ export default function AdminTenantsPage() {
         body: JSON.stringify({
           status: targetStatus,
           reason: statusReason,
+          isPaymentIssue: isPaymentIssue && targetStatus !== 'active',
         }),
       });
       alert(`Account status updated to ${targetStatus}`);
@@ -114,118 +154,202 @@ export default function AdminTenantsPage() {
     }
   };
 
+  // Open Edit Details Modal
+  const openEditModal = async (tenant: any) => {
+    setEditModalTenant(tenant);
+    setEditTenantName(tenant.name || '');
+    setEditPropertyName(tenant.name || '');
+    setEditPropertyPhone(tenant.owner_phone || '');
+    setEditPropertyEmail(tenant.owner_email || '');
+    setEditPropertyAddress('');
+    setEditPropertyCity('');
+    setEditPropertyState('');
+    setEditPropertyPostalCode('');
+    setEditPropertyDescription('');
+    setEditPropertyStarRating('3');
+
+    try {
+      const data = await apiClient(`/admin/tenants/${tenant.id}`);
+      const prop = (data.properties || [])[0];
+      if (prop) {
+        setEditPropertyName(prop.name || tenant.name || '');
+        setEditPropertyPhone(prop.phone || tenant.owner_phone || '');
+        setEditPropertyEmail(prop.email || tenant.owner_email || '');
+        setEditPropertyAddress(prop.address || '');
+        setEditPropertyCity(prop.city || '');
+        setEditPropertyState(prop.state || '');
+        setEditPropertyPostalCode(prop.postal_code || '');
+        setEditPropertyDescription(prop.description || '');
+        setEditPropertyStarRating(String(prop.star_rating || '3'));
+      }
+    } catch (err) {
+      console.warn('Could not pre-fetch full property details:', err);
+    }
+  };
+
+  const handleSaveDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editModalTenant) return;
+    setSavingDetails(true);
+    try {
+      await apiClient(`/admin/tenants/${editModalTenant.id}/details`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          tenantName: editTenantName,
+          propertyName: editPropertyName,
+          propertyPhone: editPropertyPhone,
+          propertyEmail: editPropertyEmail,
+          propertyAddress: editPropertyAddress,
+          propertyCity: editPropertyCity,
+          propertyState: editPropertyState,
+          propertyPostalCode: editPropertyPostalCode,
+          propertyDescription: editPropertyDescription,
+          propertyStarRating: Number(editPropertyStarRating) || 3,
+        }),
+      });
+      alert(`Property & hotel details updated successfully for ${editPropertyName || editTenantName}`);
+      setEditModalTenant(null);
+      await fetchTenants(query);
+    } catch (e: any) {
+      alert(e.message || 'Failed to update details');
+    } finally {
+      setSavingDetails(false);
+    }
+  };
+
+  // Clear Test Data
+  const handleClearData = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clearDataModalTenant) return;
+    if (clearConfirmation !== 'CLEAR') {
+      alert('Please type CLEAR to confirm.');
+      return;
+    }
+    setClearingData(true);
+    try {
+      const res = await apiClient(`/admin/tenants/${clearDataModalTenant.id}/clear-data`, {
+        method: 'POST',
+        body: JSON.stringify({ confirmation: 'CLEAR' }),
+      });
+      alert(res.message || 'All test data purged successfully. Hotel reset to clean state.');
+      setClearDataModalTenant(null);
+      setClearConfirmation('');
+      await fetchTenants(query);
+    } catch (e: any) {
+      alert(e.message || 'Failed to clear data');
+    } finally {
+      setClearingData(false);
+    }
+  };
+
+  // Delete Tenant
+  const handleDeleteTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deleteModalTenant) return;
+    if (deleteConfirmation !== 'DELETE') {
+      alert('Please type DELETE to confirm.');
+      return;
+    }
+    setDeletingTenant(true);
+    try {
+      const res = await apiClient(`/admin/tenants/${deleteModalTenant.id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ confirmation: 'DELETE' }),
+      });
+      alert(res.message || 'Tenant permanently deleted.');
+      setDeleteModalTenant(null);
+      setDeleteConfirmation('');
+      await fetchTenants(query);
+    } catch (e: any) {
+      alert(e.message || 'Failed to delete tenant');
+    } finally {
+      setDeletingTenant(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="pb-3 border-b border-border-dark flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
-            <Building className="w-6 h-6 text-purple-400" />
-            Hotel &amp; Tenant Management
+            <Users className="w-6 h-6 text-purple-400" />
+            Hotel Tenants &amp; Property Management
           </h1>
           <p className="text-xs text-content-secondary-dark mt-1">
-            Upgrade hotel subscription plans, extend trials, lock/suspend access, and manage property overrides.
+            Edit hotel profiles, lock accounts for payment issues, clear test data, or manage plans.
           </p>
         </div>
 
-        <span className="px-3 py-1 rounded-full bg-purple-950/60 text-purple-300 border border-purple-800/60 text-xs font-mono font-bold self-start sm:self-auto">
-          {tenants.length} Registered Properties
-        </span>
-      </div>
-
-      {/* Search Input */}
-      <div className="max-w-md">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            fetchTenants(query);
-          }}
-          className="relative"
-        >
-          <Search className="w-4 h-4 text-content-secondary-dark absolute left-3 top-3" />
+        {/* Search */}
+        <div className="relative w-full sm:w-72">
+          <Search className="w-4 h-4 text-content-secondary-dark absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search hotel name, owner email or phone..."
-            className="w-full pl-9 pr-4 py-2.5 text-xs rounded-xl bg-surface-dark-surface border border-border-dark text-white placeholder:text-content-secondary-dark focus:outline-none focus:ring-2 focus:ring-purple-500"
+            onChange={(e) => {
+              setQuery(e.target.value);
+              fetchTenants(e.target.value);
+            }}
+            placeholder="Search hotel name, email..."
+            className="w-full pl-9 pr-3 py-2 bg-surface-dark-surface border border-border-dark rounded-xl text-xs text-white placeholder-content-secondary-dark focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
-        </form>
+        </div>
       </div>
 
-      {/* Loading & Empty States */}
+      {/* Tenants Table */}
       {loading ? (
-        <div className="flex items-center justify-center py-24 bg-surface-dark-surface rounded-2xl border border-border-dark">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+        <div className="flex items-center justify-center p-12 text-content-secondary-dark">
+          <Loader2 className="w-6 h-6 animate-spin text-purple-400 mr-2" />
+          Loading registered hotels...
         </div>
       ) : tenants.length === 0 ? (
-        <div className="p-12 text-center bg-surface-dark-surface rounded-2xl border border-border-dark text-xs text-content-secondary-dark">
-          No registered hotel tenants found matching search query.
+        <div className="p-8 text-center text-xs text-content-secondary-dark bg-surface-dark-surface rounded-2xl border border-border-dark">
+          No hotel tenants found matching &quot;{query}&quot;
         </div>
       ) : (
-        /* Responsive Table & Card Views */
-        <div className="bg-surface-dark-surface rounded-2xl border border-border-dark overflow-hidden shadow-xl">
+        <div className="bg-surface-dark-surface border border-border-dark rounded-2xl overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[700px]">
-              <thead className="border-b border-border-dark text-[10px] uppercase font-bold text-content-secondary-dark bg-surface-dark-elevated/40">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-surface-dark-elevated text-content-secondary-dark font-bold uppercase tracking-wider border-b border-border-dark text-[10px]">
                 <tr>
-                  <th className="p-3.5">Hotel &amp; Code</th>
-                  <th className="p-3.5">Owner Details</th>
-                  <th className="p-3.5">Plan &amp; Billing</th>
-                  <th className="p-3.5">Rooms</th>
-                  <th className="p-3.5">Account State</th>
-                  <th className="p-3.5 text-right">Super-Admin Actions</th>
+                  <th className="p-3.5">Hotel / Organization</th>
+                  <th className="p-3.5">Owner Contact</th>
+                  <th className="p-3.5">Subscription Plan</th>
+                  <th className="p-3.5">Inventory</th>
+                  <th className="p-3.5">Access Status</th>
+                  <th className="p-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-dark">
                 {tenants.map((t) => {
                   const isLocked =
                     t.account_access_status === 'locked' ||
-                    t.account_access_status === 'suspended';
-                  const hotelCode =
-                    t.hotel_code ||
-                    (t.id
-                      ? (
-                          Math.abs(
-                            t.id
-                              .split('')
-                              .reduce(
-                                (acc: number, char: string) =>
-                                  ((acc << 5) - acc + char.charCodeAt(0)) | 0,
-                                0
-                              )
-                          ) % 90000 +
-                          10000
-                        ).toString()
-                      : '58291');
+                    t.account_access_status === 'suspended' ||
+                    t.subscription_status === 'payment_issue';
+                  const isPaymentBlocked =
+                    t.subscription_status === 'payment_issue' ||
+                    (t.suspension_reason && t.suspension_reason.toLowerCase().includes('due'));
 
                   return (
-                    <tr
-                      key={t.id}
-                      className="hover:bg-surface-dark-elevated/50 transition group"
-                    >
-                      <td className="p-3.5">
+                    <tr key={t.id} className="hover:bg-surface-dark-elevated/50 transition">
+                      <td className="p-3.5 font-bold text-white">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">{t.name}</span>
-                          <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-purple-300 font-mono text-[10px] font-bold">
-                            #{hotelCode}
-                          </span>
+                          <Building className="w-4 h-4 text-purple-400 shrink-0" />
+                          <span>{t.name}</span>
                         </div>
-                        <div className="text-[10px] font-mono text-content-secondary-dark mt-0.5">
-                          ID: {t.id}
+                        <div className="text-[10px] text-content-secondary-dark font-mono font-normal">
+                          slug: /{t.slug}
                         </div>
                       </td>
 
-                      <td className="p-3.5">
-                        <div className="font-semibold text-white">
-                          {t.owner_name || 'Property Owner'}
-                        </div>
-                        <div className="text-[11px] text-content-secondary-dark flex items-center gap-1">
+                      <td className="p-3.5 text-content-secondary-dark">
+                        <div className="text-white font-semibold flex items-center gap-1">
                           <Mail className="w-3 h-3 text-slate-400" />
                           {t.owner_email}
                         </div>
                         {t.owner_phone && (
-                          <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                          <div className="text-[10px] text-content-secondary-dark flex items-center gap-1">
                             <Phone className="w-3 h-3 text-slate-500" />
                             {t.owner_phone}
                           </div>
@@ -233,19 +357,19 @@ export default function AdminTenantsPage() {
                       </td>
 
                       <td className="p-3.5">
-                        <span className="font-black text-purple-400 uppercase text-xs">
-                          {t.plan_name || t.current_plan_id || 'Essential'}
-                        </span>
-                        <div className="text-[10px] text-content-secondary-dark capitalize mt-0.5">
+                        <div className="font-bold text-white capitalize">{t.plan_name || 'Starter Plan'}</div>
+                        <div className="text-[10px] text-content-secondary-dark">
                           Status:{' '}
                           <span
                             className={`font-semibold ${
                               t.subscription_status === 'active'
                                 ? 'text-emerald-400'
+                                : isPaymentBlocked
+                                ? 'text-red-400'
                                 : 'text-amber-400'
                             }`}
                           >
-                            {t.subscription_status}
+                            {isPaymentBlocked ? 'Payment Due Lock' : t.subscription_status}
                           </span>
                         </div>
                       </td>
@@ -265,17 +389,27 @@ export default function AdminTenantsPage() {
                               : 'bg-emerald-950 text-emerald-400 border border-emerald-800'
                           }`}
                         >
-                          {t.account_access_status}
+                          {isPaymentBlocked ? 'Payment Locked' : t.account_access_status}
                         </span>
                       </td>
 
-                      <td className="p-3.5 text-right space-x-2 whitespace-nowrap">
+                      <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
+                        {/* Edit Details */}
+                        <button
+                          onClick={() => openEditModal(t)}
+                          title="Edit Property, Hotel Name, Phone, and Details"
+                          className="px-2.5 py-1.5 rounded-lg bg-surface-dark-elevated hover:bg-border-dark text-slate-200 border border-border-dark font-semibold text-xs transition"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 inline mr-1 text-blue-400" />
+                          Edit Details
+                        </button>
+
                         {/* Upgrade Plan Button */}
                         <button
                           onClick={() => openPlanModal(t)}
                           className="px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow"
                         >
-                          Change Plan
+                          Plan
                         </button>
 
                         {/* Lock / Unlock Toggle */}
@@ -289,19 +423,203 @@ export default function AdminTenantsPage() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => openStatusModal(t, 'locked')}
+                            onClick={() => openStatusModal(t, 'locked', true)}
+                            title="Lock account for unpaid software bill / dues"
                             className="px-2.5 py-1.5 rounded-lg bg-red-700 hover:bg-red-800 text-white font-bold text-xs transition"
                           >
                             <Lock className="w-3.5 h-3.5 inline mr-1" />
-                            Lock
+                            Lock (Payment Dues)
                           </button>
                         )}
+
+                        {/* Clear Data */}
+                        <button
+                          onClick={() => {
+                            setClearDataModalTenant(t);
+                            setClearConfirmation('');
+                          }}
+                          title="Purge all test reservations, housekeeping, folios for clean slate"
+                          className="px-2.5 py-1.5 rounded-lg bg-amber-950/70 hover:bg-amber-900 text-amber-300 border border-amber-800/60 font-semibold text-xs transition"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 inline mr-1" />
+                          Clear Data
+                        </button>
+
+                        {/* Delete Tenant */}
+                        <button
+                          onClick={() => {
+                            setDeleteModalTenant(t);
+                            setDeleteConfirmation('');
+                          }}
+                          title="Permanently delete property & tenant"
+                          className="px-2 py-1.5 rounded-lg bg-red-950/70 hover:bg-red-900 text-red-300 border border-red-800/60 font-semibold text-xs transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 inline" />
+                        </button>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT PROPERTY & HOTEL DETAILS MODAL */}
+      {editModalTenant && (
+        <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-surface-dark-surface border border-border-dark rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl text-white max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border-dark">
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <Hotel className="w-5 h-5 text-blue-400" />
+                  Edit Hotel &amp; Property Details: {editModalTenant.name}
+                </h3>
+                <p className="text-xs text-content-secondary-dark">
+                  Super admin override for hotel name, address, contact, and description
+                </p>
+              </div>
+              <button
+                onClick={() => setEditModalTenant(null)}
+                className="text-content-secondary-dark hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDetails} className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Organization / Tenant Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editTenantName}
+                    onChange={(e) => setEditTenantName(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Property Display Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editPropertyName}
+                    onChange={(e) => setEditPropertyName(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    value={editPropertyPhone}
+                    onChange={(e) => setEditPropertyPhone(e.target.value)}
+                    placeholder="+91 9876543210"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Official Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editPropertyEmail}
+                    onChange={(e) => setEditPropertyEmail(e.target.value)}
+                    placeholder="stay@hotel.com"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Street Address
+                </label>
+                <input
+                  type="text"
+                  value={editPropertyAddress}
+                  onChange={(e) => setEditPropertyAddress(e.target.value)}
+                  placeholder="Plot 14, Beach Road"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">City</label>
+                  <input
+                    type="text"
+                    value={editPropertyCity}
+                    onChange={(e) => setEditPropertyCity(e.target.value)}
+                    placeholder="Goa"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">State</label>
+                  <input
+                    type="text"
+                    value={editPropertyState}
+                    onChange={(e) => setEditPropertyState(e.target.value)}
+                    placeholder="Goa"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Postal Code</label>
+                  <input
+                    type="text"
+                    value={editPropertyPostalCode}
+                    onChange={(e) => setEditPropertyPostalCode(e.target.value)}
+                    placeholder="403001"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Property Description
+                </label>
+                <textarea
+                  value={editPropertyDescription}
+                  onChange={(e) => setEditPropertyDescription(e.target.value)}
+                  rows={3}
+                  placeholder="A premium boutique stay offering luxurious rooms..."
+                  className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-border-dark flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditModalTenant(null)}
+                  className="px-4 py-2 rounded-xl border border-border-dark text-xs text-slate-300 hover:bg-surface-dark-elevated"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingDetails}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow transition disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {savingDetails ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  <span>{savingDetails ? 'Saving...' : 'Save Details'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -375,9 +693,6 @@ export default function AdminTenantsPage() {
                   placeholder="0 (no extension)"
                   className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
-                <p className="text-[10px] text-content-secondary-dark mt-1">
-                  Enter days to add to current trial period (e.g. 14 for two weeks, 30 for one month).
-                </p>
               </div>
 
               <div className="pt-3 border-t border-border-dark flex justify-end gap-2">
@@ -401,7 +716,7 @@ export default function AdminTenantsPage() {
         </div>
       )}
 
-      {/* LOCK / STATUS MODAL */}
+      {/* LOCK / STATUS / PAYMENT BLOCK MODAL */}
       {statusModalTenant && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-surface-dark-surface border border-border-dark rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl text-white">
@@ -409,10 +724,10 @@ export default function AdminTenantsPage() {
               <div>
                 <h3 className="text-base font-black text-white flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4 text-red-400" />
-                  Update Access Status: {statusModalTenant.name}
+                  Account Access Control: {statusModalTenant.name}
                 </h3>
                 <p className="text-xs text-content-secondary-dark">
-                  Lock or suspend hotel PMS access immediately
+                  Strict backend lock &amp; payment default suspension
                 </p>
               </div>
               <button
@@ -426,22 +741,49 @@ export default function AdminTenantsPage() {
             <form onSubmit={handleSaveStatus} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Account Status
+                  Access Status
                 </label>
                 <select
                   value={targetStatus}
-                  onChange={(e) => setTargetStatus(e.target.value)}
+                  onChange={(e) => {
+                    setTargetStatus(e.target.value);
+                    if (e.target.value === 'active') {
+                      setIsPaymentIssue(false);
+                      setStatusReason('Account restored and verified by administrator');
+                    }
+                  }}
                   className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  <option value="active">Active (Full PMS Access)</option>
+                  <option value="active">Active (Full PMS &amp; Operations Access)</option>
                   <option value="suspended">Suspended (Temporary Freeze / Billing Default)</option>
-                  <option value="locked">Locked (Strict Lock - Disables Staff Logins)</option>
+                  <option value="locked">Locked (Strict Lock - Disables Staff &amp; Operational APIs)</option>
                 </select>
               </div>
 
+              {targetStatus !== 'active' && (
+                <div className="p-3 rounded-xl bg-red-950/40 border border-red-800/60 flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="payment-issue-cb"
+                    checked={isPaymentIssue}
+                    onChange={(e) => {
+                      setIsPaymentIssue(e.target.checked);
+                      if (e.target.checked) {
+                        setStatusReason('Software subscription bill unpaid. Please clear outstanding dues to restore hotel operations.');
+                      }
+                    }}
+                    className="mt-0.5 rounded text-red-600 focus:ring-red-500"
+                  />
+                  <label htmlFor="payment-issue-cb" className="text-xs text-red-200 cursor-pointer">
+                    <strong className="block text-white font-bold">Unpaid Dues / Payment Lockout</strong>
+                    Rejects all operational requests with HTTP 402 and renders unbypassable lockout overlay directing the hotelier to clear dues.
+                  </label>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Reason for Action
+                  Reason Displayed to Hotelier
                 </label>
                 <textarea
                   value={statusReason}
@@ -470,6 +812,148 @@ export default function AdminTenantsPage() {
                   }`}
                 >
                   {updatingStatus ? 'Updating...' : `Confirm ${targetStatus}`}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CLEAR ALL DATA MODAL */}
+      {clearDataModalTenant && (
+        <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-surface-dark-surface border border-border-dark rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-border-dark">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                  <RotateCcw className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">
+                    Clear All Test Data: {clearDataModalTenant.name}
+                  </h3>
+                  <p className="text-[11px] text-content-secondary-dark">
+                    Purge test reservations &amp; start with a clean slate
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setClearDataModalTenant(null)}
+                className="text-content-secondary-dark hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl text-xs text-amber-200 space-y-1">
+              <p className="font-bold text-white">What will be deleted:</p>
+              <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
+                <li>All reservations, guest records, and folios</li>
+                <li>All housekeeping tasks and maintenance tickets</li>
+                <li>All complaints and billing invoices</li>
+                <li>Rooms will be reset to Clean / Ready</li>
+              </ul>
+              <p className="pt-1 text-[11px] text-slate-300">
+                Property details, room categories, and staff user logins are preserved!
+              </p>
+            </div>
+
+            <form onSubmit={handleClearData} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Type <strong className="text-amber-400 font-mono">CLEAR</strong> to confirm
+                </label>
+                <input
+                  type="text"
+                  value={clearConfirmation}
+                  onChange={(e) => setClearConfirmation(e.target.value)}
+                  placeholder="CLEAR"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                  required
+                />
+              </div>
+
+              <div className="pt-3 border-t border-border-dark flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setClearDataModalTenant(null)}
+                  className="px-4 py-2 rounded-xl border border-border-dark text-xs text-slate-300 hover:bg-surface-dark-elevated"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={clearingData || clearConfirmation !== 'CLEAR'}
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-900 font-extrabold text-xs shadow transition disabled:opacity-40"
+                >
+                  {clearingData ? 'Clearing Data...' : 'Purge All Test Records'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE TENANT MODAL */}
+      {deleteModalTenant && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-surface-dark-surface border border-red-900/60 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-border-dark">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center">
+                  <Trash2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">
+                    Permanently Delete Hotel: {deleteModalTenant.name}
+                  </h3>
+                  <p className="text-[11px] text-content-secondary-dark">
+                    Irreversible destruction of property and all data
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDeleteModalTenant(null)}
+                className="text-content-secondary-dark hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-red-950/40 border border-red-800/80 rounded-xl text-xs text-red-200">
+              <strong className="block text-white mb-1">Warning: Irreversible Action</strong>
+              This will permanently delete the hotel property, all rooms, staff memberships, and channel listings from the database.
+            </div>
+
+            <form onSubmit={handleDeleteTenant} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Type <strong className="text-red-400 font-mono">DELETE</strong> to confirm
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  placeholder="DELETE"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-dark-elevated border border-border-dark text-xs text-white focus:outline-none focus:ring-2 focus:ring-red-500 font-mono"
+                  required
+                />
+              </div>
+
+              <div className="pt-3 border-t border-border-dark flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteModalTenant(null)}
+                  className="px-4 py-2 rounded-xl border border-border-dark text-xs text-slate-300 hover:bg-surface-dark-elevated"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deletingTenant || deleteConfirmation !== 'DELETE'}
+                  className="px-5 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-white font-extrabold text-xs shadow transition disabled:opacity-40"
+                >
+                  {deletingTenant ? 'Deleting Hotel...' : 'Permanently Delete'}
                 </button>
               </div>
             </form>

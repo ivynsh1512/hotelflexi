@@ -119,7 +119,7 @@ export const tenantMiddleware: MiddlewareHandler<{ Bindings: Env; Variables: App
     if (accessStatus !== 'locked') {
       accessStatus = 'locked';
       subStatus = 'past_due';
-      suspensionReason = 'Your subscription period has expired. Please renew your subscription to continue managing your hotel.';
+      suspensionReason = 'Your subscription period has expired. Please clear outstanding dues to continue managing your hotel.';
       c.env.DB.prepare(
         `UPDATE tenants
          SET account_access_status = 'locked',
@@ -134,28 +134,44 @@ export const tenantMiddleware: MiddlewareHandler<{ Bindings: Env; Variables: App
     }
   }
 
-  // If locked or suspended, restrict all operational actions unless accessing subscription / support / properties
-  if (accessStatus === 'suspended' || accessStatus === 'locked') {
+  // 3. Strict, Unbypassable Payment Lock Enforcement
+  // If tenant is locked, suspended, or flagged with a payment issue:
+  // Reject all operational requests at the API layer with HTTP 402 Payment Required.
+  const isPaymentLocked =
+    accessStatus === 'suspended' ||
+    accessStatus === 'locked' ||
+    subStatus === 'payment_issue' ||
+    subStatus === 'suspended' ||
+    subStatus === 'past_due';
+
+  if (isPaymentLocked) {
     const path = c.req.path;
+    // Strictly permit only recovery and invoice settlement routes
     const isAllowedRecoveryRoute =
       path.includes('/subscriptions') ||
-      path.includes('/support') ||
-      path.endsWith('/properties');
+      path.includes('/billing') ||
+      path.includes('/support');
 
     if (!isAllowedRecoveryRoute) {
       return c.json(
         {
-          error: 'Tenant access restricted',
-          status: accessStatus,
-          reason: suspensionReason || 'Please complete payment to unlock your hotel workspace.',
+          error:
+            suspensionReason ||
+            'Account suspended due to unpaid dues. Please clear your outstanding invoice or software bill to unlock access.',
+          code: 'PAYMENT_REQUIRED',
+          status: 'payment_issue',
+          reason:
+            suspensionReason ||
+            'Unpaid software bill pending. Clear your dues or contact billing support to restore hotel operations.',
           locked: true,
+          isLocked: true,
           requiresPayment: true,
           trialExpired: isTrial && row.trial_ends_at && row.trial_ends_at < now,
           subscriptionExpired:
             subStatus === 'past_due' ||
             Boolean(row.current_period_ends_at && row.current_period_ends_at < now),
         },
-        403
+        402
       );
     }
   }
