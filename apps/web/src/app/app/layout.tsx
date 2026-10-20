@@ -38,7 +38,10 @@ import {
   TrendingUp,
   UtensilsCrossed,
   HelpCircle,
+  ShieldAlert,
+  ArrowRight,
 } from 'lucide-react';
+import { isRouteAllowedForRole } from '@/lib/permissions';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -46,13 +49,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, isPlatformAdmin, tenants, currentTenant, setCurrentTenant, logout } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  const userRole = (currentTenant?.role || 'owner').toLowerCase();
+  const isAllowedForRole = isRouteAllowedForRole(userRole, pathname);
+
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     } else if (!loading && user && tenants.length === 0 && pathname !== '/app/onboarding') {
       router.push('/app/onboarding');
+    } else if (!loading && user && currentTenant) {
+      if (userRole === 'housekeeping' && pathname === '/app') {
+        router.replace('/app/housekeeping');
+      }
     }
-  }, [user, loading, tenants, pathname, router]);
+  }, [user, loading, tenants, pathname, router, userRole, currentTenant]);
 
   if (loading) {
     return (
@@ -127,6 +137,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       ],
     },
   ];
+
+  const filteredNavSections = navSections
+    .map((sec) => ({
+      ...sec,
+      items: sec.items.filter((item) => isRouteAllowedForRole(userRole, item.href)),
+    }))
+    .filter((sec) => sec.items.length > 0);
 
   const hotelCode =
     (currentTenant as any)?.hotel_code ||
@@ -205,7 +222,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Nav list */}
         <nav className="flex-1 px-3 py-4 space-y-6">
-          {navSections.map((sec) => (
+          {filteredNavSections.map((sec) => (
             <div key={sec.title}>
               <div className="text-[10px] font-bold uppercase tracking-wider text-content-secondary-light px-2 mb-1.5">
                 {sec.title}
@@ -284,6 +301,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 className="px-2 py-0.5 rounded-md bg-slate-900 text-white font-mono font-bold text-[10px] tracking-wide shrink-0 shadow-sm"
               >
                 Code: #{hotelCode}
+              </span>
+              <span
+                title={`Logged in as ${userRole}`}
+                className={`hidden sm:inline-flex px-2 py-0.5 rounded-md font-bold text-[10px] tracking-wide shrink-0 capitalize ${
+                  userRole === 'owner'
+                    ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                    : userRole === 'housekeeping'
+                    ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                    : 'bg-blue-100 text-blue-800 border border-blue-200'
+                }`}
+              >
+                {userRole.replace('_', ' ')}
               </span>
             </div>
           </div>
@@ -403,6 +432,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </Link>
               </div>
             </div>
+          ) : !isAllowedForRole ? (
+            <div className="max-w-xl mx-auto my-12 bg-white rounded-3xl p-8 border border-border-light shadow-xl text-center space-y-4 animate-in fade-in duration-200">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+                <ShieldAlert className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-black text-content-primary-light">
+                Access Restricted: {userRole === 'housekeeping' ? 'Housekeeping Staff' : `${userRole.toUpperCase()} Role`}
+              </h2>
+              <p className="text-sm text-content-secondary-light leading-relaxed">
+                Your staff account is assigned to <strong>{userRole.replace('_', ' ')}</strong> operations.
+                Access to bookings, room rates, channel settings, billing, and owner configuration is restricted by your hotel management.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href={userRole === 'housekeeping' ? '/app/housekeeping' : '/app'}
+                  className="px-6 py-2.5 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-blue-700 shadow transition inline-flex items-center gap-2"
+                >
+                  <span>Go to {userRole === 'housekeeping' ? 'Housekeeping Workspace' : 'Permitted Dashboard'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
           ) : (
             children
           )}
@@ -436,7 +487,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-4">
-              {navSections.map((sec) => (
+              {filteredNavSections.map((sec) => (
                 <div key={sec.title}>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-content-secondary-light mb-1">
                     {sec.title}

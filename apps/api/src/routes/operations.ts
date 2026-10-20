@@ -335,6 +335,31 @@ operationsRoutes.get('/complaints/active-sirens', async (c) => {
     });
   }
 
+  // 3. Check for open urgent housekeeping requests
+  const urgentHkTasks = await c.env.DB.prepare(
+    `SELECT hk.*, r.room_number 
+     FROM housekeeping_tasks hk
+     JOIN rooms r ON r.id = hk.room_id
+     WHERE hk.tenant_id = ? AND hk.status = 'pending' AND hk.priority = 'urgent'
+     ORDER BY hk.created_at DESC LIMIT 3`
+  )
+    .bind(tenantId)
+    .all()
+    .catch(() => ({ results: [] }));
+
+  for (const hk of (urgentHkTasks.results || [])) {
+    sirens.push({
+      id: hk.id,
+      guest_name: 'Room Housekeeping',
+      room_number: (hk as any).room_number || 'Room',
+      category: 'housekeeping',
+      description: (hk as any).notes || `Urgent ${(hk as any).task_type} required for Room ${(hk as any).room_number}`,
+      priority: 'urgent',
+      status: 'pending',
+      created_at: (hk as any).created_at,
+    });
+  }
+
   return c.json({
     sirens,
     isLocked: false,
@@ -355,6 +380,16 @@ operationsRoutes.patch('/complaints/:id/acknowledge', async (c) => {
     return c.json({
       success: true,
       message: 'Urgent broadcast alert silenced.',
+    });
+  }
+
+  if (id.startsWith('hk_')) {
+    await c.env.DB.prepare(
+      `UPDATE housekeeping_tasks SET status = 'in_progress', assigned_to_user_id = ?, updated_at = ? WHERE id = ? AND tenant_id = ?`
+    ).bind(user.uid, now, id, tenantId).run();
+    return c.json({
+      success: true,
+      message: 'Housekeeping task picked by staff. Siren alarm silenced.',
     });
   }
 
