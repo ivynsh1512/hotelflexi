@@ -274,22 +274,22 @@ operationsRoutes.get('/complaints', async (c) => {
 operationsRoutes.get('/complaints/active-sirens', async (c) => {
   const tenantId = c.get('tenantId')!;
 
-  // Check subscription tier (Available on Essential, Growth, Pro, Enterprise)
+  // Check subscription tier (Active trials and paid tiers have full siren access)
   const tenant: any = await c.env.DB.prepare(
     'SELECT current_plan_id, subscription_status FROM tenants WHERE id = ?'
   )
     .bind(tenantId)
     .first();
 
-  const isFree =
-    !tenant?.current_plan_id ||
-    tenant.current_plan_id === 'starter' ||
-    tenant.subscription_status === 'trial';
+  const isLocked =
+    tenant?.subscription_status === 'locked' ||
+    tenant?.subscription_status === 'expired';
 
-  if (isFree) {
-    return c.json({ sirens: [], isFreeTier: true });
+  if (isLocked) {
+    return c.json({ sirens: [], isLocked: true });
   }
 
+  // 1. Fetch open urgent in-stay guest complaints
   const urgentRows = await c.env.DB.prepare(
     `SELECT * FROM complaints
      WHERE tenant_id = ? AND priority = 'urgent' AND status = 'open'
@@ -298,9 +298,46 @@ operationsRoutes.get('/complaints/active-sirens', async (c) => {
     .bind(tenantId)
     .all();
 
+  const sirens: any[] = (urgentRows.results || []).map((r: any) => ({
+    id: r.id,
+    guest_name: r.guest_name,
+    room_number: r.room_number,
+    category: r.category,
+    description: r.description,
+    priority: r.priority,
+    status: r.status,
+    created_at: r.created_at,
+  }));
+
+  // 2. Also check for unread urgent broadcast alerts dispatched to this tenant
+  const twoHoursAgo = Math.floor(Date.now() / 1000) - 7200;
+  const urgentAlerts = await c.env.DB.prepare(
+    `SELECT * FROM notifications
+     WHERE (tenant_id = ? OR tenant_id IS NULL)
+       AND category = 'alert'
+       AND is_read = 0
+       AND created_at >= ?
+     ORDER BY created_at DESC LIMIT 3`
+  )
+    .bind(tenantId, twoHoursAgo)
+    .all();
+
+  for (const alert of (urgentAlerts.results || [])) {
+    sirens.push({
+      id: alert.id,
+      guest_name: 'Super Admin Broadcast',
+      room_number: 'URGENT',
+      category: 'emergency_alert',
+      description: alert.message || alert.title,
+      priority: 'urgent',
+      status: 'open',
+      created_at: alert.created_at,
+    });
+  }
+
   return c.json({
-    sirens: urgentRows.results || [],
-    isFreeTier: false,
+    sirens,
+    isLocked: false,
   });
 });
 
@@ -310,6 +347,16 @@ operationsRoutes.patch('/complaints/:id/acknowledge', async (c) => {
   const user = c.get('user')!;
   const id = c.req.param('id');
   const now = Math.floor(Date.now() / 1000);
+
+  if (id.startsWith('notif_')) {
+    await c.env.DB.prepare(
+      `UPDATE notifications SET is_read = 1 WHERE id = ?`
+    ).bind(id).run();
+    return c.json({
+      success: true,
+      message: 'Urgent broadcast alert silenced.',
+    });
+  }
 
   await c.env.DB.prepare(
     `UPDATE complaints SET

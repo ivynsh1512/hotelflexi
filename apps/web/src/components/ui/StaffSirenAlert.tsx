@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
 import { AlertCircle, Volume2, VolumeX, CheckCircle, ArrowRight } from 'lucide-react';
+import { playSiren, stopSiren, setupAudioUnlock, testSiren } from '@/lib/sound';
 import Link from 'next/link';
 
 interface UrgentSiren {
@@ -23,11 +24,7 @@ export function StaffSirenAlert() {
   const [muted, setMuted] = useState(false);
   const [acknowledgingId, setAcknowledgingId] = useState<string | null>(null);
 
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const oscillatorRef = useRef<OscillatorNode | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Poll for active urgent complaints
+  // Poll for active urgent complaints and urgent alerts
   const checkSirens = async () => {
     if (!currentTenant?.tenant_id || !user) return;
     try {
@@ -40,83 +37,27 @@ export function StaffSirenAlert() {
   };
 
   useEffect(() => {
+    setupAudioUnlock();
     if (!currentTenant?.tenant_id) return;
     checkSirens();
     const timer = setInterval(checkSirens, 8000);
     return () => clearInterval(timer);
   }, [currentTenant?.tenant_id, user]);
 
-  // Audio Siren Management via Web Audio API (No external sound files required)
-  const startSirenAudio = () => {
-    if (muted) return;
-    try {
-      if (!audioContextRef.current) {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        audioContextRef.current = new AudioCtx();
-      }
-
-      const ctx = audioContextRef.current;
-      if (ctx.state === 'suspended') {
-        ctx.resume();
-      }
-
-      if (oscillatorRef.current) return; // Already running
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = 'triangle';
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      oscillatorRef.current = osc;
-
-      // Siren frequency modulation (880Hz <-> 587Hz alternating every 400ms)
-      let high = true;
-      intervalRef.current = setInterval(() => {
-        if (!oscillatorRef.current || !audioContextRef.current) return;
-        const now = audioContextRef.current.currentTime;
-        const targetFreq = high ? 880 : 587;
-        osc.frequency.setValueAtTime(targetFreq, now);
-        high = !high;
-      }, 400);
-    } catch (e) {
-      console.warn('Web Audio siren init deferred:', e);
-    }
-  };
-
-  const stopSirenAudio = () => {
-    try {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      if (oscillatorRef.current) {
-        oscillatorRef.current.stop();
-        oscillatorRef.current.disconnect();
-        oscillatorRef.current = null;
-      }
-    } catch (e) {
-      console.warn('Error stopping siren audio:', e);
-    }
-  };
-
   useEffect(() => {
     if (activeSirens.length > 0 && !muted) {
-      startSirenAudio();
+      playSiren();
     } else {
-      stopSirenAudio();
+      stopSiren();
     }
-    return () => stopSirenAudio();
+    return () => stopSiren();
   }, [activeSirens, muted]);
 
   const handleAcknowledge = async (id: string) => {
     try {
       setAcknowledgingId(id);
       await apiClient(`/operations/complaints/${id}/acknowledge`, { method: 'PATCH' });
-      stopSirenAudio();
+      stopSiren();
       await checkSirens();
     } catch (err: any) {
       alert(err.message || 'Failed to acknowledge request');
@@ -156,10 +97,10 @@ export function StaffSirenAlert() {
             onClick={() => {
               if (muted) {
                 setMuted(false);
-                startSirenAudio();
+                playSiren();
               } else {
                 setMuted(true);
-                stopSirenAudio();
+                stopSiren();
               }
             }}
             title={muted ? 'Unmute Siren Alarm' : 'Mute Siren Alarm'}

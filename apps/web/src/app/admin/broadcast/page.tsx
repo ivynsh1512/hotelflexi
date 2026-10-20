@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { apiClient } from '@/lib/api';
-import { requestPushNotificationPermission } from '@/lib/fcm';
+import { requestPushNotificationPermission, showLocalNotification } from '@/lib/fcm';
+import { testSiren } from '@/lib/sound';
 import {
   Bell,
   Send,
@@ -15,6 +16,7 @@ import {
   Loader2,
   Radio,
   Zap,
+  Volume2,
 } from 'lucide-react';
 
 export default function AdminPushBroadcastPage() {
@@ -29,27 +31,39 @@ export default function AdminPushBroadcastPage() {
 
   // Testing on current device
   const [testingDevice, setTestingDevice] = useState(false);
+  const [testingSiren, setTestingSiren] = useState(false);
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
 
   const handleTestDevice = async () => {
     setTestingDevice(true);
     try {
-      const token = await requestPushNotificationPermission();
-      if (token) {
-        setDeviceToken(token);
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('HotelFlexi Push Test', {
-            body: 'Firebase Cloud Messaging integration active! Your device is ready to receive alerts.',
-            icon: '/icon-192.png',
-          });
-        }
+      const res = await requestPushNotificationPermission();
+      if (res.success) {
+        if (res.token) setDeviceToken(res.token);
+        await showLocalNotification('HotelFlexi Push Test', {
+          body: 'Firebase Cloud Messaging & Web Push integration is active! Your device is ready to receive instant alerts.',
+          icon: '/icon-192.png',
+          soundType: priority === 'urgent' ? 'siren' : 'chime',
+        });
+        alert('Push notification test sent! Check your system notification popups.');
       } else {
-        alert('Could not enable push notifications. Check browser notification permissions.');
+        alert(res.error || 'Could not enable push notifications. Check browser notification permissions.');
       }
     } catch (e: any) {
       alert(`Error testing notification: ${e.message}`);
     } finally {
       setTestingDevice(false);
+    }
+  };
+
+  const handleTestSiren = async () => {
+    setTestingSiren(true);
+    try {
+      await testSiren();
+    } catch (e: any) {
+      alert(`Could not play siren: ${e.message}`);
+    } finally {
+      setTestingSiren(false);
     }
   };
 
@@ -95,14 +109,27 @@ export default function AdminPushBroadcastPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleTestDevice}
-          disabled={testingDevice}
-          className="px-4 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 font-bold text-xs transition flex items-center gap-2 self-start sm:self-auto"
-        >
-          {testingDevice ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Smartphone className="w-3.5 h-3.5" />}
-          Test Push on This Browser
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleTestSiren}
+            disabled={testingSiren}
+            className="px-4 py-2 rounded-xl bg-red-600/30 hover:bg-red-600/50 border border-red-500/40 text-red-200 font-bold text-xs transition flex items-center gap-2"
+          >
+            {testingSiren ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Volume2 className="w-3.5 h-3.5" />}
+            {testingSiren ? 'Playing Siren...' : 'Test Siren Sound'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleTestDevice}
+            disabled={testingDevice}
+            className="px-4 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 font-bold text-xs transition flex items-center gap-2"
+          >
+            {testingDevice ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Smartphone className="w-3.5 h-3.5" />}
+            Test Push on This Browser
+          </button>
+        </div>
       </div>
 
       {deviceToken && (

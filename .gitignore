@@ -37,3 +37,4 @@ Thumbs.db
 android/.gradle/
 android/app/build/
 android/local.properties
+*.jar

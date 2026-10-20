@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '../lib/AuthContext';
 import { ServiceWorkerRegister } from '../components/ServiceWorkerRegister';
+import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt';
 
 export const viewport: Viewport = {
   themeColor: '#1e40af',
@@ -187,6 +188,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-white text-content-primary-light antialiased">
         <AuthProvider>{children}</AuthProvider>
         <ServiceWorkerRegister />
+        <NotificationPermissionPrompt />
       </body>
     </html>
   );

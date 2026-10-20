@@ -83,8 +83,18 @@ pushRoutes.post('/broadcast', authMiddleware, async (c) => {
   const subRows = await c.env.DB.prepare(tokensQuery).bind(...binds).all();
   const tokens = subRows.results || [];
 
-  // Also record in in-app notifications
+  // Record in-app notifications
+  const tenantIds: string[] = [];
   if (targetTenantId) {
+    tenantIds.push(targetTenantId);
+  } else if (target === 'all') {
+    const allTenants = await c.env.DB.prepare('SELECT id FROM tenants LIMIT 100').all();
+    for (const t of (allTenants.results || [])) {
+      if (t.id) tenantIds.push(t.id as string);
+    }
+  }
+
+  for (const tid of tenantIds) {
     const notifId = `notif_${crypto.randomUUID()}`;
     await c.env.DB.prepare(
       `INSERT INTO notifications (id, tenant_id, title, message, category, link_url, is_read, created_at)
@@ -92,7 +102,7 @@ pushRoutes.post('/broadcast', authMiddleware, async (c) => {
     )
       .bind(
         notifId,
-        targetTenantId,
+        tid,
         title,
         message,
         priority === 'urgent' ? 'alert' : 'broadcast',
