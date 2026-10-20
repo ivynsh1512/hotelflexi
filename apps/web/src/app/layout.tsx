@@ -19,13 +19,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://hotelflexi.novaxai.in'),
+  metadataBase: new URL('https://hotelflexi.com'),
   title: {
-    default: 'HotelFlexi — Your Hotel. One Intelligent System. | NovaX AI',
-    template: '%s | HotelFlexi by NovaX AI',
+    default: 'HotelFlexi — India\'s #1 Cloud Hotel PMS, Channel Manager & AI Agent',
+    template: '%s | HotelFlexi',
   },
   description:
-    'All-in-one hotel management SaaS platform for Indian hotels, resorts & homestays. Cloud PMS, 2-way OTA channel manager, direct booking engine with FlexiLink, 12%/18% GST billing, and bilingual AI business agent.',
+    'All-in-one hotel management SaaS platform for Indian hotels, resorts & homestays. Visit hotelflexi.com — Cloud PMS, 2-way OTA channel manager, direct booking engine with FlexiLink, 12%/18% GST billing, and bilingual AI business agent.',
   applicationName: 'HotelFlexi',
   authors: [{ name: 'NovaX AI', url: 'https://novaxai.in' }],
   generator: 'Next.js',
@@ -40,6 +40,12 @@ export const metadata: Metadata = {
     'hotel front desk management',
     'hotel flexi',
     'novax ai',
+    'hotel management software india 2025',
+    'best pms for hotels india',
+    'online hotel management system',
+    'free hotel booking software',
+    'hotel channel manager india',
+    'hotelflexi',
   ],
   manifest: '/manifest.webmanifest',
   icons: {
@@ -55,7 +61,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_IN',
-    url: 'https://hotelflexi.novaxai.in',
+    url: 'https://hotelflexi.com',
     title: 'HotelFlexi — Cloud Hotel PMS, Channel Manager & AI Agent',
     description:
       'Empower your hotel with cloud reservations, 2-way OTA synchronization, direct guest check-in via FlexiLink, and Indian GST compliant billing.',
@@ -79,10 +85,15 @@ export const metadata: Metadata = {
   other: {
     'geo.region': 'IN',
     'geo.placename': 'India',
+    'geo.position': '20.5937;78.9629',
+    'ICBM': '20.5937, 78.9629',
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
     'apple-mobile-web-app-title': 'HotelFlexi',
+  },
+  alternates: {
+    canonical: 'https://hotelflexi.com',
   },
 };
 
@@ -96,7 +107,7 @@ export default function RootLayout({
     '@graph': [
       {
         '@type': 'SoftwareApplication',
-        '@id': 'https://hotelflexi.novaxai.in/#software',
+        '@id': 'https://hotelflexi.com/#software',
         name: 'HotelFlexi',
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web, Android (PWA/TWA)',
@@ -121,10 +132,10 @@ export default function RootLayout({
       },
       {
         '@type': 'Organization',
-        '@id': 'https://hotelflexi.novaxai.in/#organization',
+        '@id': 'https://hotelflexi.com/#organization',
         name: 'HotelFlexi by NovaX AI',
-        url: 'https://hotelflexi.novaxai.in',
-        logo: 'https://hotelflexi.novaxai.in/light-logo.png',
+        url: 'https://hotelflexi.com',
+        logo: 'https://hotelflexi.com/light-logo.png',
         contactPoint: {
           '@type': 'ContactPoint',
           email: 'info@novaxai.in',
@@ -135,7 +146,7 @@ export default function RootLayout({
       },
       {
         '@type': 'FAQPage',
-        '@id': 'https://hotelflexi.novaxai.in/#faq',
+        '@id': 'https://hotelflexi.com/#faq',
         mainEntity: [
           {
             '@type': 'Question',

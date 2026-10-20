@@ -346,20 +346,23 @@ export default function HotelSettingsPage() {
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image file size should be less than 5MB.');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        setGalleryImages((prev) => [...prev, dataUrl]);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`File ${file.name} is larger than 5MB.`);
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        if (dataUrl) {
+          setGalleryImages((prev) => [...prev, dataUrl]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
     e.target.value = '';
   };
 
@@ -736,7 +739,7 @@ export default function HotelSettingsPage() {
                 <label className="cursor-pointer px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold transition shrink-0 flex items-center justify-center gap-1.5 text-xs">
                   <Upload className="w-3.5 h-3.5" />
                   Upload Photo File
-                  <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                  <input type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
                 </label>
               </div>
 

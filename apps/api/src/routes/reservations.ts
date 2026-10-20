@@ -26,6 +26,37 @@ reservationRoutes.get('/', async (c) => {
   const queryText = c.req.query('q');
   const date = c.req.query('date'); // check-in or active date
 
+  const now = Math.floor(Date.now() / 1000);
+  const thirtyDaysAgo = now - (30 * 24 * 60 * 60);
+
+  // Auto-cleanup: permanently purge cancelled reservations older than 30 days from database
+  try {
+    const expiredCancelledQuery = await c.env.DB.prepare(
+      `SELECT id FROM reservations
+       WHERE tenant_id = ? AND status = 'cancelled'
+         AND (cancelled_at <= ? OR (cancelled_at IS NULL AND updated_at <= ?))`
+    )
+      .bind(tenantId, thirtyDaysAgo, thirtyDaysAgo)
+      .all();
+
+    const expiredList = (expiredCancelledQuery.results || []) as { id: string }[];
+    if (expiredList.length > 0) {
+      const deleteStatements: any[] = [];
+      for (const item of expiredList) {
+        deleteStatements.push(c.env.DB.prepare('DELETE FROM reservation_guests WHERE reservation_id = ?').bind(item.id));
+        deleteStatements.push(c.env.DB.prepare('DELETE FROM invoices WHERE reservation_id = ?').bind(item.id));
+        deleteStatements.push(c.env.DB.prepare('DELETE FROM reservations WHERE id = ?').bind(item.id));
+      }
+      c.executionCtx.waitUntil(
+        c.env.DB.batch(deleteStatements).catch((err) =>
+          console.error('[Auto-delete Cancelled Reservations Error]', err)
+        )
+      );
+    }
+  } catch (cleanErr) {
+    console.error('[Auto-delete Cancelled Check Error]', cleanErr);
+  }
+
   let sql = `
     SELECT res.*, rg.full_name as guest_name, rg.email as guest_email, rg.phone as guest_phone,
            r.room_number, rt.name as room_type_name
@@ -34,8 +65,9 @@ reservationRoutes.get('/', async (c) => {
     LEFT JOIN rooms r ON r.id = res.room_id
     LEFT JOIN room_types rt ON rt.id = res.room_type_id
     WHERE res.tenant_id = ?
+      AND NOT (res.status = 'cancelled' AND (res.cancelled_at <= ? OR (res.cancelled_at IS NULL AND res.updated_at <= ?)))
   `;
-  const params: any[] = [tenantId];
+  const params: any[] = [tenantId, thirtyDaysAgo, thirtyDaysAgo];
 
   if (propertyId) {
     sql += ` AND res.property_id = ?`;

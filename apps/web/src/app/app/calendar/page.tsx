@@ -11,6 +11,7 @@ import {
   Loader2,
   Lock,
   PlusCircle,
+  TrendingUp,
   X,
   AlertCircle,
   CheckCircle2,
@@ -37,6 +38,19 @@ export default function CalendarPage() {
   const [blockNotes, setBlockNotes] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Bulk Rate Update Modal
+  const [bulkRateModalOpen, setBulkRateModalOpen] = useState(false);
+  const [bulkRateRoomTypeId, setBulkRateRoomTypeId] = useState<string>('all');
+  const [bulkRateStart, setBulkRateStart] = useState(() => new Date().toISOString().split('T')[0]);
+  const [bulkRateEnd, setBulkRateEnd] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split('T')[0];
+  });
+  const [bulkRatePrice, setBulkRatePrice] = useState('3500');
+  const [bulkRateSubmitting, setBulkRateSubmitting] = useState(false);
+  const [roomTypes, setRoomTypes] = useState<any[]>([]);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -65,6 +79,12 @@ export default function CalendarPage() {
         if (activeProp) {
           setPropertyId(activeProp.id);
           await fetchGrid(activeProp.id, startDate, days);
+          try {
+            const rtData = await apiClient(`/rooms/types?property_id=${activeProp.id}`);
+            setRoomTypes(rtData.roomTypes || []);
+          } catch (rte) {
+            console.warn('Failed to load room types for bulk rate modal:', rte);
+          }
         }
       } catch (e: any) {
         setError('Failed to fetch properties.');
@@ -162,6 +182,60 @@ export default function CalendarPage() {
     }
   };
 
+  const handleBulkRateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const priceNum = parseFloat(bulkRatePrice);
+    if (!priceNum || priceNum <= 0) {
+      alert('Please enter a valid nightly rate in ₹.');
+      return;
+    }
+    if (!bulkRateStart || !bulkRateEnd) {
+      alert('Please select both start and end dates.');
+      return;
+    }
+    if (bulkRateEnd < bulkRateStart) {
+      alert('End date must be on or after start date.');
+      return;
+    }
+
+    setBulkRateSubmitting(true);
+    try {
+      const pricePaise = Math.round(priceNum * 100);
+      const targets =
+        bulkRateRoomTypeId === 'all'
+          ? roomTypes.map((rt) => rt.id)
+          : [bulkRateRoomTypeId];
+
+      if (targets.length === 0) {
+        alert('No room types available to update rates.');
+        setBulkRateSubmitting(false);
+        return;
+      }
+
+      for (const rtId of targets) {
+        await apiClient('/daily-rates', {
+          method: 'POST',
+          body: JSON.stringify({
+            propertyId,
+            roomTypeId: rtId,
+            pricePaise,
+            startDate: bulkRateStart,
+            endDate: bulkRateEnd,
+            note: 'Bulk Rate Update via Calendar Grid',
+          }),
+        });
+      }
+
+      alert(`Successfully updated rate to ₹${priceNum.toLocaleString('en-IN')}/night for ${targets.length} room category(ies)!`);
+      setBulkRateModalOpen(false);
+      if (propertyId) await fetchGrid(propertyId, startDate, days);
+    } catch (err: any) {
+      alert(err.message || 'Failed to apply bulk rates.');
+    } finally {
+      setBulkRateSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Calendar Header Controls */}
@@ -223,6 +297,14 @@ export default function CalendarPage() {
           >
             <Lock className="w-3.5 h-3.5 text-amber-600" />
             Block Room
+          </button>
+
+          <button
+            onClick={() => setBulkRateModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 transition shadow-sm"
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+            Bulk Rate Update
           </button>
         </div>
       </div>
@@ -336,13 +418,14 @@ export default function CalendarPage() {
                           <td
                             key={dateStr}
                             onClick={() => handleReleaseBlock(blk.id)}
-                            className="p-1 border-r border-border-light text-center bg-amber-100/70 cursor-pointer hover:bg-amber-200"
+                            className="p-1 border-r border-border-light text-center bg-amber-100/80 border-b-2 border-b-amber-500 cursor-pointer hover:bg-amber-200 transition shadow-inner"
                             title={`Blocked for ${blk.reason}. Click to release.`}
                           >
-                            <div className="text-[9px] font-bold text-amber-800 uppercase truncate">
-                              {blk.reason}
+                            <div className="flex items-center justify-center gap-0.5 text-[9px] font-bold text-amber-900 uppercase truncate">
+                              <Lock className="w-2.5 h-2.5 shrink-0 text-amber-700" />
+                              <span>{blk.reason}</span>
                             </div>
-                            <div className="text-[8px] text-amber-700">Blocked</div>
+                            <div className="text-[8px] font-semibold text-amber-700">Blocked</div>
                           </td>
                         );
                       }
@@ -559,6 +642,125 @@ export default function CalendarPage() {
                     : blockMode === 'bulk'
                     ? `Block ${selectedRoomIds.length} Rooms`
                     : 'Block Room'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Rate Update Modal */}
+      {bulkRateModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light">
+            <div className="flex items-center justify-between pb-3 border-b border-border-light mb-4">
+              <h3 className="text-base font-bold text-content-primary-light flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
+                Bulk Rate & Price Matrix Update
+              </h3>
+              <button
+                onClick={() => setBulkRateModalOpen(false)}
+                className="text-xs text-content-secondary-light hover:text-content-primary-light"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleBulkRateSubmit} className="space-y-4 text-xs">
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-[11px] leading-relaxed">
+                Update room rates in bulk across custom date windows. These override base prices and immediately sync to the booking engine and OTA channel manager.
+              </div>
+
+              <div>
+                <label className="block font-semibold text-content-primary-light mb-1">
+                  Target Room Category *
+                </label>
+                <select
+                  value={bulkRateRoomTypeId}
+                  onChange={(e) => setBulkRateRoomTypeId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                >
+                  <option value="all">All Room Types ({roomTypes.length} Categories)</option>
+                  {roomTypes.map((rt) => (
+                    <option key={rt.id} value={rt.id}>
+                      {rt.name} ({rt.code}) — Current Base: {formatINR(rt.base_price_paise)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-content-primary-light mb-1">
+                    Start Date (Inclusive) *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    min={todayStr}
+                    value={bulkRateStart}
+                    onChange={(e) => setBulkRateStart(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-content-primary-light mb-1">
+                    End Date (Inclusive) *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    min={bulkRateStart || todayStr}
+                    value={bulkRateEnd}
+                    onChange={(e) => setBulkRateEnd(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-content-primary-light mb-1">
+                  New Nightly Rate (₹ INR) *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 font-bold text-slate-400">₹</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="50"
+                    required
+                    value={bulkRatePrice}
+                    onChange={(e) => setBulkRatePrice(e.target.value)}
+                    placeholder="3500"
+                    className="w-full pl-8 pr-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
+                  />
+                </div>
+                <p className="text-[10px] text-content-secondary-light mt-1">
+                  Sets the standard per-night rate. Tax and extra adult charges will be calculated on top.
+                </p>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setBulkRateModalOpen(false)}
+                  className="flex-1 py-2 rounded-lg border border-border-light font-semibold hover:bg-surface-light"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bulkRateSubmitting}
+                  className="flex-1 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  {bulkRateSubmitting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Apply Bulk Rates'
+                  )}
                 </button>
               </div>
             </form>

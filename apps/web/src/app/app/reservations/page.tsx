@@ -271,7 +271,7 @@ export default function ReservationsListPage() {
                               {res.guest_phone && (
                                   <a
                                     href={`https://wa.me/${res.guest_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                                      `Namaste ${res.guest_name || 'Guest'}, here is your FlexiLink for reservation #${res.reservation_number}${res.room_number ? ` (Room ${res.room_number})` : ''}: https://hotelflexi.vercel.app/guest/${res.guest_portal_token} to open your direct guest portal without any login. Download our Android App on Google Play: https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso (Access valid during stay and up to 7 days after checkout).`
+                                      `Namaste ${res.guest_name || 'Guest'}, here is your FlexiLink for reservation #${res.reservation_number}${res.room_number ? ` (Room ${res.room_number})` : ''}: https://hotelflexi.com/guest/${res.guest_portal_token} to open your direct guest portal without any login. Download our Android App on Google Play: https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso (Access valid during stay and up to 7 days after checkout).`
                                     )}`}
                                     target="_blank"
                                     rel="noreferrer"
@@ -297,6 +297,11 @@ export default function ReservationsListPage() {
                         }`}>
                           {isCheckedIn ? 'In-House' : res.status}
                         </span>
+                        {isCancelled && (
+                          <div className="text-[9px] text-red-500 font-semibold mt-1">
+                            Auto-deleted in 30 days
+                          </div>
+                        )}
                       </td>
                       <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
                         {isConfirmed && (

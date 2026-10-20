@@ -535,7 +535,7 @@ export default function DirectBookingPage() {
 
                         <div className="flex flex-wrap gap-1.5 mt-3">
                           <span className="px-2 py-0.5 rounded bg-surface-light text-[10px] font-semibold text-content-secondary-light border border-border-light">
-                            Max {rt.maxOccupancy} Guests
+                            Max {rt.maxOccupancy} Guests / Room
                           </span>
                           {rtAmenities.map((am: string, i: number) => (
                             <span key={i} className="px-2 py-0.5 rounded bg-blue-50/60 text-blue-900 border border-blue-100 text-[10px]">
@@ -543,6 +543,18 @@ export default function DirectBookingPage() {
                             </span>
                           ))}
                         </div>
+
+                        {rt.roomsNeeded > 1 && (
+                          <div className="mt-2.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-brand-blue text-[11px] font-bold">
+                            🏨 {rt.roomsNeeded} Rooms allocated for {adults} guests (Max {rt.maxOccupancy} guests per room)
+                          </div>
+                        )}
+
+                        {rt.extraAdultsCount > 0 && (
+                          <div className="mt-1 text-[11px] text-emerald-700 font-semibold">
+                            +{formatINR(rt.totalExtraAdultChargePaise)} for {rt.extraAdultsCount} extra guest{rt.extraAdultsCount > 1 ? 's' : ''} ({formatINR(rt.extraAdultPricePaise)}/night)
+                          </div>
+                        )}
                       </div>
 
                       <div className="pt-3 border-t border-border-light flex items-center justify-between">

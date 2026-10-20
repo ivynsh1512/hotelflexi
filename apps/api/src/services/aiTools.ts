@@ -126,6 +126,107 @@ export async function executeAiTool(
       }
 
       // -----------------------------------------------------------------------
+      // 1B. UNBLOCK ROOM (Single, Bulk, or All)
+      // -----------------------------------------------------------------------
+      case 'unblock_room': {
+        const { all = false, roomNumbers } = params;
+        const targetRooms: string[] = Array.isArray(roomNumbers) && roomNumbers.length > 0
+          ? roomNumbers.map(String)
+          : [];
+
+        let unblockedBlocks: any[] = [];
+        if (all || targetRooms.length === 0) {
+          // Fetch all active blocks for this tenant
+          const activeRows: any = await env.DB.prepare(
+            `SELECT rb.id, rb.room_id, r.room_number
+             FROM room_blocks rb
+             JOIN rooms r ON r.id = rb.room_id
+             WHERE rb.tenant_id = ? AND rb.is_active = 1`
+          )
+            .bind(tenantId)
+            .all();
+          unblockedBlocks = activeRows.results || [];
+
+          if (unblockedBlocks.length === 0) {
+            humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+              ? 'Abhi koi rooms blocked nahi hain. Sabhi rooms already available hain.'
+              : 'There are currently no blocked rooms. All rooms are already open and available.';
+            success = true;
+            result = { unblockedCount: 0, rooms: [] };
+            break;
+          }
+
+          // Unblock all
+          await env.DB.prepare(
+            `UPDATE room_blocks SET is_active = 0, updated_at = ? WHERE tenant_id = ? AND is_active = 1`
+          )
+            .bind(now, tenantId)
+            .run();
+
+          // Restore room statuses to available
+          await env.DB.prepare(
+            `UPDATE rooms SET status = 'available', updated_at = ? WHERE tenant_id = ? AND status = 'blocked'`
+          )
+            .bind(now, tenantId)
+            .run()
+            .catch(() => {});
+        } else {
+          // Unblock specific room numbers
+          for (const num of targetRooms) {
+            const room: any = await env.DB.prepare(
+              `SELECT id, room_number FROM rooms WHERE room_number = ? AND tenant_id = ?`
+            )
+              .bind(num, tenantId)
+              .first();
+
+            if (room) {
+              const blocksToDeactivate: any = await env.DB.prepare(
+                `SELECT id FROM room_blocks WHERE room_id = ? AND tenant_id = ? AND is_active = 1`
+              )
+                .bind(room.id, tenantId)
+                .all();
+
+              const blockList = blocksToDeactivate.results || [];
+              if (blockList.length > 0) {
+                await env.DB.prepare(
+                  `UPDATE room_blocks SET is_active = 0, updated_at = ? WHERE room_id = ? AND tenant_id = ? AND is_active = 1`
+                )
+                  .bind(now, room.id, tenantId)
+                  .run();
+
+                await env.DB.prepare(
+                  `UPDATE rooms SET status = 'available', updated_at = ? WHERE id = ? AND status = 'blocked'`
+                )
+                  .bind(now, room.id)
+                  .run()
+                  .catch(() => {});
+
+                unblockedBlocks.push({ room_number: num });
+              }
+            }
+          }
+
+          if (unblockedBlocks.length === 0) {
+            humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+              ? `Room ${targetRooms.join(', ')} pe koi active block nahi mila.`
+              : `No active blocks found for Room ${targetRooms.join(', ')}.`;
+            success = true;
+            result = { unblockedCount: 0, rooms: [] };
+            break;
+          }
+        }
+
+        const roomNumbersList = Array.from(new Set(unblockedBlocks.map((b) => b.room_number))).filter(Boolean);
+        success = true;
+        result = { unblockedCount: unblockedBlocks.length, rooms: roomNumbersList };
+
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Successfully unblocked! ${roomNumbersList.length > 0 ? `Rooms (${roomNumbersList.join(', ')})` : 'Sabhi rooms'} ab available aur booking ke liye open hain.`
+          : `Successfully unblocked ${roomNumbersList.length > 0 ? `Room(s) ${roomNumbersList.join(', ')}` : 'all rooms'}. Rooms are now available and open for reservations.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
       // 2. FIND ARRIVALS
       // -----------------------------------------------------------------------
       case 'find_arrivals':

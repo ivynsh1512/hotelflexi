@@ -1,6 +1,6 @@
 # ==============================================================================
 # HotelFlexi Robots.txt
-# Domain: https://hotelflexi.novaxai.in
+# Domain: https://hotelflexi.com
 # Company: NovaX AI
 # ==============================================================================
 

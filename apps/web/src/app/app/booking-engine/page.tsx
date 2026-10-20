@@ -84,11 +84,36 @@ export default function BookingEngineAppPage() {
     reader.readAsDataURL(file);
   };
 
+  const galleryFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`File ${file.name} is larger than 5MB.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result) {
+          setGalleryImages((prev) => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
   const handleAddGalleryImage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newImageUrl.trim()) return;
-    setGalleryImages([...galleryImages, newImageUrl.trim()]);
-    setNewImageUrl('');
+    if (newImageUrl.trim()) {
+      setGalleryImages([...galleryImages, newImageUrl.trim()]);
+      setNewImageUrl('');
+    } else {
+      galleryFileInputRef.current?.click();
+    }
   };
 
   const handleRemoveImage = (index: number) => {
@@ -228,20 +253,38 @@ export default function BookingEngineAppPage() {
               Property Photo Gallery
             </h3>
 
-            <div className="flex gap-2">
+            <input
+              ref={galleryFileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageFileUpload}
+              className="hidden"
+            />
+
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={newImageUrl}
                 onChange={(e) => setNewImageUrl(e.target.value)}
-                placeholder="Paste high-res photo URL (e.g. Unsplash or Cloud storage URL)"
+                placeholder="Paste high-res photo URL or click 'Upload Photos'..."
                 className="flex-1 px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-1 focus:ring-brand-blue"
               />
               <button
                 type="button"
                 onClick={handleAddGalleryImage}
-                className="px-4 py-2 rounded-lg bg-brand-blue text-white font-semibold hover:bg-brand-blue-hover transition flex items-center gap-1 shrink-0"
+                className="px-4 py-2 rounded-lg bg-brand-blue text-white font-semibold hover:bg-brand-blue-hover transition flex items-center justify-center gap-1.5 shrink-0"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Photo
+                <Plus className="w-3.5 h-3.5" />
+                <span>{newImageUrl.trim() ? 'Add URL' : 'Add Photo'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => galleryFileInputRef.current?.click()}
+                className="px-4 py-2 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-1.5 shrink-0"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload Photos</span>
               </button>
             </div>
 

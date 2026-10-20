@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient, formatINR } from '@/lib/api';
 import {
@@ -236,20 +237,61 @@ export default function SubscriptionPage() {
     { name: 'Monthly Tariff (INR)', essential: '₹499 / mo', pro: '₹999 / mo', enterprise: '₹1,999 / mo' },
     { name: 'Room Inventory Capacity', essential: 'Up to 30 Rooms', pro: 'Up to 75 Rooms', enterprise: 'Unlimited Rooms' },
     { name: 'Staff User Logins', essential: '5 Users', pro: '15 Users', enterprise: 'Unlimited Staff' },
-    { name: '2-Way Live Channel Manager (OTAs)', essential: 'No (Direct Only)', pro: '10 Live Channels (MMT, Agoda, Booking.com, Airbnb, Expedia)', enterprise: 'Unlimited Channels' },
-    { name: 'Destination Wedding Engine', essential: false, pro: true, enterprise: true },
-    { name: 'Housekeeping Urgency Siren', essential: true, pro: true, enterprise: true },
-    { name: 'Direct Booking Engine', essential: true, pro: true, enterprise: true },
-    { name: 'Google Hotel Center & FBL Feed', essential: true, pro: true, enterprise: true },
-    { name: 'Guest Portal (FlexiLink)', essential: 'Full (ID & Child proof)', pro: 'Full (ID & Child proof)', enterprise: 'Full + Custom domain' },
-    { name: 'In-Stay Room Service Orders', essential: true, pro: true, enterprise: true },
-    { name: 'Dine-Out Table Bookings', essential: true, pro: true, enterprise: true },
-    { name: 'Custom Hotel Website + Annual AMC', essential: false, pro: 'Included Free', enterprise: 'Included Free' },
-    { name: 'GST Billing & Invoicing (12%/18%)', essential: true, pro: true, enterprise: true },
-    { name: 'AI Business Agent Prompts', essential: '200 / mo', pro: '600 / mo', enterprise: 'Unlimited' },
-    { name: 'Multi-Property Management', essential: false, pro: 'Up to 3 Properties', enterprise: 'Unlimited' },
+    { name: 'Properties Managed', essential: '1 Property', pro: 'Up to 3 Properties', enterprise: 'Unlimited Properties' },
+    // Channel Manager
+    { name: '— CHANNEL MANAGER —', essential: '', pro: '', enterprise: '' },
+    { name: '2-Way Live OTA Channel Manager', essential: false, pro: true, enterprise: true },
+    { name: 'OTA Connections (MMT, Agoda, Booking.com, Airbnb, Expedia)', essential: 'Direct Only', pro: '10 Live Channels', enterprise: 'Unlimited Channels' },
+    { name: 'Sub-second ARI Sync (Availability, Rates & Inventory)', essential: false, pro: true, enterprise: true },
+    { name: 'Channel-Specific Rate Markup Rules', essential: false, pro: true, enterprise: true },
+    // Booking Engine
+    { name: '— BOOKING ENGINE —', essential: '', pro: '', enterprise: '' },
+    { name: 'Direct Booking Engine (/book/slug)', essential: true, pro: true, enterprise: true },
+    { name: '0% Commission on Direct Bookings', essential: true, pro: true, enterprise: true },
+    { name: 'Custom Advance Deposit Rules (% / Fixed / Full / Pay at Hotel)', essential: true, pro: true, enterprise: true },
+    { name: 'Razorpay Direct Settlement to Hotel Account', essential: true, pro: true, enterprise: true },
+    { name: 'Google Hotel Center & Free Booking Links (FBL)', essential: true, pro: true, enterprise: true },
+    { name: 'Custom Hotel Website + Free Domain + Annual AMC', essential: false, pro: 'Included Free', enterprise: 'Included Free' },
+    // Wedding Engine
+    { name: '— WEDDING ENGINE —', essential: '', pro: '', enterprise: '' },
+    { name: 'Destination Wedding Package Engine', essential: false, pro: true, enterprise: true },
+    { name: 'Decoration Tiers & Day-wise Catering Pricing', essential: false, pro: true, enterprise: true },
+    { name: 'Instant Branded PDF Quotation Builder', essential: false, pro: true, enterprise: true },
+    { name: 'Bulk Room Blocking for Wedding Groups', essential: false, pro: true, enterprise: true },
+    // AI Agent
+    { name: '— AI AGENT —', essential: '', pro: '', enterprise: '' },
+    { name: 'Bilingual FlexiAI Agent (Hindi + English)', essential: true, pro: true, enterprise: true },
+    { name: 'AI Monthly Prompt Quota', essential: '200 / mo', pro: '600 / mo', enterprise: '10,000 / mo' },
+    { name: 'Autonomous PMS Command Execution', essential: true, pro: true, enterprise: true },
+    // Accounting & Finance
+    { name: '— ACCOUNTING & FINANCE —', essential: '', pro: '', enterprise: '' },
+    { name: 'GST Billing & Invoicing (12% / 18% SAC 9963)', essential: true, pro: true, enterprise: true },
+    { name: 'Expense Tracking & P&L Reports', essential: true, pro: true, enterprise: true },
+    { name: 'Payments & Collection Ledger', essential: true, pro: true, enterprise: true },
+    { name: 'Custom Webhooks & REST API Integrations', essential: false, pro: false, enterprise: true },
+    // Operations
+    { name: '— OPERATIONS —', essential: '', pro: '', enterprise: '' },
+    { name: 'Guest Portal (FlexiLink) with ID Upload', essential: 'Full', pro: 'Full', enterprise: 'Full + Custom Domain' },
+    { name: 'Housekeeping Urgency Siren (880Hz + Vibration)', essential: true, pro: true, enterprise: true },
+    { name: 'In-Stay Room Service & Food Orders', essential: true, pro: true, enterprise: true },
+    { name: 'Dine-Out Table Bookings (Restaurant POS)', essential: true, pro: true, enterprise: true },
+    { name: 'Dynamic Pricing Matrix & Date-Rate Overrides', essential: true, pro: true, enterprise: true },
+    { name: 'Competitor Rate Shopper', essential: false, pro: true, enterprise: true },
+    // Support
+    { name: '— SUPPORT —', essential: '', pro: '', enterprise: '' },
     { name: 'Support SLA', essential: 'WhatsApp & Email', pro: 'Priority WhatsApp & Phone', enterprise: '24/7 Dedicated Manager' },
+    { name: 'White-Label Android App on Play Store', essential: false, pro: false, enterprise: true },
+    { name: '99.99% Uptime SLA Guarantee', essential: false, pro: false, enterprise: true },
   ];
+
+  const planTierOrder: Record<string, number> = {
+    starter: 0,
+    essential: 1,
+    pro: 2,
+    enterprise: 3,
+  };
+  const currentTierLevel = planTierOrder[activePlanId] ?? 0;
+  const visiblePlans = plans.filter((p) => (planTierOrder[p.id] ?? 0) >= currentTierLevel && p.id !== 'starter');
 
   return (
     <div className="space-y-8">
@@ -343,129 +385,171 @@ export default function SubscriptionPage() {
           </div>
 
           {/* Active Feature Entitlements Meters */}
-          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4">
-            <h2 className="text-sm font-bold text-content-primary-light flex items-center gap-2">
-              <Shield className="w-4 h-4 text-brand-blue" />
-              Active System Capacity &amp; Entitlements
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-              <div className="p-4 rounded-xl bg-surface-light border border-border-light">
-                <div className="text-content-secondary-light font-medium">Max Rooms Allowed</div>
-                <div className="text-xl font-extrabold text-content-primary-light mt-1">
-                  {entitlements?.max_rooms || 10} Rooms
+          {activePlanId === 'enterprise' ? (
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-950 via-blue-950 to-indigo-950 text-white shadow-xl flex items-center justify-between border border-blue-500/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/20 text-blue-400 border border-blue-400/30 flex items-center justify-center shrink-0">
+                  <Shield className="w-6 h-6 text-amber-300" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-amber-300 mb-0.5">
+                    Highest Tier Active • 100% Unlimited
+                  </div>
+                  <h3 className="text-base font-extrabold text-white">
+                    Enterprise Plan — Full Cloud Operating System Active
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Unlimited rooms, unlimited staff accounts, 2-way OTA distribution (MMT, Agoda, Booking.com, Airbnb, Expedia), and 10,000 AI prompts/month.
+                  </p>
                 </div>
               </div>
-              <div className="p-4 rounded-xl bg-surface-light border border-border-light">
-                <div className="text-content-secondary-light font-medium">Staff Accounts</div>
-                <div className="text-xl font-extrabold text-content-primary-light mt-1">
-                  {entitlements?.max_users || 2} Users
+              <span className="hidden sm:inline-block px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                ● Top Quota Active
+              </span>
+            </div>
+          ) : (
+            <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4">
+              <h2 className="text-sm font-bold text-content-primary-light flex items-center gap-2">
+                <Shield className="w-4 h-4 text-brand-blue" />
+                Active System Capacity &amp; Entitlements
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div className="p-4 rounded-xl bg-surface-light border border-border-light">
+                  <div className="text-content-secondary-light font-medium">Max Rooms Allowed</div>
+                  <div className="text-xl font-extrabold text-content-primary-light mt-1">
+                    {entitlements?.max_rooms || 30} Rooms
+                  </div>
                 </div>
-              </div>
-              <div className="p-4 rounded-xl bg-surface-light border border-border-light">
-                <div className="text-content-secondary-light font-medium">AI Agent Prompts</div>
-                <div className="text-xl font-extrabold text-content-primary-light mt-1">
-                  {entitlements?.ai_monthly_limit || 100} / mo
+                <div className="p-4 rounded-xl bg-surface-light border border-border-light">
+                  <div className="text-content-secondary-light font-medium">Staff Accounts</div>
+                  <div className="text-xl font-extrabold text-content-primary-light mt-1">
+                    {entitlements?.max_users || 5} Users
+                  </div>
                 </div>
-              </div>
-              <div className="p-4 rounded-xl bg-surface-light border border-border-light">
-                <div className="text-content-secondary-light font-medium">OTA Connections</div>
-                <div className="text-xl font-extrabold text-content-primary-light mt-1">
-                  {entitlements?.max_channel_connections || 0} Channels
+                <div className="p-4 rounded-xl bg-surface-light border border-border-light">
+                  <div className="text-content-secondary-light font-medium">AI Agent Prompts</div>
+                  <div className="text-xl font-extrabold text-content-primary-light mt-1">
+                    {entitlements?.ai_monthly_limit || 200} / mo
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl bg-surface-light border border-border-light">
+                  <div className="text-content-secondary-light font-medium">OTA Connections</div>
+                  <div className="text-xl font-extrabold text-content-primary-light mt-1">
+                    {entitlements?.max_channel_connections || 0} Channels
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Plan Comparison & Upgrade Cards */}
           <div className="space-y-4">
             <div>
               <h2 className="text-base font-extrabold text-content-primary-light">
-                Choose an Upgrade Tier
+                {activePlanId === 'enterprise' ? 'Your Active Subscription' : 'Choose an Upgrade Tier'}
               </h2>
               <p className="text-xs text-content-secondary-light">
-                Immediate quota activation without downtime. All data and historical bookings are preserved.
+                {activePlanId === 'enterprise'
+                  ? 'You are subscribed to the highest enterprise tier. All premium modules are active.'
+                  : 'Immediate quota activation without downtime. All historical bookings and folios are preserved.'}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {plans.map((p) => {
-                const isCurrent = p.id === activePlanId;
-                const isUpgrading = upgradingPlanId === p.id;
-
-                return (
-                  <div
-                    key={p.id}
-                    className={`p-5 rounded-2xl bg-white border flex flex-col justify-between transition-all ${
-                      isCurrent
-                        ? 'border-brand-blue ring-2 ring-brand-blue shadow-md'
-                        : 'border-border-light hover:border-gray-300 shadow-sm'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-extrabold text-base text-content-primary-light">{p.name}</h3>
-                        {isCurrent && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-brand-blue">
-                            Current
-                          </span>
-                        )}
-                        {p.id === 'essential' && !isCurrent && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
-                            Popular
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="pb-3 border-b border-border-light">
-                        <div className="text-2xl font-extrabold text-content-primary-light">
-                          {formatINR(p.monthly_price_paise)}
-                          <span className="text-xs font-normal text-content-secondary-light">/mo</span>
-                        </div>
-                        <div className="text-[10px] text-content-secondary-light mt-0.5">
-                          billed monthly in INR
-                        </div>
-                      </div>
-
-                      <div className="py-3 space-y-1.5 text-xs text-content-primary-light border-b border-border-light font-medium">
-                        <div>🛏️ Up to {p.max_rooms} Rooms</div>
-                        <div>👥 {p.max_users} Staff Accounts</div>
-                        <div>
-                          🌐 {p.max_channel_connections > 0 ? `${p.max_channel_connections} OTA Channels` : 'Direct Only'}
-                        </div>
-                        <div>🤖 {p.ai_monthly_limit} AI Prompts/mo</div>
-                      </div>
-                    </div>
-
-                    <div className="pt-4">
-                      {isCurrent ? (
-                        <div className="w-full py-2 text-center text-xs font-bold text-brand-blue bg-blue-50 rounded-xl">
-                          Active Plan
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleUpgrade(p.id)}
-                          disabled={isUpgrading}
-                          className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 ${
-                            p.id === 'starter'
-                              ? 'border border-border-light bg-surface-light text-content-primary-light hover:bg-white'
-                              : 'bg-brand-blue text-white hover:bg-brand-blue-hover shadow'
-                          }`}
-                        >
-                          {isUpgrading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                          <span>
-                            {isUpgrading
-                              ? 'Processing...'
-                              : p.id === 'starter'
-                              ? 'Switch to Free Starter (₹0)'
-                              : `Pay & Activate (${formatINR(p.monthly_price_paise)}/mo)`}
-                          </span>
-                        </button>
-                      )}
-                    </div>
+            {activePlanId === 'enterprise' ? (
+              <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-base text-content-primary-light">Enterprise Plan (Active)</h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-brand-blue uppercase">
+                      Current Maximum Tier
+                    </span>
                   </div>
-                );
-              })}
-            </div>
+                  <p className="text-xs text-content-secondary-light mt-1 max-w-xl">
+                    Your hotel workspace operates at full enterprise capacity with zero restrictions. Need white-label APK builds, custom API webhooks, or dedicated SLA support? Reach out directly to your account lead.
+                  </p>
+                </div>
+                <Link
+                  href="/app/support"
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow shrink-0 text-center"
+                >
+                  Contact Dedicated Account Manager &rarr;
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {visiblePlans.map((p) => {
+                  const isCurrent = p.id === activePlanId;
+                  const isUpgrading = upgradingPlanId === p.id;
+
+                  return (
+                    <div
+                      key={p.id}
+                      className={`p-5 rounded-2xl bg-white border flex flex-col justify-between transition-all ${
+                        isCurrent
+                          ? 'border-brand-blue ring-2 ring-brand-blue shadow-md'
+                          : 'border-border-light hover:border-gray-300 shadow-sm'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-extrabold text-base text-content-primary-light">{p.name}</h3>
+                          {isCurrent && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-brand-blue">
+                              Current
+                            </span>
+                          )}
+                          {p.id === 'pro' && !isCurrent && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                              Recommended
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="pb-3 border-b border-border-light">
+                          <div className="text-2xl font-extrabold text-content-primary-light">
+                            {formatINR(p.monthly_price_paise)}
+                            <span className="text-xs font-normal text-content-secondary-light">/mo</span>
+                          </div>
+                          <div className="text-[10px] text-content-secondary-light mt-0.5">
+                            billed monthly in INR
+                          </div>
+                        </div>
+
+                        <div className="py-3 space-y-1.5 text-xs text-content-primary-light border-b border-border-light font-medium">
+                          <div>🛏️ Up to {p.max_rooms} Rooms</div>
+                          <div>👥 {p.max_users} Staff Accounts</div>
+                          <div>
+                            🌐 {p.max_channel_connections > 0 ? `${p.max_channel_connections} OTA Channels` : 'Direct Only'}
+                          </div>
+                          <div>🤖 {p.ai_monthly_limit} AI Prompts/mo</div>
+                        </div>
+                      </div>
+
+                      <div className="pt-4">
+                        {isCurrent ? (
+                          <div className="w-full py-2 text-center text-xs font-bold text-brand-blue bg-blue-50 rounded-xl">
+                            Active Plan
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleUpgrade(p.id)}
+                            disabled={isUpgrading}
+                            className="w-full py-2.5 px-3 rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 bg-brand-blue text-white hover:bg-brand-blue-hover shadow"
+                          >
+                            {isUpgrading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                            <span>
+                              {isUpgrading
+                                ? 'Processing...'
+                                : `Upgrade & Pay (${formatINR(p.monthly_price_paise)}/mo)`}
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Full Side-by-Side Feature Comparison Table */}
@@ -487,6 +571,17 @@ export default function SubscriptionPage() {
                 </thead>
                 <tbody className="divide-y divide-border-light">
                   {comparisonRows.map((row) => {
+                    const isHeaderRow = row.name.startsWith('—');
+                    if (isHeaderRow) {
+                      return (
+                        <tr key={row.name} className="bg-slate-100/80">
+                          <td colSpan={4} className="p-2.5 px-4 font-black text-slate-800 text-[10px] tracking-widest uppercase">
+                            {row.name.replace(/—/g, '').trim()}
+                          </td>
+                        </tr>
+                      );
+                    }
+
                     const renderVal = (v: any) => {
                       if (v === true) return <Check className="w-4 h-4 text-emerald-600 mx-auto" />;
                       if (v === false) return <X className="w-4 h-4 text-gray-300 mx-auto" />;

@@ -142,7 +142,11 @@ bookingEngineRoutes.get('/properties/:slug/availability', async (c) => {
     const blockedRooms = blockConflictResult?.count || 0;
     const availableCount = Math.max(0, totalRooms - bookedRooms - blockedRooms);
 
-    if (availableCount > 0 && rt.max_occupancy >= guests) {
+    const maxOcc = rt.max_occupancy || 2;
+    const baseOcc = rt.base_occupancy || 2;
+    const roomsNeeded = Math.max(1, Math.ceil(guests / maxOcc));
+
+    if (availableCount >= roomsNeeded) {
       // Check Daily Rate Overrides
       const dailyRateRows: any = await c.env.DB.prepare(
         `SELECT date, price_paise FROM daily_rates
@@ -156,24 +160,32 @@ bookingEngineRoutes.get('/properties/:slug/availability', async (c) => {
         dailyMap.set(d.date, d.price_paise);
       }
 
-      let roomChargePaise = 0;
+      let singleRoomChargePaise = 0;
       const cur = new Date(checkIn);
       const end = new Date(checkOut);
       while (cur < end) {
         const dStr = cur.toISOString().split('T')[0];
         const isWeekend = cur.getDay() === 0 || cur.getDay() === 6;
         if (dailyMap.has(dStr)) {
-          roomChargePaise += dailyMap.get(dStr)!;
+          singleRoomChargePaise += dailyMap.get(dStr)!;
         } else if (isWeekend && rt.weekend_price_paise) {
-          roomChargePaise += rt.weekend_price_paise;
+          singleRoomChargePaise += rt.weekend_price_paise;
         } else {
-          roomChargePaise += rt.base_price_paise;
+          singleRoomChargePaise += rt.base_price_paise;
         }
         cur.setDate(cur.getDate() + 1);
       }
 
+      // Calculate extra adult surcharge
+      const totalBaseGuests = baseOcc * roomsNeeded;
+      const extraAdultsCount = Math.max(0, guests - totalBaseGuests);
+      const extraAdultPricePaise = rt.extra_adult_price_paise || Math.round(rt.base_price_paise * 0.25);
+      const totalExtraAdultChargePaise = extraAdultsCount * extraAdultPricePaise * nights;
+
+      const roomChargePaise = (singleRoomChargePaise * roomsNeeded) + totalExtraAdultChargePaise;
       const effectiveNightlyPaise = Math.round(roomChargePaise / nights);
-      const gstRate = effectiveNightlyPaise > 750000 ? 1800 : 1200;
+      const perRoomNightlyPaise = Math.round(singleRoomChargePaise / nights);
+      const gstRate = (effectiveNightlyPaise / roomsNeeded) > 750000 ? 1800 : 1200;
       const taxPaise = Math.round((roomChargePaise * gstRate) / 10000);
       const totalPaise = roomChargePaise + taxPaise;
 
@@ -181,10 +193,16 @@ bookingEngineRoutes.get('/properties/:slug/availability', async (c) => {
         id: rt.id,
         name: rt.name,
         code: rt.code,
-        baseOccupancy: rt.base_occupancy,
-        maxOccupancy: rt.max_occupancy,
+        baseOccupancy: baseOcc,
+        maxOccupancy: maxOcc,
+        roomsNeeded,
+        guests,
+        extraAdultsCount,
+        extraAdultPricePaise,
+        totalExtraAdultChargePaise,
         availableCount,
         nightlyPricePaise: effectiveNightlyPaise,
+        perRoomNightlyPaise,
         totalRoomChargePaise: roomChargePaise,
         taxPaise,
         totalPaise,

@@ -184,8 +184,9 @@ export function StaffSirenAlert() {
     }
   };
 
-  // Nothing to show
-  if (activeSirens.length === 0) return null;
+  // Nothing to show — suppress entirely when there are no pending items
+  // (in-progress items are visible on the staff overlay; owners don't need a banner)
+  if (activeSirens.length === 0 || pendingSirens.length === 0) return null;
 
   // Don't render on super-admin portal
   if (

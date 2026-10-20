@@ -23,8 +23,43 @@ function detectLanguage(text: string): 'en' | 'hi' | 'hinglish' {
 function parseNaturalLanguageIntent(message: string): { toolName: string; params: any } | null {
   const lower = message.toLowerCase().trim();
 
+  // 0. Unblock Room (Single, Bulk, or All): e.g. "unblock all rooms", "unblock room 101", "unbloack them", "unblock them", "khol do", "release blocks"
+  if (
+    lower.includes('unblock') ||
+    lower.includes('unbloack') ||
+    lower.includes('un-block') ||
+    lower.includes('khol do') ||
+    lower.includes('kholo') ||
+    lower.includes('release block') ||
+    (lower.includes('remove') && lower.includes('block'))
+  ) {
+    const isAll =
+      lower.includes('all') ||
+      lower.includes('saare') ||
+      lower.includes('sab') ||
+      lower.includes('them') ||
+      lower.includes('sabko') ||
+      lower.includes('har');
+
+    const allMatches = Array.from(lower.matchAll(/(?:room|rooms|kamra|kamre|unit|units)?\s*#?(\d+[a-z]?)/gi));
+    const roomNumbers = Array.from(new Set(allMatches.map((m) => m[1]))).filter(Boolean);
+
+    return {
+      toolName: 'unblock_room',
+      params: {
+        all: isAll || roomNumbers.length === 0,
+        roomNumbers: roomNumbers.length > 0 ? roomNumbers : undefined,
+      },
+    };
+  }
+
   // 1. Block Room (Single or Bulk): e.g. "Kal Room 101 block kar do", "Block rooms 101, 102 from 25 Oct"
-  if (lower.includes('block') && (lower.includes('room') || lower.includes('kamr') || lower.includes('unit'))) {
+  if (
+    !lower.includes('unblock') &&
+    !lower.includes('unbloack') &&
+    lower.includes('block') &&
+    (lower.includes('room') || lower.includes('kamr') || lower.includes('unit'))
+  ) {
     const allMatches = Array.from(lower.matchAll(/(?:room|rooms|kamra|kamre|unit|units)?\s*#?(\d+[a-z]?)/gi));
     const roomNumbers = Array.from(new Set(allMatches.map((m) => m[1]))).filter(Boolean);
     const primaryRoomNumber = roomNumbers[0] || '101';

@@ -95,6 +95,8 @@ export default function RoomTypesPage() {
   const [weekendPrice, setWeekendPrice] = useState('2800');
   const [baseOccupancy, setBaseOccupancy] = useState('2');
   const [maxOccupancy, setMaxOccupancy] = useState('3');
+  const [extraAdultCharge, setExtraAdultCharge] = useState('');
+  const [extraChildCharge, setExtraChildCharge] = useState('');
   const [description, setDescription] = useState('');
   const [amenities, setAmenities] = useState<string[]>([]);
   const [customAmenity, setCustomAmenity] = useState('');
@@ -154,6 +156,8 @@ export default function RoomTypesPage() {
     setWeekendPrice('2800');
     setBaseOccupancy('2');
     setMaxOccupancy('3');
+    setExtraAdultCharge('500');
+    setExtraChildCharge('250');
     setDescription('');
     setAmenities(['King Bed', 'Air Conditioning', 'Free High-Speed Wi-Fi', 'Geyser / 24hr Hot Water']);
     setImages([]);
@@ -175,6 +179,8 @@ export default function RoomTypesPage() {
     setWeekendPrice(rt.weekend_price_paise ? String(rt.weekend_price_paise / 100) : '');
     setBaseOccupancy(String(rt.base_occupancy || 2));
     setMaxOccupancy(String(rt.max_occupancy || 3));
+    setExtraAdultCharge(rt.extra_adult_price_paise ? String(rt.extra_adult_price_paise / 100) : '0');
+    setExtraChildCharge(rt.extra_child_price_paise ? String(rt.extra_child_price_paise / 100) : '0');
     setDescription(rt.description || '');
 
     let amList: string[] = [];
@@ -264,6 +270,8 @@ export default function RoomTypesPage() {
       const parsedWeekendPrice = weekendPrice.trim() ? parseFloat(weekendPrice) || 0 : null;
       const parsedBaseOcc = parseInt(baseOccupancy, 10) || 1;
       const parsedMaxOcc = parseInt(maxOccupancy, 10) || 1;
+      const parsedExtraAdultPrice = extraAdultCharge.trim() ? Math.round(parseFloat(extraAdultCharge) * 100) : 0;
+      const parsedExtraChildPrice = extraChildCharge.trim() ? Math.round(parseFloat(extraChildCharge) * 100) : 0;
 
       if (editingId) {
         // Update existing room type
@@ -273,6 +281,8 @@ export default function RoomTypesPage() {
             name,
             basePricePaise: Math.round(parsedBasePrice * 100),
             weekendPricePaise: parsedWeekendPrice !== null ? Math.round(parsedWeekendPrice * 100) : null,
+            extraAdultPricePaise: parsedExtraAdultPrice,
+            extraChildPricePaise: parsedExtraChildPrice,
             baseOccupancy: parsedBaseOcc,
             maxOccupancy: parsedMaxOcc,
             description,
@@ -290,6 +300,8 @@ export default function RoomTypesPage() {
             code: code || name.slice(0, 3).toUpperCase(),
             basePricePaise: Math.round(parsedBasePrice * 100),
             weekendPricePaise: parsedWeekendPrice !== null ? Math.round(parsedWeekendPrice * 100) : null,
+            extraAdultPricePaise: parsedExtraAdultPrice,
+            extraChildPricePaise: parsedExtraChildPrice,
             baseOccupancy: parsedBaseOcc,
             maxOccupancy: parsedMaxOcc,
             description,
@@ -427,15 +439,22 @@ export default function RoomTypesPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-content-secondary-light pb-3 border-b border-border-light">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5" />
-                        {rt.base_occupancy || 2} Base / {rt.max_occupancy || 3} Max Guests
-                      </span>
-                      {rt.total_units !== undefined && (
-                        <span className="font-semibold text-slate-700">
-                          {rt.total_units} unit{rt.total_units === 1 ? '' : 's'}
+                    <div className="flex flex-col gap-1 text-xs text-content-secondary-light pb-3 border-b border-border-light">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3.5 h-3.5 text-brand-blue" />
+                          {rt.base_occupancy || 2} Base / {rt.max_occupancy || 3} Max Guests
                         </span>
+                        {rt.total_units !== undefined && (
+                          <span className="font-semibold text-slate-700">
+                            {rt.total_units} unit{rt.total_units === 1 ? '' : 's'}
+                          </span>
+                        )}
+                      </div>
+                      {rt.extra_adult_price_paise > 0 && (
+                        <div className="text-[11px] text-emerald-700 font-medium">
+                          + Extra guest: {formatINR(rt.extra_adult_price_paise)} / night
+                        </div>
                       )}
                     </div>
 
@@ -556,6 +575,7 @@ export default function RoomTypesPage() {
                     placeholder="2"
                     className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
+                  <span className="text-[10px] text-content-secondary-light">Included in base price</span>
                 </div>
                 <div>
                   <label className="block font-semibold mb-1">Max Occupancy</label>
@@ -567,6 +587,34 @@ export default function RoomTypesPage() {
                     placeholder="3"
                     className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
+                  <span className="text-[10px] text-content-secondary-light">Max guests per room</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold mb-1">Extra Adult Charge (₹ / night)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={extraAdultCharge}
+                    onChange={(e) => setExtraAdultCharge(e.target.value)}
+                    placeholder="500"
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  />
+                  <span className="text-[10px] text-content-secondary-light">Surcharge when guests exceed base occupancy</span>
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Extra Child Charge (₹ / night)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={extraChildCharge}
+                    onChange={(e) => setExtraChildCharge(e.target.value)}
+                    placeholder="250"
+                    className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  />
+                  <span className="text-[10px] text-content-secondary-light">Optional surcharge per child</span>
                 </div>
               </div>
 
