@@ -143,6 +143,19 @@ roomRoutes.patch('/types/:id', requireRole(['owner', 'manager']), async (c) => {
 roomRoutes.get('/', async (c) => {
   const tenantId = c.get('tenantId')!;
   const propertyId = c.req.query('property_id');
+
+  if (c.req.path.includes('room-types')) {
+    let rtQuery = `SELECT rt.*, (SELECT COUNT(*) FROM rooms r WHERE r.room_type_id = rt.id AND r.is_active = 1) as total_units
+                 FROM room_types rt WHERE rt.tenant_id = ? AND rt.is_active = 1`;
+    const rtParams: any[] = [tenantId];
+    if (propertyId) {
+      rtQuery += ` AND rt.property_id = ?`;
+      rtParams.push(propertyId);
+    }
+    rtQuery += ` ORDER BY rt.base_price_paise ASC`;
+    const rtRows = await c.env.DB.prepare(rtQuery).bind(...rtParams).all();
+    return c.json({ roomTypes: rtRows.results || [] });
+  }
   const status = c.req.query('status');
 
   let query = `
@@ -172,49 +185,92 @@ roomRoutes.get('/', async (c) => {
 roomRoutes.post('/', requireRole(['owner', 'manager']), async (c) => {
   const tenantId = c.get('tenantId')!;
   const body = await c.req.json();
-  const id = `room_${crypto.randomUUID()}`;
   const now = Math.floor(Date.now() / 1000);
 
-  if (!body.propertyId || !body.roomTypeId || !body.roomNumber) {
-    return c.json({ error: 'Property ID, Room Type ID, and Room Number are required' }, 400);
+  let propertyId = body.propertyId;
+  if (!propertyId) {
+    const prop = await c.env.DB.prepare('SELECT id FROM properties WHERE tenant_id = ? ORDER BY created_at ASC LIMIT 1')
+      .bind(tenantId)
+      .first<{ id: string }>();
+    if (prop) propertyId = prop.id;
   }
 
-  // Check unique room number in property
-  const existing = await c.env.DB.prepare(
-    'SELECT id FROM rooms WHERE property_id = ? AND room_number = ?'
-  )
-    .bind(body.propertyId, body.roomNumber)
-    .first();
-
-  if (existing) {
-    return c.json({ error: `Room ${body.roomNumber} already exists in this property` }, 409);
+  if (!propertyId || !body.roomTypeId) {
+    return c.json({ error: 'Property ID and Room Type ID are required' }, 400);
   }
 
-  await c.env.DB.prepare(
-    `INSERT INTO rooms (
-      id, property_id, tenant_id, room_type_id, room_number, floor, status, housekeeping_status, is_active, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, 'available', 'clean', 1, ?, ?)`
+  // Support single roomNumber or array roomNumbers
+  let roomNumbers: string[] = [];
+  if (Array.isArray(body.roomNumbers) && body.roomNumbers.length > 0) {
+    roomNumbers = body.roomNumbers.map((rn: any) => String(rn).trim()).filter(Boolean);
+  } else if (body.roomNumber) {
+    roomNumbers = [String(body.roomNumber).trim()];
+  }
+
+  if (roomNumbers.length === 0) {
+    return c.json({ error: 'At least one Room Number is required' }, 400);
+  }
+
+  // Deduplicate within the requested batch
+  roomNumbers = Array.from(new Set(roomNumbers));
+
+  // Find existing room numbers in this property
+  const existingRows = await c.env.DB.prepare(
+    'SELECT room_number FROM rooms WHERE property_id = ?'
   )
-    .bind(
-      id,
-      body.propertyId,
+    .bind(propertyId)
+    .all<{ room_number: string }>();
+
+  const existingSet = new Set((existingRows.results || []).map((r) => r.room_number));
+
+  const toInsert = roomNumbers.filter((num) => !existingSet.has(num));
+  const skipped = roomNumbers.filter((num) => existingSet.has(num));
+
+  if (toInsert.length === 0) {
+    return c.json(
+      {
+        error: `All requested rooms (${skipped.join(', ')}) already exist in this property`,
+        skipped,
+      },
+      409
+    );
+  }
+
+  const insertStmts = toInsert.map((num) => {
+    const roomId = `room_${crypto.randomUUID()}`;
+    return c.env.DB.prepare(
+      `INSERT INTO rooms (
+        id, property_id, tenant_id, room_type_id, room_number, floor, status, housekeeping_status, is_active, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 'available', 'clean', 1, ?, ?)`
+    ).bind(
+      roomId,
+      propertyId,
       tenantId,
       body.roomTypeId,
-      body.roomNumber,
+      num,
       body.floor || 'Floor 1',
       now,
       now
-    )
-    .run();
+    );
+  });
+
+  await c.env.DB.batch(insertStmts);
 
   await recordAuditLog(c, {
     action: 'room.created',
     resourceType: 'room',
-    resourceId: id,
-    newValues: body,
+    resourceId: toInsert[0],
+    newValues: { ...body, createdCount: toInsert.length, rooms: toInsert, skipped },
   });
 
-  return c.json({ success: true, id, roomNumber: body.roomNumber });
+  return c.json({
+    success: true,
+    created: toInsert,
+    createdCount: toInsert.length,
+    skipped,
+    skippedCount: skipped.length,
+    message: `Successfully created ${toInsert.length} room(s)${skipped.length > 0 ? ` (${skipped.length} skipped as duplicates)` : ''}`,
+  });
 });
 
 roomRoutes.patch('/:id/status', async (c) => {

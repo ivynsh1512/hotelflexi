@@ -124,8 +124,8 @@ export default function AppDiningPage() {
       setDishPrice('350');
       setDishDesc('');
       fetchData();
-    } catch (err) {
-      alert('Failed to save dish.');
+    } catch (err: any) {
+      alert(err.message || 'Failed to save dish.');
     } finally {
       setSavingDish(false);
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient, formatINR } from '@/lib/api';
 import {
@@ -15,6 +15,7 @@ import {
   Trash2,
   BedDouble,
   Users,
+  Upload,
 } from 'lucide-react';
 
 const COMMON_ROOM_AMENITIES = [
@@ -36,6 +37,48 @@ const COMMON_ROOM_AMENITIES = [
   'Hair Dryer',
 ];
 
+// Helper to compress uploaded images to data URLs
+const compressImageFile = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const maxWidth = 1200;
+        const maxHeight = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(event.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL('image/jpeg', 0.82);
+        resolve(compressed);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export default function RoomTypesPage() {
   const { currentTenant } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -47,17 +90,40 @@ export default function RoomTypesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [basePrice, setBasePrice] = useState(2500);
-  const [weekendPrice, setWeekendPrice] = useState(2800);
-  const [baseOccupancy, setBaseOccupancy] = useState(2);
-  const [maxOccupancy, setMaxOccupancy] = useState(3);
+  // Numeric inputs as string so backspacing "0" works cleanly
+  const [basePrice, setBasePrice] = useState('2500');
+  const [weekendPrice, setWeekendPrice] = useState('2800');
+  const [baseOccupancy, setBaseOccupancy] = useState('2');
+  const [maxOccupancy, setMaxOccupancy] = useState('3');
   const [description, setDescription] = useState('');
   const [amenities, setAmenities] = useState<string[]>([]);
   const [customAmenity, setCustomAmenity] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Quick room generation state (for new categories)
+  const [quickCreateRooms, setQuickCreateRooms] = useState(false);
+  const [quickStartNumber, setQuickStartNumber] = useState('101');
+  const [quickEndNumber, setQuickEndNumber] = useState('110');
+  const [quickFloor, setQuickFloor] = useState('Floor 1');
+  const [quickPrefix, setQuickPrefix] = useState('');
+
+  const quickRoomPreview = useMemo(() => {
+    if (!quickCreateRooms) return [];
+    const start = parseInt(quickStartNumber, 10);
+    const end = parseInt(quickEndNumber, 10);
+    if (isNaN(start) || isNaN(end) || start > end || end - start > 100) return [];
+    const list: string[] = [];
+    const padLen = String(end).length;
+    for (let i = start; i <= end; i++) {
+      const numStr = String(i).padStart(padLen > 2 ? padLen : 2, '0');
+      list.push(`${quickPrefix.trim()}${numStr}`);
+    }
+    return list;
+  }, [quickCreateRooms, quickStartNumber, quickEndNumber, quickPrefix]);
 
   const fetchRoomTypes = async () => {
     setLoading(true);
@@ -84,15 +150,20 @@ export default function RoomTypesPage() {
     setEditingId(null);
     setName('');
     setCode('');
-    setBasePrice(2500);
-    setWeekendPrice(2800);
-    setBaseOccupancy(2);
-    setMaxOccupancy(3);
+    setBasePrice('2500');
+    setWeekendPrice('2800');
+    setBaseOccupancy('2');
+    setMaxOccupancy('3');
     setDescription('');
     setAmenities(['King Bed', 'Air Conditioning', 'Free High-Speed Wi-Fi', 'Geyser / 24hr Hot Water']);
     setImages([]);
     setNewImageUrl('');
     setCustomAmenity('');
+    setQuickCreateRooms(false);
+    setQuickStartNumber('101');
+    setQuickEndNumber('110');
+    setQuickFloor('Floor 1');
+    setQuickPrefix('');
     setModalOpen(true);
   };
 
@@ -100,10 +171,10 @@ export default function RoomTypesPage() {
     setEditingId(rt.id);
     setName(rt.name || '');
     setCode(rt.code || '');
-    setBasePrice(rt.base_price_paise ? rt.base_price_paise / 100 : 2500);
-    setWeekendPrice(rt.weekend_price_paise ? rt.weekend_price_paise / 100 : 2800);
-    setBaseOccupancy(rt.base_occupancy || 2);
-    setMaxOccupancy(rt.max_occupancy || 3);
+    setBasePrice(rt.base_price_paise ? String(rt.base_price_paise / 100) : '2500');
+    setWeekendPrice(rt.weekend_price_paise ? String(rt.weekend_price_paise / 100) : '');
+    setBaseOccupancy(String(rt.base_occupancy || 2));
+    setMaxOccupancy(String(rt.max_occupancy || 3));
     setDescription(rt.description || '');
 
     let amList: string[] = [];
@@ -131,6 +202,7 @@ export default function RoomTypesPage() {
     setImages(imgList);
     setNewImageUrl('');
     setCustomAmenity('');
+    setQuickCreateRooms(false);
     setModalOpen(true);
   };
 
@@ -150,6 +222,28 @@ export default function RoomTypesPage() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadingImage(true);
+    try {
+      const compressedList: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.type.startsWith('image/')) continue;
+        const dataUrl = await compressImageFile(file);
+        compressedList.push(dataUrl);
+      }
+      setImages((prev) => [...prev, ...compressedList]);
+    } catch (err) {
+      console.error('Failed to compress image:', err);
+      alert('Failed to upload image. Please check file format.');
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
   const handleAddImage = () => {
     const trimmed = newImageUrl.trim();
     if (trimmed && !images.includes(trimmed)) {
@@ -166,16 +260,21 @@ export default function RoomTypesPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      const parsedBasePrice = parseFloat(basePrice) || 0;
+      const parsedWeekendPrice = weekendPrice.trim() ? parseFloat(weekendPrice) || 0 : null;
+      const parsedBaseOcc = parseInt(baseOccupancy, 10) || 1;
+      const parsedMaxOcc = parseInt(maxOccupancy, 10) || 1;
+
       if (editingId) {
         // Update existing room type
         await apiClient(`/rooms/types/${editingId}`, {
           method: 'PATCH',
           body: JSON.stringify({
             name,
-            basePricePaise: Math.round(basePrice * 100),
-            weekendPricePaise: weekendPrice ? Math.round(weekendPrice * 100) : null,
-            baseOccupancy,
-            maxOccupancy,
+            basePricePaise: Math.round(parsedBasePrice * 100),
+            weekendPricePaise: parsedWeekendPrice !== null ? Math.round(parsedWeekendPrice * 100) : null,
+            baseOccupancy: parsedBaseOcc,
+            maxOccupancy: parsedMaxOcc,
             description,
             amenities,
             images,
@@ -183,21 +282,38 @@ export default function RoomTypesPage() {
         });
       } else {
         // Create new room type
-        await apiClient('/rooms/types', {
+        const res = await apiClient('/rooms/types', {
           method: 'POST',
           body: JSON.stringify({
             propertyId,
             name,
             code: code || name.slice(0, 3).toUpperCase(),
-            basePricePaise: Math.round(basePrice * 100),
-            weekendPricePaise: weekendPrice ? Math.round(weekendPrice * 100) : null,
-            baseOccupancy,
-            maxOccupancy,
+            basePricePaise: Math.round(parsedBasePrice * 100),
+            weekendPricePaise: parsedWeekendPrice !== null ? Math.round(parsedWeekendPrice * 100) : null,
+            baseOccupancy: parsedBaseOcc,
+            maxOccupancy: parsedMaxOcc,
             description,
             amenities,
             images,
           }),
         });
+
+        // If quick room generation is enabled
+        if (quickCreateRooms && quickRoomPreview.length > 0 && res.id) {
+          try {
+            await apiClient('/rooms', {
+              method: 'POST',
+              body: JSON.stringify({
+                propertyId,
+                roomTypeId: res.id,
+                roomNumbers: quickRoomPreview,
+                floor: quickFloor || 'Floor 1',
+              }),
+            });
+          } catch (rErr: any) {
+            console.warn('Category created, but room generation warning:', rErr);
+          }
+        }
       }
       setModalOpen(false);
       await fetchRoomTypes();
@@ -298,50 +414,57 @@ export default function RoomTypesPage() {
                       {rt.description || 'Standard room category with premium amenities.'}
                     </p>
 
-                    {/* Amenities tags */}
+                    <div className="flex items-baseline gap-2 mb-3">
+                      <span className="text-lg font-black text-content-primary-light">
+                        {formatINR(rt.base_price_paise)}
+                      </span>
+                      <span className="text-[11px] text-content-secondary-light">/ night</span>
+
+                      {rt.weekend_price_paise && (
+                        <span className="ml-auto text-[11px] font-semibold text-brand-blue bg-blue-50 px-2 py-0.5 rounded">
+                          Weekend: {formatINR(rt.weekend_price_paise)}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs text-content-secondary-light pb-3 border-b border-border-light">
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5" />
+                        {rt.base_occupancy || 2} Base / {rt.max_occupancy || 3} Max Guests
+                      </span>
+                      {rt.total_units !== undefined && (
+                        <span className="font-semibold text-slate-700">
+                          {rt.total_units} unit{rt.total_units === 1 ? '' : 's'}
+                        </span>
+                      )}
+                    </div>
+
                     {rtAmenities.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {rtAmenities.slice(0, 4).map((am, i) => (
-                          <span key={i} className="px-2 py-0.5 rounded bg-surface-light text-[10px] text-content-secondary-light border border-border-light">
+                      <div className="flex flex-wrap gap-1 pt-3">
+                        {rtAmenities.slice(0, 4).map((am: string, i: number) => (
+                          <span
+                            key={i}
+                            className="px-2 py-0.5 rounded bg-surface-light border border-border-light text-[10px] text-content-secondary-light font-medium"
+                          >
                             {am}
                           </span>
                         ))}
                         {rtAmenities.length > 4 && (
-                          <span className="px-1.5 py-0.5 rounded bg-surface-light text-[10px] text-content-secondary-light">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] text-brand-blue font-bold">
                             +{rtAmenities.length - 4} more
                           </span>
                         )}
                       </div>
                     )}
-
-                    <div className="space-y-1.5 text-xs border-t border-border-light pt-3">
-                      <div className="flex justify-between">
-                        <span className="text-content-secondary-light">Base Tariff:</span>
-                        <span className="font-bold text-content-primary-light">{formatINR(rt.base_price_paise)}/night</span>
-                      </div>
-                      {rt.weekend_price_paise && (
-                        <div className="flex justify-between">
-                          <span className="text-content-secondary-light">Weekend Tariff:</span>
-                          <span className="font-semibold text-brand-blue">{formatINR(rt.weekend_price_paise)}/night</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between">
-                        <span className="text-content-secondary-light">Max Occupancy:</span>
-                        <span className="font-medium text-content-primary-light">{rt.max_occupancy} Guests</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-content-secondary-light">Total Units in Hotel:</span>
-                        <span className="font-bold text-emerald-700">{rt.total_units || 0} Units</span>
-                      </div>
-                    </div>
                   </div>
 
-                  <div className="pt-2">
+                  <div className="pt-3 border-t border-border-light flex justify-end">
                     <button
                       onClick={() => handleOpenEdit(rt)}
-                      className="w-full py-2 rounded-xl border border-border-light text-xs font-semibold text-content-primary-light hover:bg-surface-light flex items-center justify-center gap-1.5 transition"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-light hover:bg-surface-light text-xs font-semibold text-content-primary-light transition"
                     >
-                      <Pencil className="w-3.5 h-3.5 text-brand-blue" /> Edit Category & Photos
+                      <Pencil className="w-3.5 h-3.5" />
+                      Edit Details & Pricing
                     </button>
                   </div>
                 </div>
@@ -353,30 +476,40 @@ export default function RoomTypesPage() {
 
       {/* Create / Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-border-light my-8">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-border-light max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-border-light mb-4">
-              <h3 className="text-sm font-bold text-content-primary-light">
+              <h3 className="text-base font-bold text-content-primary-light">
                 {editingId ? 'Edit Room Category' : 'Create Room Category'}
               </h3>
-              <button onClick={() => setModalOpen(false)} className="text-xs text-content-secondary-light">✕</button>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="text-xs font-semibold text-content-secondary-light hover:text-content-primary-light"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
                   <label className="block font-semibold mb-1">Category Name *</label>
                   <input
                     type="text"
                     required
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Premium Deluxe Room"
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (!editingId && !code) {
+                        setCode(e.target.value.slice(0, 3).toUpperCase());
+                      }
+                    }}
+                    placeholder="Deluxe King Room"
                     className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Category Code</label>
+                  <label className="block font-semibold mb-1">Code *</label>
                   <input
                     type="text"
                     value={code}
@@ -395,7 +528,8 @@ export default function RoomTypesPage() {
                     type="number"
                     required
                     value={basePrice}
-                    onChange={(e) => setBasePrice(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setBasePrice(e.target.value)}
+                    placeholder="2500"
                     className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-bold"
                   />
                 </div>
@@ -404,7 +538,8 @@ export default function RoomTypesPage() {
                   <input
                     type="number"
                     value={weekendPrice}
-                    onChange={(e) => setWeekendPrice(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setWeekendPrice(e.target.value)}
+                    placeholder="2800"
                     className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-bold text-brand-blue"
                   />
                 </div>
@@ -417,7 +552,8 @@ export default function RoomTypesPage() {
                     type="number"
                     min={1}
                     value={baseOccupancy}
-                    onChange={(e) => setBaseOccupancy(parseInt(e.target.value, 10))}
+                    onChange={(e) => setBaseOccupancy(e.target.value)}
+                    placeholder="2"
                     className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
                 </div>
@@ -427,7 +563,8 @@ export default function RoomTypesPage() {
                     type="number"
                     min={1}
                     value={maxOccupancy}
-                    onChange={(e) => setMaxOccupancy(parseInt(e.target.value, 10))}
+                    onChange={(e) => setMaxOccupancy(e.target.value)}
+                    placeholder="3"
                     className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
                 </div>
@@ -443,6 +580,95 @@ export default function RoomTypesPage() {
                   className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 />
               </div>
+
+              {/* Quick Room Units Generation (Only for new category) */}
+              {!editingId && (
+                <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200/70 space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={quickCreateRooms}
+                      onChange={(e) => setQuickCreateRooms(e.target.checked)}
+                      className="rounded text-brand-blue h-4 w-4"
+                    />
+                    <span className="font-bold text-content-primary-light text-xs">
+                      ⚡ Quick Create Rooms for this Category (Optional)
+                    </span>
+                  </label>
+
+                  {quickCreateRooms && (
+                    <div className="space-y-2 pt-1 text-xs">
+                      <p className="text-[11px] text-content-secondary-light">
+                        Automatically generate room units so you don't have to add them one by one.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-content-primary-light mb-1">
+                            Starting Room No. *
+                          </label>
+                          <input
+                            type="text"
+                            value={quickStartNumber}
+                            onChange={(e) => setQuickStartNumber(e.target.value)}
+                            placeholder="101"
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-border-light text-xs font-mono font-bold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-content-primary-light mb-1">
+                            Ending Room No. *
+                          </label>
+                          <input
+                            type="text"
+                            value={quickEndNumber}
+                            onChange={(e) => setQuickEndNumber(e.target.value)}
+                            placeholder="110"
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-border-light text-xs font-mono font-bold"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-content-primary-light mb-1">
+                            Floor Level
+                          </label>
+                          <input
+                            type="text"
+                            value={quickFloor}
+                            onChange={(e) => setQuickFloor(e.target.value)}
+                            placeholder="Floor 1"
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-border-light text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-content-primary-light mb-1">
+                            Prefix (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={quickPrefix}
+                            onChange={(e) => setQuickPrefix(e.target.value)}
+                            placeholder="e.g. D-"
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-border-light text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      {quickRoomPreview.length > 0 ? (
+                        <div className="p-2 bg-white rounded-lg border border-blue-200 text-[11px] text-brand-blue font-medium">
+                          Will generate <span className="font-bold">{quickRoomPreview.length}</span> rooms:{' '}
+                          <span className="font-mono">{quickRoomPreview.slice(0, 6).join(', ')}</span>
+                          {quickRoomPreview.length > 6 ? ` ... ${quickRoomPreview[quickRoomPreview.length - 1]}` : ''}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-status-danger">
+                          Enter valid numbers (e.g. 101 to 110, max 100 rooms per batch)
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Room Amenities Selector */}
               <div className="space-y-2 pt-2 border-t border-border-light">
@@ -488,37 +714,76 @@ export default function RoomTypesPage() {
                 </div>
               </div>
 
-              {/* Room Photos Manager */}
+              {/* Room Photos Manager (Direct Upload + Preview) */}
               <div className="space-y-2 pt-2 border-t border-border-light">
-                <label className="block font-semibold text-content-primary-light">
-                  Room Photos (Image URLs)
-                </label>
-                <div className="flex gap-2">
+                <div className="flex items-center justify-between">
+                  <label className="block font-semibold text-content-primary-light">
+                    Room Photos
+                  </label>
+                  <span className="text-[11px] text-content-secondary-light">
+                    {images.length} photo{images.length === 1 ? '' : 's'} added
+                  </span>
+                </div>
+
+                {/* Direct File Upload Button */}
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="device-photo-upload"
+                    className="cursor-pointer inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-brand-blue font-semibold border border-blue-200 transition text-xs flex-1 text-center"
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Uploading & Compressing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        <span>Upload Photos from Device (Camera / Gallery)</span>
+                      </>
+                    )}
+                  </label>
+                  <input
+                    id="device-photo-upload"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    disabled={uploadingImage}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Optional Image URL Input */}
+                <div className="flex gap-2 pt-1">
                   <input
                     type="url"
                     value={newImageUrl}
                     onChange={(e) => setNewImageUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/... (Image URL)"
+                    placeholder="Or paste external image URL..."
                     className="flex-1 px-3 py-1.5 rounded-lg border border-border-light focus:outline-none focus:ring-1 focus:ring-brand-blue text-xs"
                   />
                   <button
                     type="button"
                     onClick={handleAddImage}
-                    className="px-3.5 py-1.5 bg-brand-blue text-white rounded-lg font-bold hover:bg-brand-blue-hover transition shrink-0 flex items-center gap-1"
+                    className="px-3 py-1.5 bg-surface-light border border-border-light text-content-primary-light rounded-lg font-semibold hover:bg-slate-100 transition shrink-0 flex items-center gap-1"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Add
+                    <Plus className="w-3.5 h-3.5" /> Add URL
                   </button>
                 </div>
 
+                {/* Thumbnails Gallery */}
                 {images.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 pt-1">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
                     {images.map((url, idx) => (
-                      <div key={idx} className="relative group rounded-lg overflow-hidden aspect-video border border-border-light bg-surface-light">
-                        <img src={url} alt="Room" className="w-full h-full object-cover" />
+                      <div
+                        key={idx}
+                        className="relative group rounded-lg overflow-hidden aspect-video border border-border-light bg-surface-light shadow-sm"
+                      >
+                        <img src={url} alt={`Room ${idx + 1}`} className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => handleRemoveImage(idx)}
-                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition shadow"
+                          className="absolute top-1 right-1 p-1 bg-red-600/90 text-white rounded-full opacity-80 hover:opacity-100 transition shadow"
                           title="Remove photo"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -539,8 +804,8 @@ export default function RoomTypesPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
-                  className="flex-1 py-2.5 rounded-lg bg-brand-blue text-white font-bold hover:bg-brand-blue-hover transition flex items-center justify-center gap-2"
+                  disabled={saving || uploadingImage}
+                  className="flex-1 py-2.5 rounded-lg bg-brand-blue text-white font-bold hover:bg-brand-blue-hover transition flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {saving ? (
                     <>
@@ -548,6 +813,8 @@ export default function RoomTypesPage() {
                     </>
                   ) : editingId ? (
                     'Save Changes'
+                  ) : quickCreateRooms && quickRoomPreview.length > 0 ? (
+                    `Create Category & ${quickRoomPreview.length} Rooms`
                   ) : (
                     'Create Category'
                   )}

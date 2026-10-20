@@ -232,12 +232,19 @@ protectedRoutes.get('/restaurant', async (c) => {
 // Upsert restaurant profile
 protectedRoutes.post('/restaurant', requireRole(['owner', 'manager']), async (c) => {
   const tenantId = c.get('tenantId')!;
-  const propertyId = c.get('propertyId') || c.req.header('x-property-id');
+  let propertyId = c.get('propertyId') || c.req.header('x-property-id') || c.req.query('property_id');
   const body = await c.req.json().catch(() => ({}));
   const now = Math.floor(Date.now() / 1000);
 
   if (!propertyId) {
-    return c.json({ error: 'Property ID required' }, 400);
+    const prop: any = await c.env.DB.prepare(
+      `SELECT id FROM properties WHERE tenant_id = ? LIMIT 1`
+    ).bind(tenantId).first();
+    propertyId = prop?.id;
+  }
+
+  if (!propertyId) {
+    return c.json({ error: 'Property not found for this tenant workspace' }, 400);
   }
 
   const existing: any = await c.env.DB.prepare(
@@ -343,11 +350,18 @@ protectedRoutes.get('/menu', async (c) => {
 // Add menu item
 protectedRoutes.post('/menu', requireRole(['owner', 'manager']), async (c) => {
   const tenantId = c.get('tenantId')!;
-  const propertyId = c.get('propertyId');
+  let propertyId = c.get('propertyId') || c.req.header('x-property-id') || c.req.query('property_id');
   const body = await c.req.json().catch(() => ({}));
 
+  if (!propertyId) {
+    const prop: any = await c.env.DB.prepare(
+      `SELECT id FROM properties WHERE tenant_id = ? LIMIT 1`
+    ).bind(tenantId).first();
+    propertyId = prop?.id;
+  }
+
   let restaurant: any = await c.env.DB.prepare(
-    `SELECT id FROM property_restaurants WHERE (property_id = ? OR tenant_id = ?) AND is_active = 1`
+    `SELECT id FROM property_restaurants WHERE (property_id = ? OR tenant_id = ?) AND is_active = 1 LIMIT 1`
   )
     .bind(propertyId || '', tenantId)
     .first();
@@ -361,7 +375,7 @@ protectedRoutes.post('/menu', requireRole(['owner', 'manager']), async (c) => {
         id, property_id, tenant_id, name, cuisine_type, is_pure_veg, open_time, close_time, seating_capacity, allow_outside_guests, is_active, created_at, updated_at
       ) VALUES (?, ?, ?, 'Resort Restaurant', 'Multi-Cuisine', 0, '07:00', '23:00', 40, 1, 1, ?, ?)`
     )
-      .bind(newRestId, propertyId || tenantId, tenantId, now, now)
+      .bind(newRestId, propertyId, tenantId, now, now)
       .run();
     restaurant = { id: newRestId };
   }

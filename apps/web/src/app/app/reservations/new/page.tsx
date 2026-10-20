@@ -42,9 +42,9 @@ export default function NewReservationPage() {
   const [roomId, setRoomId] = useState('');
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
-  const [customNightlyRate, setCustomNightlyRate] = useState<number | null>(null);
+  const [customNightlyRate, setCustomNightlyRate] = useState<string>('');
   const [discountPaise, setDiscountPaise] = useState(0);
-  const [advancePaid, setAdvancePaid] = useState<number>(0);
+  const [advancePaid, setAdvancePaid] = useState<string>('0');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [specialRequests, setSpecialRequests] = useState('');
 
@@ -67,7 +67,7 @@ export default function NewReservationPage() {
           setRooms(rData.rooms || []);
           if (rtData.roomTypes?.length > 0) {
             setRoomTypeId(rtData.roomTypes[0].id);
-            setCustomNightlyRate(rtData.roomTypes[0].base_price_paise);
+            setCustomNightlyRate(String(rtData.roomTypes[0].base_price_paise / 100));
           }
         }
       } catch (err: any) {
@@ -84,7 +84,7 @@ export default function NewReservationPage() {
     setRoomTypeId(id);
     const rt = roomTypes.find((r) => r.id === id);
     if (rt) {
-      setCustomNightlyRate(rt.base_price_paise);
+      setCustomNightlyRate(String(rt.base_price_paise / 100));
     }
     setRoomId('');
   };
@@ -98,12 +98,12 @@ export default function NewReservationPage() {
   const d1 = new Date(checkInDate);
   const d2 = new Date(checkOutDate);
   const nights = Math.max(1, Math.round(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
-  const currentRatePaise = customNightlyRate || 250000;
+  const currentRatePaise = customNightlyRate !== '' ? Math.round((parseFloat(customNightlyRate) || 0) * 100) : 250000;
   const totalRoomChargePaise = currentRatePaise * nights;
   const gstRateBasisPoints = currentRatePaise > 750000 ? 1800 : 1200;
   const totalTaxPaise = Math.round((totalRoomChargePaise * gstRateBasisPoints) / 10000);
   const grossAmountPaise = Math.max(0, totalRoomChargePaise + totalTaxPaise - discountPaise);
-  const advancePaidPaise = Math.round(advancePaid * 100);
+  const advancePaidPaise = Math.round((parseFloat(advancePaid) || 0) * 100);
   const balancePaise = Math.max(0, grossAmountPaise - advancePaidPaise);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -386,8 +386,9 @@ export default function NewReservationPage() {
               </label>
               <input
                 type="number"
-                value={currentRatePaise / 100}
-                onChange={(e) => setCustomNightlyRate((parseFloat(e.target.value) || 0) * 100)}
+                value={customNightlyRate}
+                onChange={(e) => setCustomNightlyRate(e.target.value)}
+                placeholder="2500"
                 className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-bold"
               />
             </div>
@@ -399,7 +400,8 @@ export default function NewReservationPage() {
                 type="number"
                 min={0}
                 value={advancePaid}
-                onChange={(e) => setAdvancePaid(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setAdvancePaid(e.target.value)}
+                placeholder="0"
                 className="w-full px-3 py-2 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-bold text-emerald-700"
               />
             </div>

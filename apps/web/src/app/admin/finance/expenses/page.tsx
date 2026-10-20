@@ -11,7 +11,7 @@ export default function AdminPlatformExpensesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [vendorName, setVendorName] = useState('');
   const [category, setCategory] = useState('cloud_infrastructure');
-  const [amountRupees, setAmountRupees] = useState(0);
+  const [amountRupees, setAmountRupees] = useState('');
   const [notes, setNotes] = useState('');
 
   const fetchExpenses = async () => {
@@ -38,14 +38,14 @@ export default function AdminPlatformExpensesPage() {
         body: JSON.stringify({
           vendorName,
           category,
-          amountPaise: Math.round(amountRupees * 100),
+          amountPaise: Math.round((parseFloat(amountRupees) || 0) * 100),
           notes,
           expenseDate: new Date().toISOString().split('T')[0],
         }),
       });
       setModalOpen(false);
       setVendorName('');
-      setAmountRupees(0);
+      setAmountRupees('');
       await fetchExpenses();
     } catch (err: any) {
       alert(err.message || 'Failed to save expense');
@@ -152,7 +152,7 @@ export default function AdminPlatformExpensesPage() {
                   required
                   min={1}
                   value={amountRupees}
-                  onChange={(e) => setAmountRupees(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setAmountRupees(e.target.value)}
                   placeholder="3500"
                   className="w-full px-3 py-2 rounded-lg bg-surface-dark-elevated border border-border-dark text-white font-bold"
                 />

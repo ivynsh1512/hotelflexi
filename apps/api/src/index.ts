@@ -64,6 +64,7 @@ app.route('/api/v1/auth', authRoutes);
 app.route('/api/v1/onboarding', onboardingRoutes);
 app.route('/api/v1/properties', propertyRoutes);
 app.route('/api/v1/rooms', roomRoutes);
+app.route('/api/v1/room-types', roomRoutes);
 app.route('/api/v1/calendar', calendarRoutes);
 app.route('/api/v1/reservations', reservationRoutes);
 app.route('/api/v1/billing', billingRoutes);

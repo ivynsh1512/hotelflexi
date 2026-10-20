@@ -38,7 +38,7 @@ export default function DailyRatesPage() {
       if (activeProp) {
         setPropertyId(activeProp.id);
         const [rtData, drData] = await Promise.all([
-          apiClient(`/room-types?property_id=${activeProp.id}`),
+          apiClient(`/rooms/types?property_id=${activeProp.id}`),
           apiClient(`/rooms/daily-rates?property_id=${activeProp.id}`),
         ]);
         const rts = rtData.roomTypes || [];

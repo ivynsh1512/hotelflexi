@@ -16,7 +16,7 @@ export default function ExpensesPage() {
   const [categoryId, setCategoryId] = useState('');
   const [vendorName, setVendorName] = useState('');
   const [description, setDescription] = useState('');
-  const [amountRupees, setAmountRupees] = useState(0);
+  const [amountRupees, setAmountRupees] = useState('');
 
   const fetchExpenses = async () => {
     setLoading(true);
@@ -51,13 +51,13 @@ export default function ExpensesPage() {
           categoryId,
           vendorName,
           description,
-          amountPaise: Math.round(amountRupees * 100),
+          amountPaise: Math.round((parseFloat(amountRupees) || 0) * 100),
           expenseDate: new Date().toISOString().split('T')[0],
         }),
       });
       setModalOpen(false);
       setDescription('');
-      setAmountRupees(0);
+      setAmountRupees('');
       await fetchExpenses();
     } catch (e: any) {
       alert(e.message || 'Failed to save expense');
@@ -162,7 +162,7 @@ export default function ExpensesPage() {
                   required
                   min={1}
                   value={amountRupees}
-                  onChange={(e) => setAmountRupees(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setAmountRupees(e.target.value)}
                   placeholder="1450"
                   className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-bold text-sm"
                 />

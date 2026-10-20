@@ -75,8 +75,8 @@ export default function HotelSettingsPage() {
   const [customAmenity, setCustomAmenity] = useState('');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
-  const [childCutoffAge, setChildCutoffAge] = useState(10);
-  const [childRate, setChildRate] = useState(0);
+  const [childCutoffAge, setChildCutoffAge] = useState('10');
+  const [childRate, setChildRate] = useState('0');
 
   // Owner Razorpay Credentials
   const [razorpayKeyId, setRazorpayKeyId] = useState('');
@@ -123,8 +123,8 @@ export default function HotelSettingsPage() {
           setLogoUrl(activeProp.logo_url || '');
           setRazorpayKeyId(activeProp.razorpay_key_id || '');
           setRazorpayEnabled(Boolean(activeProp.razorpay_enabled));
-          setChildCutoffAge(activeProp.child_cutoff_age ?? 10);
-          setChildRate(activeProp.child_rate_paise ? activeProp.child_rate_paise / 100 : 0);
+          setChildCutoffAge(String(activeProp.child_cutoff_age ?? 10));
+          setChildRate(activeProp.child_rate_paise ? String(activeProp.child_rate_paise / 100) : '0');
 
           // Parse amenities
           let amList: string[] = [];
@@ -228,8 +228,8 @@ export default function HotelSettingsPage() {
           logo_url: logoUrl || null,
           gallery_images: galleryImages,
           amenities: amenities,
-          child_cutoff_age: childCutoffAge,
-          child_rate_paise: Math.round(childRate * 100),
+          child_cutoff_age: parseInt(childCutoffAge, 10) || 10,
+          child_rate_paise: Math.round((parseFloat(childRate) || 0) * 100),
           razorpay_key_id: razorpayKeyId || null,
           razorpay_key_secret: razorpayKeySecret || undefined,
           razorpay_enabled: razorpayEnabled,
@@ -626,11 +626,11 @@ export default function HotelSettingsPage() {
                   min={1}
                   max={17}
                   value={childCutoffAge}
-                  onChange={(e) => setChildCutoffAge(parseInt(e.target.value, 10) || 10)}
+                  onChange={(e) => setChildCutoffAge(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 />
                 <span className="text-[10px] text-content-secondary-light mt-1 block">
-                  Children up to {childCutoffAge} years qualify for child rates; above {childCutoffAge} are counted as adults.
+                  Children up to {childCutoffAge || 10} years qualify for child rates; above {childCutoffAge || 10} are counted as adults.
                 </span>
               </div>
 
@@ -642,7 +642,7 @@ export default function HotelSettingsPage() {
                   type="number"
                   min={0}
                   value={childRate}
-                  onChange={(e) => setChildRate(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setChildRate(e.target.value)}
                   placeholder="0 for complimentary"
                   className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-bold text-brand-blue"
                 />
