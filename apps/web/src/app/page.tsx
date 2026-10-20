@@ -155,32 +155,32 @@ export default function HomePage() {
       <Navbar />
 
       {/* 1. HERO SECTION */}
-      <section className="relative pt-16 sm:pt-24 pb-20 overflow-hidden border-b border-border-light bg-gradient-to-b from-slate-50 via-white to-white">
+      <section className="relative pt-12 sm:pt-20 pb-20 overflow-hidden border-b border-slate-100 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(59,130,246,0.12),rgba(255,255,255,0))]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           {/* Top Pill */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-brand-blue border border-blue-200 text-xs font-bold uppercase tracking-wider mb-6 shadow-xs">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 text-brand-blue border border-blue-200/80 text-xs font-bold uppercase tracking-wider mb-5 shadow-xs backdrop-blur-sm">
             <Sparkles className="w-4 h-4 text-brand-blue" />
             <span>India&apos;s Cloud Hospitality Operating System</span>
           </div>
 
           {/* Headline */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-slate-950 tracking-tight max-w-5xl mx-auto leading-[1.1]">
-            Run Your Entire Hotel, Resort &amp; Banquet From{' '}
-            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              One Unified Cloud System.
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight max-w-4xl mx-auto leading-[1.16]">
+            Run Your Entire Hotel, Resort &amp; Banquet{' '}
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent block sm:inline">
+              From One Unified Cloud.
             </span>
           </h1>
 
           {/* Subtitle */}
-          <p className="mt-6 text-base sm:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed font-normal">
-            Replace 6 disconnected softwares with HotelFlexi: 2-Way OTA Channel Manager (MakeMyTrip, Agoda, Booking.com), Zero-Commission Direct Engine, Contactless Guest FlexiLink, Urgent Housekeeping Siren Alert, and Indian GST Invoicing.
+          <p className="mt-5 text-sm sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed font-normal">
+            Replace 6 fragmented softwares with HotelFlexi: 2-Way OTA Channel Manager (MakeMyTrip, Agoda, Booking.com), Zero-Commission Direct Engine, Contactless Guest FlexiLinks, and Urgent Housekeeping Sirens on staff mobile devices.
           </p>
 
           {/* Call to Actions */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/signup"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-brand-blue hover:bg-brand-blue-hover text-white font-extrabold text-sm shadow-xl hover:shadow-2xl transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-brand-blue hover:bg-blue-700 text-white font-extrabold text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
             >
               <span>Start 14-Day Free Trial</span>
               <ChevronRight className="w-4 h-4" />
@@ -188,18 +188,21 @@ export default function HomePage() {
 
             <button
               onClick={() => setDemoModalOpen(true)}
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white hover:bg-slate-50 text-slate-900 font-extrabold text-sm border border-slate-300 shadow-sm transition flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200 shadow-xs transition flex items-center justify-center gap-2"
             >
               <Calendar className="w-4 h-4 text-brand-blue" />
-              <span>Book a Live 1-on-1 Demo</span>
+              <span>Schedule Live Demo</span>
             </button>
+          </div>
 
-            <Link
-              href="/download-app"
-              className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-sm border border-emerald-200 transition flex items-center justify-center gap-2"
-            >
-              <Smartphone className="w-4 h-4 text-emerald-600" />
-              <span>Download Android App</span>
+          {/* Mobile App Download Pill */}
+          <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">
+            <span className="flex items-center gap-1.5 font-medium">
+              <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+              Installable Android App:
+            </span>
+            <Link href="/download-app" className="font-bold text-brand-blue hover:underline">
+              Download APK / Play Store Bundle →
             </Link>
           </div>
 
