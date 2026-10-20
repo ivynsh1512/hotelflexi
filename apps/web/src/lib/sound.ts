@@ -117,20 +117,21 @@ export function playSiren(): void {
         isHigh = !isHigh;
       }, 420);
 
-      // Continuous Hardware Vibration on Mobile Devices (rhythmic looping pulse)
+      // Persistent Hardware Vibration on Mobile Devices — strong rhythmic pulse until siren stops
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try {
-          navigator.vibrate([600, 250, 600, 250]);
+          // Emergency pulse: strong-strong-strong pattern
+          navigator.vibrate([800, 200, 800, 200, 800, 400]);
         } catch {}
 
         if (vibrationInterval) clearInterval(vibrationInterval);
         vibrationInterval = setInterval(() => {
           try {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-              navigator.vibrate([600, 250, 600, 250]);
+              navigator.vibrate([800, 200, 800, 200, 800, 400]);
             }
           } catch {}
-        }, 1700);
+        }, 2200); // Repeat every 2.2s (pattern ~2800ms to ensure no overlap)
       }
     } catch (err) {
       console.warn('Could not start siren audio graph:', err);

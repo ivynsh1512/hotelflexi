@@ -5,9 +5,11 @@ import { setupAudioUnlock } from '@/lib/sound';
 import { requestPushNotificationPermission, showLocalNotification } from '@/lib/fcm';
 
 /**
- * Clean Official Browser Notification Handler
- * Uses standard browser-native Notification.requestPermission() without custom HTML popups.
- * Triggers upon meaningful user interaction following strict browser autoplay/permission requirements.
+ * NotificationPermissionPrompt
+ * - Uses the official browser/OS notification permission dialog (no custom popup)
+ * - Triggers after the user's first interaction (click/tap/keydown) on the page
+ * - Also sets up Web Audio API unlock for the siren
+ * - For staff devices, requests permission promptly so sirens can deliver notifications
  */
 export function NotificationPermissionPrompt() {
   const hasRequestedRef = useRef(false);
@@ -18,7 +20,7 @@ export function NotificationPermissionPrompt() {
     // 1. Pre-unlock Web Audio API context on first user gesture
     setupAudioUnlock();
 
-    // 2. Only request if state is 'default' (not already granted or denied)
+    // 2. Only request if permission state is 'default' (not already decided)
     if (Notification.permission !== 'default') return;
 
     const requestOfficialBrowserPermission = async () => {
@@ -34,18 +36,21 @@ export function NotificationPermissionPrompt() {
         // Trigger the official OS / browser native permission dialog
         const res = await requestPushNotificationPermission();
         if (res.success && res.permission === 'granted') {
-          await showLocalNotification('HotelFlexi Alerts Enabled', {
-            body: 'Real-time booking alerts and staff notifications are active on this device!',
+          // Confirmation notification only if we just got granted permission
+          await showLocalNotification('HotelFlexi Alerts Enabled ✓', {
+            body: 'You will now receive real-time booking, siren, and housekeeping alerts on this device.',
             icon: '/icon-192.png',
             soundType: 'chime',
           });
         }
       } catch (err) {
+        // Silent — permission dialog errors should never surface to user as a crash
         console.warn('Native notification request error:', err);
       }
     };
 
-    // Listen for next user interaction to trigger native browser prompt
+    // Wait 1.5s after mount then attach to the next user interaction
+    // This satisfies browser requirements: permission must be requested in response to a user gesture
     const interactionTimer = setTimeout(() => {
       window.addEventListener('click', requestOfficialBrowserPermission, { once: true, passive: true });
       window.addEventListener('keydown', requestOfficialBrowserPermission, { once: true, passive: true });
@@ -60,6 +65,6 @@ export function NotificationPermissionPrompt() {
     };
   }, []);
 
-  // Strictly returns null so NO custom popup or modal is rendered
+  // Strictly returns null — NO custom popup or HTML modal is rendered
   return null;
 }
