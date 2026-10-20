@@ -153,7 +153,7 @@ calendarRoutes.post('/blocks', requireRole(['owner', 'manager', 'receptionist'])
           409
         );
       }
-      skipped.push({ rId, reason: `Conflicting reservation #${resConflict.reservation_number}` });
+      skipped.push({ roomId: rId, reason: `Conflicting reservation #${resConflict.reservation_number}` });
       continue;
     }
 
@@ -177,7 +177,7 @@ calendarRoutes.post('/blocks', requireRole(['owner', 'manager', 'receptionist'])
           409
         );
       }
-      skipped.push({ rId, reason: `Already blocked for '${blockConflict.reason}'` });
+      skipped.push({ roomId: rId, reason: `Already blocked for '${blockConflict.reason}'` });
       continue;
     }
 
