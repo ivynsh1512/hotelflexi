@@ -78,7 +78,7 @@ export default function ReservationsListPage() {
   };
 
   const handleCheckOut = async (resId: string) => {
-    if (!confirm('Proceed with guest checkout? The assigned room will be marked dirty for housekeeping.')) return;
+    if (!confirm('Proceed with guest checkout? The assigned room will be immediately released and marked clean for today\'s new guests.')) return;
     try {
       await apiClient(`/reservations/${resId}/check-out`, { method: 'PATCH' });
       await fetchReservations();

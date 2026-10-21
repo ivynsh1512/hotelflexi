@@ -417,6 +417,13 @@ export default function GuestPortalPage() {
   const appGuestCode = `GUEST-${reservation.reservationNumber}`;
   const appGuestPin = reservation.reservationNumber?.slice(-4) || '1512';
 
+  // Compute whether today is arrival day or later (for self check-in gating)
+  const isArrivalDay: boolean = reservation.canSelfCheckin ?? (() => {
+    if (!reservation.checkInDate) return true;
+    const today = new Date().toISOString().split('T')[0];
+    return today >= reservation.checkInDate;
+  })();
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-16">
       {/* Brand Header */}
@@ -691,34 +698,88 @@ export default function GuestPortalPage() {
               <div className="flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-brand-blue" />
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900">Express Self Check-In</h3>
-                  <p className="text-[10px] text-slate-500">Skip the front desk queue with instant digital ID verification</p>
+                    <h3 className="font-bold text-sm text-slate-900">Express Self Check-In</h3>
+                    <p className="text-[10px] text-slate-500">Skip the front desk queue with instant digital ID verification</p>
+                  </div>
                 </div>
-              </div>
-              {checkinSuccess && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" />
-                  Verified
-                </span>
-              )}
-            </div>
-
-            {checkinSuccess ? (
-              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 text-center space-y-2">
-                <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-                <h4 className="font-bold text-sm text-emerald-900">Digital Pass Activated!</h4>
-                <p className="text-xs text-emerald-700 max-w-sm mx-auto">
-                  Your identity verification is complete. On arrival at {property.name}, simply show your mobile pass at the desk to collect your key.
-                </p>
-                {reservation.selfCheckinAt && (
-                  <span className="text-[10px] text-emerald-600 block">
-                    Verified on {new Date(reservation.selfCheckinAt * 1000).toLocaleString()}
+                {checkinSuccess && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    Verified
                   </span>
                 )}
               </div>
-            ) : (
-              <form onSubmit={handleSelfCheckin} className="space-y-4 text-xs">
-                {/* Primary Guest ID proof (Required) */}
+
+              {!isArrivalDay ? (
+                <div className="p-5 bg-amber-50 rounded-2xl border border-amber-200 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+                    <Clock className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <h4 className="font-extrabold text-sm text-amber-900">
+                    Self Check-In Opens on Arrival Date ({reservation.checkInDate})
+                  </h4>
+                  <p className="text-xs text-amber-800 max-w-md mx-auto leading-relaxed">
+                    Digital self check-in and room key allocation become active on the date of your arrival once you arrive at the property.
+                  </p>
+                  {reservation.balanceAmountPaise > 0 && (
+                    <div className="pt-2 max-w-sm mx-auto space-y-2">
+                      <p className="text-[11px] text-slate-600">You can comfortably settle your pending balance ahead of arrival:</p>
+                      <button
+                        onClick={handlePayBalance}
+                        disabled={paying}
+                        className="w-full py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-hover text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Pay Balance ({formatINR(reservation.balanceAmountPaise)}) via UPI / Cards
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : checkinSuccess ? (
+                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 text-center space-y-2">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
+                  <h4 className="font-bold text-sm text-emerald-900">Digital Pass Activated!</h4>
+                  <p className="text-xs text-emerald-700 max-w-sm mx-auto">
+                    Your identity verification is complete. On arrival at {property.name}, simply show your mobile pass at the desk to collect your key.
+                  </p>
+                  {reservation.selfCheckinAt && (
+                    <span className="text-[10px] text-emerald-600 block">
+                      Verified on {new Date(reservation.selfCheckinAt * 1000).toLocaleString()}
+                    </span>
+                  )}
+                  {reservation.balanceAmountPaise > 0 && (
+                    <div className="pt-2 max-w-sm mx-auto">
+                      <button
+                        onClick={handlePayBalance}
+                        disabled={paying}
+                        className="w-full py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition"
+                      >
+                        <CreditCard className="w-3.5 h-3.5" />
+                        Settle Balance of {formatINR(reservation.balanceAmountPaise)}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <form onSubmit={handleSelfCheckin} className="space-y-4 text-xs">
+                  {/* Balance Notice before Checkin */}
+                  {reservation.balanceAmountPaise > 0 && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2">
+                      <div className="text-[11px] text-blue-900">
+                        Pending Stay Balance: <strong>{formatINR(reservation.balanceAmountPaise)}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handlePayBalance}
+                        disabled={paying}
+                        className="px-3 py-1 rounded-lg bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover shrink-0"
+                      >
+                        Pay Balance
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Primary Guest ID proof (Required) */}
                 <div className="space-y-2 p-3.5 bg-slate-50 rounded-xl border border-slate-100">
                   <div className="flex justify-between items-center">
                     <label className="font-bold text-slate-900 flex items-center gap-1.5">

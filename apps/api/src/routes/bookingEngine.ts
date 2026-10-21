@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { Env, AppVariables } from '../types';
-import { sendBookingEmails } from '../services/email';
+import { sendBookingEmails, sendPaymentSuccessEmail } from '../services/email';
 
 export const bookingEngineRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -22,7 +22,7 @@ bookingEngineRoutes.get('/properties/:slug', async (c) => {
     `SELECT p.id, p.tenant_id, p.name, p.slug, p.address_line1, p.city, p.state,
             p.country, p.postal_code, p.phone, p.email, p.timezone, p.currency, p.check_in_time,
             p.check_out_time, p.cancellation_policy, p.description, p.amenities,
-            p.logo_url, p.gallery_images, p.child_cutoff_age, p.child_rate_paise,
+            p.logo_url, p.gallery_images, p.photos, p.child_cutoff_age, p.child_rate_paise,
             ps.enable_online_booking, ps.advance_payment_policy, ps.advance_payment_percent,
             ps.advance_payment_fixed_paise, ps.booking_engine_terms, ps.upi_id,
             ps.razorpay_enabled,
@@ -51,11 +51,16 @@ bookingEngineRoutes.get('/properties/:slug', async (c) => {
     .bind(property.id)
     .all();
 
+  const parsedGallery = property.photos
+    ? JSON.parse(property.photos)
+    : (property.gallery_images ? JSON.parse(property.gallery_images) : []);
+
   return c.json({
     property: {
       ...property,
       amenities: property.amenities ? JSON.parse(property.amenities) : [],
-      galleryImages: property.gallery_images ? JSON.parse(property.gallery_images) : [],
+      galleryImages: parsedGallery,
+      photos: parsedGallery,
       childCutoffAge: property.child_cutoff_age ?? 10,
       childRatePaise: property.child_rate_paise ?? 0,
       advancePaymentPolicy: property.advance_payment_policy || 'full',
@@ -374,9 +379,16 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
     }
   }
 
+  // Add-ons Calculation
+  let addonsTotalPaise = 0;
+  const selectedAddons: any[] = Array.isArray(body.selectedAddons) ? body.selectedAddons : [];
+  for (const add of selectedAddons) {
+    addonsTotalPaise += Math.max(0, Number(add.totalPricePaise) || 0);
+  }
+
   const gstRateBasisPoints = nightlyRatePaise > 750000 ? 1800 : 1200;
   const totalTaxPaise = Math.round((totalRoomChargePaise * gstRateBasisPoints) / 10000);
-  const totalAmountPaise = Math.max(0, totalRoomChargePaise + totalTaxPaise - discountPaise);
+  const totalAmountPaise = Math.max(0, totalRoomChargePaise + totalTaxPaise + addonsTotalPaise - discountPaise);
 
   const reservationId = `res_${crypto.randomUUID()}`;
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -528,6 +540,33 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
 
   await c.env.DB.batch(statements);
 
+  // Persist selected add-ons if chosen
+  if (selectedAddons.length > 0) {
+    for (const add of selectedAddons) {
+      try {
+        const resAddonId = `resadd_${crypto.randomUUID()}`;
+        await c.env.DB.prepare(
+          `INSERT INTO reservation_addons (
+             id, tenant_id, reservation_id, addon_id, addon_name,
+             pricing_type, quantity, unit_price_paise, total_price_paise, created_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+        ).bind(
+          resAddonId,
+          property.tenant_id,
+          reservationId,
+          add.id || add.addonId || 'custom',
+          add.name || add.addonName || 'Add-on Activity',
+          add.pricingType || add.pricing_type || 'per_person',
+          add.quantity || 1,
+          add.unitPricePaise || add.pricePaise || 0,
+          add.totalPricePaise || 0
+        ).run();
+      } catch (addonErr) {
+        console.error('[Addon Persist Error]:', addonErr);
+      }
+    }
+  }
+
   const formatINR = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`;
 
   // Send confirmation emails to guest and property owner
@@ -591,7 +630,7 @@ bookingEngineRoutes.post('/properties/:slug/verify-payment', async (c) => {
   }
 
   const reservation: any = await c.env.DB.prepare(
-    `SELECT res.*, ps.razorpay_key_secret as prop_secret, ps.razorpay_enabled
+    `SELECT res.*, p.name as property_name, p.email as property_email, ps.razorpay_key_secret as prop_secret, ps.razorpay_enabled
      FROM reservations res
      JOIN properties p ON p.id = res.property_id
      LEFT JOIN property_settings ps ON ps.property_id = p.id
@@ -644,6 +683,21 @@ bookingEngineRoutes.post('/properties/:slug/verify-payment', async (c) => {
        WHERE reservation_id = ?`
     ).bind(newPaidPaise, newBalancePaise, newBalancePaise === 0 ? 'paid' : 'issued', now, reservationId),
   ]);
+
+  // Dispatch payment received notification email immediately to hotel admin
+  const formatRupees = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`;
+  sendPaymentSuccessEmail(c.env, {
+    ownerEmail: reservation.property_email || reservation.email || undefined,
+    propertyName: reservation.property_name || slug,
+    reservationNumber: reservation.reservation_number || reservationId,
+    guestName: reservation.guest_name || 'Guest',
+    amountRupees: formatRupees(paidIncrement),
+    paymentMethod: 'razorpay',
+    paymentId: razorpayPaymentId,
+    checkInDate: reservation.check_in_date || '',
+    checkOutDate: reservation.check_out_date || '',
+    remainingBalanceRupees: formatRupees(newBalancePaise),
+  }).catch((e) => console.error('[Payment Email Error]:', e));
 
   return c.json({
     success: true,

@@ -14,6 +14,9 @@ billingRoutes.get('/invoices', async (c) => {
   const tenantId = c.get('tenantId')!;
   const propertyId = c.req.query('property_id');
   const status = c.req.query('status');
+  const search = c.req.query('search') || c.req.query('q');
+  const fromDate = c.req.query('from');
+  const toDate = c.req.query('to');
 
   let sql = `SELECT * FROM invoices WHERE tenant_id = ?`;
   const params: any[] = [tenantId];
@@ -22,12 +25,25 @@ billingRoutes.get('/invoices', async (c) => {
     sql += ` AND property_id = ?`;
     params.push(propertyId);
   }
-  if (status) {
+  if (status && status !== 'all') {
     sql += ` AND status = ?`;
     params.push(status);
   }
+  if (fromDate) {
+    sql += ` AND issue_date >= ?`;
+    params.push(fromDate);
+  }
+  if (toDate) {
+    sql += ` AND issue_date <= ?`;
+    params.push(toDate);
+  }
+  if (search && search.trim().length > 0) {
+    const term = `%${search.trim().toUpperCase()}%`;
+    sql += ` AND (UPPER(invoice_number) LIKE ? OR UPPER(guest_name) LIKE ? OR guest_phone LIKE ? OR UPPER(guest_email) LIKE ?)`;
+    params.push(term, term, term, term);
+  }
 
-  sql += ` ORDER BY issue_date DESC, created_at DESC LIMIT 100`;
+  sql += ` ORDER BY issue_date DESC, created_at DESC LIMIT 300`;
 
   const rows = await c.env.DB.prepare(sql).bind(...params).all();
   return c.json({ invoices: rows.results || [] });

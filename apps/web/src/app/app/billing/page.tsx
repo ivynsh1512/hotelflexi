@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient, formatINR } from '@/lib/api';
-import { Receipt, Search, Printer, CheckCircle2, Loader2, AlertCircle, X } from 'lucide-react';
+import { Receipt, Search, Printer, CheckCircle2, Loader2, AlertCircle, X, Calendar, Filter, RotateCcw } from 'lucide-react';
 
 export default function BillingInvoicesPage() {
   const { currentTenant } = useAuth();
@@ -12,20 +12,61 @@ export default function BillingInvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [invoiceDetailsLoading, setInvoiceDetailsLoading] = useState(false);
 
-  useEffect(() => {
-    async function loadInvoices() {
-      if (!currentTenant) return;
-      try {
-        const data = await apiClient('/billing/invoices');
-        setInvoices(data.invoices || []);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
+  // Search & Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+  const loadInvoices = async () => {
+    if (!currentTenant) return;
+    setLoading(true);
+    try {
+      let url = '/billing/invoices';
+      const params = new URLSearchParams();
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (fromDate) params.append('from', fromDate);
+      if (toDate) params.append('to', toDate);
+      if (searchQuery.trim()) params.append('search', searchQuery.trim());
+      if (params.toString()) url += `?${params.toString()}`;
+
+      const data = await apiClient(url);
+      setInvoices(data.invoices || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadInvoices();
   }, [currentTenant]);
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setFromDate('');
+    setToDate('');
+  };
+
+  // Instant client-side filtering over retrieved invoices
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((inv) => {
+      if (statusFilter !== 'all' && inv.status !== statusFilter) return false;
+      if (fromDate && inv.issue_date < fromDate) return false;
+      if (toDate && inv.issue_date > toDate) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchInv = inv.invoice_number?.toLowerCase().includes(q);
+        const matchGuest = inv.guest_name?.toLowerCase().includes(q);
+        const matchPhone = inv.guest_phone?.includes(q);
+        const matchEmail = inv.guest_email?.toLowerCase().includes(q);
+        if (!matchInv && !matchGuest && !matchPhone && !matchEmail) return false;
+      }
+      return true;
+    });
+  }, [invoices, statusFilter, fromDate, toDate, searchQuery]);
 
   const handleViewInvoice = async (invoiceId: string) => {
     setInvoiceDetailsLoading(true);
@@ -41,26 +82,130 @@ export default function BillingInvoicesPage() {
 
   return (
     <div className="space-y-5">
-      <div className="pb-3 border-b border-border-light">
-        <h1 className="text-xl sm:text-2xl font-extrabold text-content-primary-light">
-          GST Invoices & Tax Billing
-        </h1>
-        <p className="text-xs text-content-secondary-light">
-          Tax-compliant guest folios, CGST/SGST breakdowns, and printable tax receipts
-        </p>
+      <div className="pb-3 border-b border-border-light flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-content-primary-light">
+            GST Invoices &amp; Tax Billing
+          </h1>
+          <p className="text-xs text-content-secondary-light">
+            Tax-compliant guest folios, CGST/SGST breakdowns, and printable tax receipts
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold px-3 py-1 bg-blue-50 text-brand-blue rounded-xl border border-blue-100">
+            {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Invoice' : 'Invoices'} Found
+          </span>
+        </div>
+      </div>
+
+      {/* Search & Filter Toolbar */}
+      <div className="p-4 bg-white rounded-2xl border border-border-light shadow-sm space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* Search Input */}
+          <div className="lg:col-span-2 relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search guest name, invoice #, phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') loadInvoices(); }}
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-border-light bg-surface-light focus:outline-none focus:ring-1 focus:ring-brand-blue font-medium"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Date From */}
+          <div className="relative">
+            <span className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">From Date</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              onBlur={() => loadInvoices()}
+              className="w-full px-3 py-1.5 text-xs rounded-xl border border-border-light bg-surface-light focus:outline-none focus:ring-1 focus:ring-brand-blue font-medium"
+            />
+          </div>
+
+          {/* Date To */}
+          <div className="relative">
+            <span className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">To Date</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              onBlur={() => loadInvoices()}
+              className="w-full px-3 py-1.5 text-xs rounded-xl border border-border-light bg-surface-light focus:outline-none focus:ring-1 focus:ring-brand-blue font-medium"
+            />
+          </div>
+
+          {/* Status Dropdown */}
+          <div>
+            <span className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Status</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-1.5 text-xs rounded-xl border border-border-light bg-surface-light focus:outline-none focus:ring-1 focus:ring-brand-blue font-bold"
+            >
+              <option value="all">All Invoices</option>
+              <option value="paid">Paid</option>
+              <option value="issued">Issued / Unpaid</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+          <button
+            onClick={loadInvoices}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition"
+          >
+            <Search className="w-3.5 h-3.5" /> Apply Filters
+          </button>
+          {(searchQuery || statusFilter !== 'all' || fromDate || toDate) && (
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] text-slate-500 font-medium">
+                Filters active. Showing {filteredInvoices.length} result(s).
+              </span>
+              <button
+                onClick={handleResetFilters}
+                className="flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-slate-900 transition"
+              >
+                <RotateCcw className="w-3 h-3" /> Clear
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-border-light">
           <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
         </div>
-      ) : invoices.length === 0 ? (
+      ) : filteredInvoices.length === 0 ? (
         <div className="p-12 text-center bg-white rounded-2xl border border-border-light space-y-3">
           <Receipt className="w-10 h-10 text-content-secondary-light mx-auto" />
-          <h3 className="text-base font-bold text-content-primary-light">No Invoices Issued Yet</h3>
+          <h3 className="text-base font-bold text-content-primary-light">No Invoices Found</h3>
           <p className="text-xs text-content-secondary-light">
-            Tax invoices are generated automatically whenever a reservation is confirmed.
+            {invoices.length > 0
+              ? 'No invoices match your current search and date filters. Try clearing filters.'
+              : 'Tax invoices are generated automatically whenever a reservation is confirmed.'}
           </p>
+          {(searchQuery || statusFilter !== 'all' || fromDate || toDate) && (
+            <button
+              onClick={handleResetFilters}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+            >
+              Reset All Filters
+            </button>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">
@@ -79,10 +224,15 @@ export default function BillingInvoicesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light">
-                {invoices.map((inv) => (
+                {filteredInvoices.map((inv) => (
                   <tr key={inv.id} className="hover:bg-surface-light/40 transition">
                     <td className="p-3.5 font-mono font-bold text-brand-blue">{inv.invoice_number}</td>
-                    <td className="p-3.5 font-bold text-content-primary-light">{inv.guest_name}</td>
+                    <td className="p-3.5 font-bold text-content-primary-light">
+                      <div>{inv.guest_name}</div>
+                      {inv.guest_phone && (
+                        <div className="text-[10px] font-normal text-slate-400">{inv.guest_phone}</div>
+                      )}
+                    </td>
                     <td className="p-3.5 text-content-secondary-light">{inv.issue_date}</td>
                     <td className="p-3.5 text-content-secondary-light">{formatINR(inv.subtotal_paise)}</td>
                     <td className="p-3.5 text-content-secondary-light">{formatINR(inv.total_tax_paise)}</td>
@@ -99,7 +249,7 @@ export default function BillingInvoicesPage() {
                         onClick={() => handleViewInvoice(inv.id)}
                         className="px-2.5 py-1 rounded bg-blue-50 text-brand-blue font-semibold text-[11px] hover:bg-blue-100 transition"
                       >
-                        View & Print
+                        View &amp; Print
                       </button>
                     </td>
                   </tr>
@@ -240,3 +390,4 @@ export default function BillingInvoicesPage() {
     </div>
   );
 }
+

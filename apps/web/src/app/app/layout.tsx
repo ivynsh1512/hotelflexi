@@ -43,6 +43,7 @@ import {
   ShieldAlert,
   ArrowRight,
   MailCheck,
+  Compass,
 } from 'lucide-react';
 import { isRouteAllowedForRole } from '@/lib/permissions';
 
@@ -220,6 +221,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       items: [
         { label: 'Channel Manager', href: '/app/channels', icon: Layers },
         { label: 'Booking Engine', href: '/app/booking-engine', icon: Globe },
+        { label: 'Add-ons & Activities', href: '/app/addons', icon: Compass, badge: 'New' },
         { label: 'Dine-Out & Restaurant', href: '/app/dining', icon: UtensilsCrossed, badge: 'New' },
         { label: 'Wedding & Events', href: '/app/wedding', icon: Sparkles, badge: 'Premium' },
       ],

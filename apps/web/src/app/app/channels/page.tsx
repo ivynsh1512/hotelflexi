@@ -241,11 +241,12 @@ export default function ChannelManagerAppPage() {
       if (activeProp) {
         setPropertyId(activeProp.id);
 
-        const [ovData, connsData, provData, rtData] = await Promise.all([
+        const [ovData, connsData, provData, rtData, rpData] = await Promise.all([
           apiClient(`/channels/v2/overview?property_id=${activeProp.id}`).catch(() => null),
           apiClient(`/channels/v2/connections?property_id=${activeProp.id}`).catch(() => ({ connections: [] })),
           apiClient(`/channels/v2/providers`).catch(() => ({ providers: [] })),
           apiClient(`/rooms/types?property_id=${activeProp.id}`).catch(() => ({ roomTypes: [] })),
+          apiClient(`/rooms/rate-plans?property_id=${activeProp.id}`).catch(() => ({ ratePlans: [] })),
         ]);
 
         if (ovData?.metrics) setOverview(ovData);
@@ -254,6 +255,8 @@ export default function ChannelManagerAppPage() {
         setProviders(provData?.providers || []);
         const rTypes = rtData?.roomTypes || [];
         setRoomTypes(rTypes);
+        const rPlans = rpData?.ratePlans || [];
+        setRatePlans(rPlans);
 
         if (conns.length > 0 && !selectedConnId) {
           setSelectedConnId(conns[0].id);
@@ -262,6 +265,9 @@ export default function ChannelManagerAppPage() {
           setRoomMapForm((prev) => ({ ...prev, localRoomTypeId: rTypes[0].id }));
           setBulkForm((prev) => ({ ...prev, roomTypeId: rTypes[0].id }));
           setSimForm((prev) => ({ ...prev, roomTypeId: rTypes[0].id }));
+        }
+        if (rPlans.length > 0) {
+          setRateMapForm((prev) => ({ ...prev, localRatePlanId: rPlans[0].id }));
         }
       }
     } catch (e: any) {
@@ -512,6 +518,44 @@ export default function ChannelManagerAppPage() {
     }
   };
 
+  const handleSaveRateMapping = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedConnId || !rateMapForm.localRatePlanId || !rateMapForm.externalRatePlanId) {
+      alert('Local Rate Plan and External Rate ID are required.');
+      return;
+    }
+    try {
+      await apiClient(`/channels/v2/connections/${selectedConnId}/mappings/rates`, {
+        method: 'POST',
+        body: JSON.stringify(rateMapForm),
+      });
+      setRateMapModalOpen(false);
+      loadMappings(selectedConnId);
+      setRateMapForm({
+        localRatePlanId: ratePlans[0]?.id || '',
+        externalRatePlanId: '',
+        channelRateName: '',
+        boardBasis: 'RO',
+        taxHandling: 'exclusive',
+      });
+      alert('Rate plan mapping saved.');
+    } catch (err: any) {
+      alert(err.message || 'Failed to save rate plan mapping');
+    }
+  };
+
+  const handleDeleteRateMapping = async (mappingId: string) => {
+    if (!confirm('Are you sure you want to remove this rate plan mapping?')) return;
+    try {
+      await apiClient(`/channels/v2/connections/${selectedConnId}/mappings/rates/${mappingId}`, {
+        method: 'DELETE',
+      });
+      loadMappings(selectedConnId);
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete rate plan mapping');
+    }
+  };
+
   const handleRunReconciliationScan = async () => {
     if (!selectedConnId) return;
     setScanning(true);
@@ -551,20 +595,48 @@ export default function ChannelManagerAppPage() {
     setSimulating(true);
     setSimResult(null);
 
-    try {
-      const res = await apiClient('/channels/simulate-booking', {
-        method: 'POST',
-        body: JSON.stringify({
-          propertyId,
-          connectionId: simForm.connectionId || v2Connections[0]?.id,
-          guestName: simForm.guestName,
-          roomTypeId: simForm.roomTypeId,
-          checkInDate: simForm.checkInDate,
-          checkOutDate: simForm.checkOutDate,
-          status: simForm.status,
-          totalAmountPaise: Math.round(parseFloat(simForm.totalAmountRupees) * 100),
-        }),
+    const targetConnId = simForm.connectionId || v2Connections[0]?.id;
+    if (!targetConnId) {
+      setSimResult({
+        success: false,
+        message: 'No channel connection available to simulate. Please connect an OTA channel first.',
       });
+      setSimulating(false);
+      return;
+    }
+
+    try {
+      // Call Channel Manager V2 simulation endpoint with automatic fallback
+      let res;
+      try {
+        res = await apiClient('/channels/v2/simulate-booking', {
+          method: 'POST',
+          body: JSON.stringify({
+            propertyId,
+            connectionId: targetConnId,
+            guestName: simForm.guestName,
+            roomTypeId: simForm.roomTypeId,
+            checkInDate: simForm.checkInDate,
+            checkOutDate: simForm.checkOutDate,
+            status: simForm.status,
+            totalAmountPaise: Math.round(parseFloat(simForm.totalAmountRupees) * 100),
+          }),
+        });
+      } catch {
+        res = await apiClient('/channels/simulate-booking', {
+          method: 'POST',
+          body: JSON.stringify({
+            propertyId,
+            connectionId: targetConnId,
+            guestName: simForm.guestName,
+            roomTypeId: simForm.roomTypeId,
+            checkInDate: simForm.checkInDate,
+            checkOutDate: simForm.checkOutDate,
+            status: simForm.status,
+            totalAmountPaise: Math.round(parseFloat(simForm.totalAmountRupees) * 100),
+          }),
+        });
+      }
       setSimResult(res);
       if (res.success) {
         if (activeTab === 'reservations') loadBookings();
@@ -1304,8 +1376,14 @@ export default function ChannelManagerAppPage() {
               </div>
 
               <div className="bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-border-light font-bold text-xs text-slate-800">
-                  Rate Plan & Meal Plan Mappings
+                <div className="p-4 border-b border-border-light flex items-center justify-between">
+                  <span className="font-bold text-xs text-slate-800">Rate Plan &amp; Meal Plan Mappings</span>
+                  <button
+                    onClick={() => setRateMapModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-blue text-white rounded-lg text-xs font-bold hover:bg-blue-700"
+                  >
+                    <Plus className="w-3 h-3" /> Add Mapping
+                  </button>
                 </div>
 
                 {mappingsLoading ? (
@@ -1326,6 +1404,7 @@ export default function ChannelManagerAppPage() {
                           <th className="py-3 px-4">External Rate ID</th>
                           <th className="py-3 px-4">Board Basis</th>
                           <th className="py-3 px-4">Tax Handling</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border-light">
@@ -1338,6 +1417,15 @@ export default function ChannelManagerAppPage() {
                             </td>
                             <td className="py-3 px-4">{m.board_basis}</td>
                             <td className="py-3 px-4 capitalize">{m.tax_handling}</td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                onClick={() => handleDeleteRateMapping(m.id)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                title="Remove Mapping"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -2271,6 +2359,137 @@ export default function ChannelManagerAppPage() {
                   className="px-5 py-2 rounded-xl bg-brand-blue hover:bg-brand-blue-hover text-white font-bold text-xs"
                 >
                   Save Mapping
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================= */}
+      {/* MODAL 3.5: ADD RATE PLAN MAPPING MODAL (WITH TOP-RIGHT ✕) */}
+      {/* ================================================================= */}
+      {rateMapModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border-light">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-brand-blue" />
+                <h3 className="font-extrabold text-base text-slate-900">Add Rate Plan Mapping</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRateMapModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-900 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRateMapping} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Local Rate Plan
+                </label>
+                {ratePlans.length > 0 ? (
+                  <select
+                    value={rateMapForm.localRatePlanId}
+                    onChange={(e) => setRateMapForm({ ...rateMapForm, localRatePlanId: e.target.value })}
+                    className="w-full text-xs px-3 py-2 rounded-xl border border-border-light bg-surface-light font-bold"
+                    required
+                  >
+                    {ratePlans.map((rp) => (
+                      <option key={rp.id} value={rp.id}>
+                        {rp.name} ({rp.meal_plan || 'EP'})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="e.g. Standard EP or RP_DEFAULT"
+                    value={rateMapForm.localRatePlanId}
+                    onChange={(e) => setRateMapForm({ ...rateMapForm, localRatePlanId: e.target.value })}
+                    className="w-full text-xs px-3 py-2 rounded-xl border border-border-light bg-surface-light font-bold"
+                    required
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  External Rate Plan ID (OTA ID)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. RATE_PLAN_BAR or 123456"
+                  value={rateMapForm.externalRatePlanId}
+                  onChange={(e) => setRateMapForm({ ...rateMapForm, externalRatePlanId: e.target.value })}
+                  className="w-full text-xs px-3 py-2 rounded-xl border border-border-light bg-surface-light font-mono font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Channel Rate Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Best Available Rate with Breakfast"
+                  value={rateMapForm.channelRateName}
+                  onChange={(e) => setRateMapForm({ ...rateMapForm, channelRateName: e.target.value })}
+                  className="w-full text-xs px-3 py-2 rounded-xl border border-border-light bg-surface-light font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Board Basis (Meal)
+                  </label>
+                  <select
+                    value={rateMapForm.boardBasis}
+                    onChange={(e) => setRateMapForm({ ...rateMapForm, boardBasis: e.target.value })}
+                    className="w-full text-xs px-3 py-2 rounded-xl border border-border-light bg-surface-light font-bold"
+                  >
+                    <option value="RO">RO (Room Only)</option>
+                    <option value="EP">EP (European Plan)</option>
+                    <option value="CP">CP (Continental / Breakfast)</option>
+                    <option value="MAP">MAP (Half Board)</option>
+                    <option value="AP">AP (Full Board)</option>
+                    <option value="AI">AI (All Inclusive)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Tax Handling
+                  </label>
+                  <select
+                    value={rateMapForm.taxHandling}
+                    onChange={(e) => setRateMapForm({ ...rateMapForm, taxHandling: e.target.value })}
+                    className="w-full text-xs px-3 py-2 rounded-xl border border-border-light bg-surface-light font-bold"
+                  >
+                    <option value="exclusive">Exclusive (Add Tax)</option>
+                    <option value="inclusive">Inclusive (Tax in Price)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border-light">
+                <button
+                  type="button"
+                  onClick={() => setRateMapModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-brand-blue hover:bg-brand-blue-hover text-white font-bold text-xs"
+                >
+                  Save Rate Mapping
                 </button>
               </div>
             </form>

@@ -294,11 +294,12 @@ operationsRoutes.get('/complaints/active-sirens', async (c) => {
     return c.json({ sirens: [], isLocked: true });
   }
 
-  // 1. Fetch open urgent in-stay guest complaints
+  // 1. Fetch open urgent/high in-stay guest complaints, room service orders, and self-checkin alerts
   const urgentRows = await c.env.DB.prepare(
     `SELECT * FROM complaints
-     WHERE tenant_id = ? AND priority = 'urgent' AND status = 'open'
-     ORDER BY created_at DESC LIMIT 5`
+     WHERE tenant_id = ? AND status = 'open'
+       AND (priority IN ('urgent', 'high') OR category IN ('room_service', 'self_checkin', 'housekeeping', 'food'))
+     ORDER BY created_at DESC LIMIT 10`
   )
     .bind(tenantId)
     .all();

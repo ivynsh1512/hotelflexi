@@ -29,7 +29,29 @@ import {
   Shield,
   UtensilsCrossed,
   X,
+  Upload,
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+  Star,
 } from 'lucide-react';
+
+const WEDDING_AMENITIES = [
+  'Bridal Suite with Private Washroom',
+  'Groom Changing Room',
+  'Dedicated Mandap & Stage Area',
+  'High-Power Acoustic Sound & DJ Setup',
+  '100% Genset Power Backup (24/7)',
+  'Valet Parking & Dedicated Parking Lot',
+  'Separate Pure Veg / Jain Kitchen Facility',
+  'Barat Procession Route & Band Allowed',
+  'Fireworks / Pyro Allowed Area',
+  'Swimming Poolside Party Deck',
+  'Attached Guest Accommodation Rooms',
+  '24/7 Security Guards & CCTV Surveillance',
+  'In-House Floral & Lighting Decor Team',
+  'Alcohol License Support & Bar Setup',
+];
 
 export default function WeddingManagementPage() {
   const { currentTenant } = useAuth();
@@ -49,6 +71,11 @@ export default function WeddingManagementPage() {
   const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [newGalleryUrl, setNewGalleryUrl] = useState('');
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [customAmenity, setCustomAmenity] = useState('');
+  const galleryFileInputRef = React.useRef<HTMLInputElement>(null);
   const [lawnCapacity, setLawnCapacity] = useState(500);
   const [banquetCapacity, setBanquetCapacity] = useState(300);
   const [roomsAvailable, setRoomsAvailable] = useState(30);
@@ -58,6 +85,80 @@ export default function WeddingManagementPage() {
   const [baseFunctionVenueRupees, setBaseFunctionVenueRupees] = useState(50000);
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+
+  // Gallery image arrangement handlers
+  const handleMoveGalleryImage = (index: number, direction: 'left' | 'right') => {
+    setGalleryImages((prev) => {
+      const targetIndex = direction === 'left' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const copy = [...prev];
+      const [moved] = copy.splice(index, 1);
+      copy.splice(targetIndex, 0, moved);
+      return copy;
+    });
+  };
+
+  const handleSetPrimaryGalleryImage = (index: number) => {
+    setGalleryImages((prev) => {
+      if (index === 0) return prev;
+      const copy = [...prev];
+      const [promoted] = copy.splice(index, 1);
+      const updated = [promoted, ...copy];
+      setCoverImageUrl(promoted);
+      return updated;
+    });
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    setGalleryImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddGalleryImage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newGalleryUrl.trim()) {
+      setGalleryImages((prev) => [...prev, newGalleryUrl.trim()]);
+      setNewGalleryUrl('');
+    } else {
+      galleryFileInputRef.current?.click();
+    }
+  };
+
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`File ${file.name} exceeds 5MB limit.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result) {
+          setGalleryImages((prev) => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const toggleAmenity = (item: string) => {
+    if (amenities.includes(item)) {
+      setAmenities(amenities.filter((a) => a !== item));
+    } else {
+      setAmenities([...amenities, item]);
+    }
+  };
+
+  const handleAddCustomAmenity = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = customAmenity.trim();
+    if (trimmed && !amenities.includes(trimmed)) {
+      setAmenities([...amenities, trimmed]);
+      setCustomAmenity('');
+    }
+  };
 
   // Modals state
   const [packageModalOpen, setPackageModalOpen] = useState(false);
@@ -107,6 +208,35 @@ export default function WeddingManagementPage() {
         setTagline(s.tagline || 'Experience unforgettable hospitality');
         setDescription(s.description || '');
         setCoverImageUrl(s.cover_image_url || '');
+
+        // Load Gallery Images
+        let imgs: string[] = [];
+        if (Array.isArray(s.galleryImages)) {
+          imgs = s.galleryImages;
+        } else if (typeof s.gallery_images_json === 'string') {
+          try { imgs = JSON.parse(s.gallery_images_json); } catch {}
+        }
+        setGalleryImages(imgs || []);
+
+        // Load Amenities
+        let amList: string[] = [];
+        if (Array.isArray(s.amenities)) {
+          amList = s.amenities;
+        } else if (typeof s.amenities_json === 'string') {
+          try { amList = JSON.parse(s.amenities_json); } catch {}
+        } else if (s.description && s.description.includes('--- Venue Amenities ---')) {
+          try {
+            const parts = s.description.split('--- Venue Amenities ---');
+            amList = parts[1].split(',').map((x: string) => x.trim()).filter(Boolean);
+          } catch {}
+        }
+        setAmenities(amList.length > 0 ? amList : [
+          'Bridal Suite with Private Washroom',
+          'Dedicated Mandap & Stage Area',
+          '100% Genset Power Backup (24/7)',
+          'Valet Parking & Dedicated Parking Lot',
+        ]);
+
         setLawnCapacity(s.lawn_capacity || 500);
         setBanquetCapacity(s.banquet_capacity || 300);
         setRoomsAvailable(s.rooms_available_for_wedding || 30);
@@ -138,6 +268,12 @@ export default function WeddingManagementPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      // Clean description and append venue amenities
+      const cleanDesc = description.split('--- Venue Amenities ---')[0].trim();
+      const fullDescription = amenities.length > 0
+        ? `${cleanDesc}\n\n--- Venue Amenities ---\n${amenities.join(', ')}`
+        : cleanDesc;
+
       await apiClient('/wedding/settings', {
         method: 'POST',
         body: JSON.stringify({
@@ -145,8 +281,10 @@ export default function WeddingManagementPage() {
           isEnabled,
           title,
           tagline,
-          description,
-          coverImageUrl,
+          description: fullDescription,
+          coverImageUrl: coverImageUrl || galleryImages[0] || '',
+          galleryImages,
+          amenities,
           lawnCapacity,
           banquetCapacity,
           roomsAvailable,
@@ -479,6 +617,169 @@ export default function WeddingManagementPage() {
             sublabel="Upload grand photo of your lawn, banquet, or exterior"
             aspectRatio="wide"
           />
+
+          {/* Multi-Photo Gallery for Wedding Venue */}
+          <div className="p-5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-brand-blue" />
+                <div>
+                  <h4 className="font-bold text-xs text-slate-900">Wedding Venue Photo Gallery</h4>
+                  <p className="text-[10px] text-slate-500">Showcase lawns, banquets, mandap setups, poolside, and bridal rooms</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                {galleryImages.length} {galleryImages.length === 1 ? 'Photo' : 'Photos'}
+              </span>
+            </div>
+
+            <input
+              ref={galleryFileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageFileUpload}
+              className="hidden"
+            />
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={newGalleryUrl}
+                onChange={(e) => setNewGalleryUrl(e.target.value)}
+                placeholder="Paste high-res image URL or click 'Upload Photos'..."
+                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-brand-blue text-xs"
+              />
+              <button
+                type="button"
+                onClick={handleAddGalleryImage}
+                className="px-4 py-2 rounded-xl bg-brand-blue text-white font-semibold hover:bg-brand-blue-hover transition flex items-center justify-center gap-1.5 shrink-0 text-xs shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{newGalleryUrl.trim() ? 'Add URL' : 'Add Image'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => galleryFileInputRef.current?.click()}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-1.5 shrink-0 text-xs shadow-xs"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload Photos</span>
+              </button>
+            </div>
+
+            {galleryImages.length === 0 ? (
+              <div className="p-8 text-center border border-dashed border-slate-200 rounded-xl text-slate-400 bg-white/50">
+                No gallery photos added yet. Upload high-res photos to give wedding couples an immersive visual tour.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 pt-1">
+                {galleryImages.map((img, idx) => (
+                  <div key={idx} className="group relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100 shadow-xs">
+                    <img src={img} alt={`Venue ${idx + 1}`} className="w-full h-full object-cover" />
+                    
+                    {idx === 0 && (
+                      <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-bold flex items-center gap-0.5 shadow-sm">
+                        <Star className="w-2.5 h-2.5 fill-current" /> Cover
+                      </span>
+                    )}
+
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1 p-1">
+                      {idx > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleMoveGalleryImage(idx, 'left')}
+                          className="p-1 rounded bg-white/80 hover:bg-white text-slate-800 transition"
+                          title="Move Left"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {idx !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetPrimaryGalleryImage(idx)}
+                          className="p-1 rounded bg-amber-400 hover:bg-amber-300 text-slate-900 transition"
+                          title="Make Cover Photo"
+                        >
+                          <Star className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {idx < galleryImages.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleMoveGalleryImage(idx, 'right')}
+                          className="p-1 rounded bg-white/80 hover:bg-white text-slate-800 transition"
+                          title="Move Right"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGalleryImage(idx)}
+                        className="p-1 rounded bg-red-600 hover:bg-red-700 text-white transition ml-1"
+                        title="Delete Photo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Wedding Venue Amenities & Inclusions */}
+          <div className="p-5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-4 text-xs">
+            <div className="border-b border-slate-200 pb-2">
+              <h4 className="font-bold text-xs text-slate-900">Venue Amenities &amp; Hospitality Inclusions</h4>
+              <p className="text-[10px] text-slate-500">Select standard amenities available for wedding parties or add custom features</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-1">
+              {WEDDING_AMENITIES.map((am) => {
+                const checked = amenities.includes(am);
+                return (
+                  <label
+                    key={am}
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition ${
+                      checked
+                        ? 'bg-blue-50 border-brand-blue text-brand-blue font-bold shadow-xs'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleAmenity(am)}
+                      className="rounded text-brand-blue"
+                    />
+                    <span className="truncate">{am}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Custom Amenities Add */}
+            <div className="pt-2 flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={customAmenity}
+                onChange={(e) => setCustomAmenity(e.target.value)}
+                placeholder="Add custom amenity (e.g. Golf Cart for Barat, Helipad Access)..."
+                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-brand-blue text-xs"
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomAmenity}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-1.5 shrink-0 text-xs shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Custom Amenity</span>
+              </button>
+            </div>
+          </div>
 
           {/* Capacities */}
           <div className="pt-2 border-t border-slate-100">

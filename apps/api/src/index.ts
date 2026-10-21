@@ -27,6 +27,9 @@ import { supportRoutes, adminSupportRoutes } from './routes/support';
 import { pushRoutes } from './routes/push';
 import { weddingRoutes, weddingAdminRoutes } from './routes/wedding';
 import { uploadRoutes } from './routes/upload';
+import { addonsRoutes, publicAddonsRoutes } from './routes/addons';
+import { hrExpensesRoutes } from './routes/hrExpenses';
+import { accountDeletionRoutes } from './routes/accountDeletion';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -77,7 +80,12 @@ app.route('/api/v1/channel-webhooks', channelManagerV2WebhookRoutes);
 app.route('/api/v1/channels/v2', channelManagerV2Routes);
 app.route('/api/v1/channels', channelManagerRoutes);
 app.route('/api/v1/public', bookingEngineRoutes);
+app.route('/api/v1/public/addons', publicAddonsRoutes);
 app.route('/api/v1/public/guest-portal', guestPortalRoutes);
+app.route('/api/v1/addons', addonsRoutes);
+app.route('/api/v1/salary', hrExpensesRoutes);
+app.route('/api/v1/expenses', hrExpensesRoutes);
+app.route('/api/v1/account', accountDeletionRoutes);
 app.route('/api/v1/coupons', couponRoutes);
 app.route('/api/v1/rooms/daily-rates', dailyRatesRoutes);
 app.route('/api/v1/developer-setup', developerSetupRoutes);

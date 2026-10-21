@@ -560,3 +560,69 @@ export async function sendDemoRequestNotificationEmail(
     html,
   });
 }
+
+// -----------------------------------------------------------------------------
+// IMMEDIATE PAYMENT CONFIRMATION EMAIL (RAZORPAY)
+// -----------------------------------------------------------------------------
+export interface PaymentSuccessEmailData {
+  ownerEmail?: string;
+  propertyName: string;
+  reservationNumber: string;
+  guestName: string;
+  amountRupees: string;
+  paymentMethod: string;
+  paymentId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  remainingBalanceRupees: string;
+}
+
+export async function sendPaymentSuccessEmail(env: Env, data: PaymentSuccessEmailData) {
+  const adminEmail = env.ADMIN_NOTIFICATION_EMAIL || 'info@novaxai.in';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; padding: 20px; }
+      .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; }
+      .header { background: #059669; color: #ffffff; padding: 24px; text-align: center; }
+      .content { padding: 24px; }
+      .card { background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0; padding: 20px; margin: 16px 0; }
+    </style></head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin:0;font-size:22px;">✅ Payment Received: ${data.amountRupees}</h1>
+          <p style="margin:4px 0 0 0;opacity:0.9;font-size:13px;">${data.propertyName}</p>
+        </div>
+        <div class="content">
+          <p>Online payment has been successfully captured and reconciled for booking <strong>#${data.reservationNumber}</strong>.</p>
+          <div class="card">
+            <div style="margin-bottom:6px;"><strong>Guest Name:</strong> ${data.guestName}</div>
+            <div style="margin-bottom:6px;"><strong>Amount Collected:</strong> <span style="font-size:18px;font-weight:bold;color:#059669;">${data.amountRupees}</span></div>
+            <div style="margin-bottom:6px;"><strong>Transaction / Reference ID:</strong> <code style="font-size:12px;">${data.paymentId}</code></div>
+            <div style="margin-bottom:6px;"><strong>Payment Method:</strong> ${data.paymentMethod.toUpperCase()}</div>
+            <div style="margin-bottom:6px;"><strong>Stay Dates:</strong> ${data.checkInDate} &rarr; ${data.checkOutDate}</div>
+            <div><strong>Remaining Balance:</strong> ${data.remainingBalanceRupees}</div>
+          </div>
+          <p style="font-size:12px;color:#64748b;">The reservation ledger, guest folio, and GST invoice have been automatically updated in your HotelFlexi admin panel.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const recipients = [data.ownerEmail, adminEmail].filter((e): e is string => Boolean(e && e.includes('@')));
+  for (const to of Array.from(new Set(recipients))) {
+    try {
+      await sendEmail(env, {
+        to,
+        subject: `💰 Payment Received: ${data.amountRupees} - Booking #${data.reservationNumber} (${data.guestName})`,
+        html,
+      });
+    } catch (e) {
+      console.error('[Payment Email Error]:', e);
+    }
+  }
+}

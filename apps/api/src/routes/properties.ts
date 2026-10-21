@@ -48,18 +48,37 @@ propertyRoutes.get('/:id', async (c) => {
   const tenantId = c.get('tenantId')!;
   const propertyId = c.req.param('id');
 
-  const property: any = await c.env.DB.prepare(
-    `SELECT p.*, ps.gst_number, ps.gst_rate_standard, ps.gst_rate_luxury, ps.invoice_prefix,
-            ps.next_invoice_number, ps.enable_online_booking, ps.payment_terms, ps.upi_id,
-            ps.razorpay_key_id, ps.razorpay_enabled,
-            ps.advance_payment_policy, ps.advance_payment_percent, ps.advance_payment_fixed_paise, ps.booking_engine_terms,
-            CASE WHEN ps.razorpay_key_secret IS NOT NULL AND LENGTH(ps.razorpay_key_secret) > 0 THEN 1 ELSE 0 END as has_razorpay_secret
-     FROM properties p
-     LEFT JOIN property_settings ps ON ps.property_id = p.id
-     WHERE p.id = ? AND p.tenant_id = ?`
-  )
-    .bind(propertyId, tenantId)
-    .first();
+  let property: any;
+  try {
+    property = await c.env.DB.prepare(
+      `SELECT p.*, ps.gst_number, ps.gst_rate_standard, ps.gst_rate_luxury, ps.invoice_prefix,
+              ps.next_invoice_number, ps.enable_online_booking, ps.payment_terms, ps.upi_id,
+              ps.razorpay_key_id, ps.razorpay_enabled,
+              ps.advance_payment_policy, ps.advance_payment_percent, ps.advance_payment_fixed_paise, ps.booking_engine_terms,
+              COALESCE(ps.auto_release_on_checkout, 1) as auto_release_on_checkout,
+              CASE WHEN ps.razorpay_key_secret IS NOT NULL AND LENGTH(ps.razorpay_key_secret) > 0 THEN 1 ELSE 0 END as has_razorpay_secret
+       FROM properties p
+       LEFT JOIN property_settings ps ON ps.property_id = p.id
+       WHERE p.id = ? AND p.tenant_id = ?`
+    )
+      .bind(propertyId, tenantId)
+      .first();
+  } catch {
+    // Graceful fallback if column auto_release_on_checkout is pending migration
+    property = await c.env.DB.prepare(
+      `SELECT p.*, ps.gst_number, ps.gst_rate_standard, ps.gst_rate_luxury, ps.invoice_prefix,
+              ps.next_invoice_number, ps.enable_online_booking, ps.payment_terms, ps.upi_id,
+              ps.razorpay_key_id, ps.razorpay_enabled,
+              ps.advance_payment_policy, ps.advance_payment_percent, ps.advance_payment_fixed_paise, ps.booking_engine_terms,
+              1 as auto_release_on_checkout,
+              CASE WHEN ps.razorpay_key_secret IS NOT NULL AND LENGTH(ps.razorpay_key_secret) > 0 THEN 1 ELSE 0 END as has_razorpay_secret
+       FROM properties p
+       LEFT JOIN property_settings ps ON ps.property_id = p.id
+       WHERE p.id = ? AND p.tenant_id = ?`
+    )
+      .bind(propertyId, tenantId)
+      .first();
+  }
 
   if (!property) {
     return c.json({ error: 'Property not found' }, 404);
@@ -108,26 +127,24 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
     body.cancellation_policy ||
     body.logo_url !== undefined ||
     body.gallery_images !== undefined ||
+    body.photos !== undefined ||
     body.amenities !== undefined ||
     body.child_cutoff_age !== undefined ||
     body.child_rate_paise !== undefined
   ) {
-    const galleryStr = Array.isArray(body.gallery_images)
-      ? JSON.stringify(body.gallery_images)
-      : typeof body.gallery_images === 'string'
-      ? body.gallery_images
-      : null;
+    const galleryRaw = body.photos !== undefined ? body.photos : body.gallery_images;
+    const galleryStr = galleryRaw !== undefined
+      ? (Array.isArray(galleryRaw) ? JSON.stringify(galleryRaw) : typeof galleryRaw === 'string' ? galleryRaw : null)
+      : undefined;
 
-    const amenitiesStr = Array.isArray(body.amenities)
-      ? JSON.stringify(body.amenities)
-      : typeof body.amenities === 'string'
-      ? body.amenities
-      : null;
+    const amenitiesStr = body.amenities !== undefined
+      ? (Array.isArray(body.amenities) ? JSON.stringify(body.amenities) : typeof body.amenities === 'string' ? body.amenities : null)
+      : undefined;
 
     await c.env.DB.prepare(
       `UPDATE properties SET
          name = COALESCE(?, name),
-         description = COALESCE(?, description),
+         description = CASE WHEN ? = 1 THEN ? ELSE description END,
          address_line1 = COALESCE(?, address_line1),
          city = COALESCE(?, city),
          state = COALESCE(?, state),
@@ -139,8 +156,9 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
          email = COALESCE(?, email),
          cancellation_policy = COALESCE(?, cancellation_policy),
          logo_url = COALESCE(?, logo_url),
-         gallery_images = COALESCE(?, gallery_images),
-         amenities = COALESCE(?, amenities),
+         gallery_images = CASE WHEN ? = 1 THEN ? ELSE gallery_images END,
+         photos = CASE WHEN ? = 1 THEN ? ELSE photos END,
+         amenities = CASE WHEN ? = 1 THEN ? ELSE amenities END,
          child_cutoff_age = COALESCE(?, child_cutoff_age),
          child_rate_paise = COALESCE(?, child_rate_paise),
          updated_at = ?
@@ -148,7 +166,8 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
     )
       .bind(
         body.name || null,
-        body.description !== undefined ? body.description : null,
+        body.description !== undefined ? 1 : 0,
+        body.description ?? '',
         body.address_line1 || null,
         body.city || null,
         body.state || null,
@@ -160,8 +179,12 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
         body.email || null,
         body.cancellation_policy || null,
         body.logo_url ?? null,
-        galleryStr,
-        amenitiesStr,
+        galleryStr !== undefined ? 1 : 0,
+        galleryStr ?? null,
+        galleryStr !== undefined ? 1 : 0,
+        galleryStr ?? null,
+        amenitiesStr !== undefined ? 1 : 0,
+        amenitiesStr ?? null,
         body.child_cutoff_age ?? null,
         body.child_rate_paise ?? null,
         now,
@@ -190,41 +213,81 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
     body.advance_payment_policy !== undefined ||
     body.advance_payment_percent !== undefined ||
     body.advance_payment_fixed_paise !== undefined ||
-    body.booking_engine_terms !== undefined
+    body.booking_engine_terms !== undefined ||
+    body.auto_release_on_checkout !== undefined
   ) {
-    await c.env.DB.prepare(
-      `UPDATE property_settings SET
-         gst_number = COALESCE(?, gst_number),
-         invoice_prefix = COALESCE(?, invoice_prefix),
-         upi_id = COALESCE(?, upi_id),
-         enable_online_booking = COALESCE(?, enable_online_booking),
-         razorpay_key_id = COALESCE(?, razorpay_key_id),
-         razorpay_key_secret = COALESCE(?, razorpay_key_secret),
-         razorpay_enabled = COALESCE(?, razorpay_enabled),
-         advance_payment_policy = COALESCE(?, advance_payment_policy),
-         advance_payment_percent = COALESCE(?, advance_payment_percent),
-         advance_payment_fixed_paise = COALESCE(?, advance_payment_fixed_paise),
-         booking_engine_terms = COALESCE(?, booking_engine_terms),
-         updated_at = ?
-       WHERE property_id = ? AND tenant_id = ?`
-    )
-      .bind(
-        body.gst_number ?? null,
-        body.invoice_prefix ?? null,
-        body.upi_id ?? null,
-        body.enable_online_booking !== undefined ? (body.enable_online_booking ? 1 : 0) : null,
-        body.razorpay_key_id ?? null,
-        body.razorpay_key_secret ?? null,
-        body.razorpay_enabled !== undefined ? (body.razorpay_enabled ? 1 : 0) : null,
-        body.advance_payment_policy ?? null,
-        body.advance_payment_percent !== undefined ? Number(body.advance_payment_percent) : null,
-        body.advance_payment_fixed_paise !== undefined ? Number(body.advance_payment_fixed_paise) : null,
-        body.booking_engine_terms ?? null,
-        now,
-        propertyId,
-        tenantId
+    try {
+      await c.env.DB.prepare(
+        `UPDATE property_settings SET
+           gst_number = COALESCE(?, gst_number),
+           invoice_prefix = COALESCE(?, invoice_prefix),
+           upi_id = COALESCE(?, upi_id),
+           enable_online_booking = COALESCE(?, enable_online_booking),
+           razorpay_key_id = COALESCE(?, razorpay_key_id),
+           razorpay_key_secret = COALESCE(?, razorpay_key_secret),
+           razorpay_enabled = COALESCE(?, razorpay_enabled),
+           advance_payment_policy = COALESCE(?, advance_payment_policy),
+           advance_payment_percent = COALESCE(?, advance_payment_percent),
+           advance_payment_fixed_paise = COALESCE(?, advance_payment_fixed_paise),
+           booking_engine_terms = COALESCE(?, booking_engine_terms),
+           auto_release_on_checkout = COALESCE(?, auto_release_on_checkout),
+           updated_at = ?
+         WHERE property_id = ? AND tenant_id = ?`
       )
-      .run();
+        .bind(
+          body.gst_number ?? null,
+          body.invoice_prefix ?? null,
+          body.upi_id ?? null,
+          body.enable_online_booking !== undefined ? (body.enable_online_booking ? 1 : 0) : null,
+          body.razorpay_key_id ?? null,
+          body.razorpay_key_secret ?? null,
+          body.razorpay_enabled !== undefined ? (body.razorpay_enabled ? 1 : 0) : null,
+          body.advance_payment_policy ?? null,
+          body.advance_payment_percent !== undefined ? Number(body.advance_payment_percent) : null,
+          body.advance_payment_fixed_paise !== undefined ? Number(body.advance_payment_fixed_paise) : null,
+          body.booking_engine_terms ?? null,
+          body.auto_release_on_checkout !== undefined ? (body.auto_release_on_checkout ? 1 : 0) : null,
+          now,
+          propertyId,
+          tenantId
+        )
+        .run();
+    } catch {
+      // Fallback if column auto_release_on_checkout is pending in DB
+      await c.env.DB.prepare(
+        `UPDATE property_settings SET
+           gst_number = COALESCE(?, gst_number),
+           invoice_prefix = COALESCE(?, invoice_prefix),
+           upi_id = COALESCE(?, upi_id),
+           enable_online_booking = COALESCE(?, enable_online_booking),
+           razorpay_key_id = COALESCE(?, razorpay_key_id),
+           razorpay_key_secret = COALESCE(?, razorpay_key_secret),
+           razorpay_enabled = COALESCE(?, razorpay_enabled),
+           advance_payment_policy = COALESCE(?, advance_payment_policy),
+           advance_payment_percent = COALESCE(?, advance_payment_percent),
+           advance_payment_fixed_paise = COALESCE(?, advance_payment_fixed_paise),
+           booking_engine_terms = COALESCE(?, booking_engine_terms),
+           updated_at = ?
+         WHERE property_id = ? AND tenant_id = ?`
+      )
+        .bind(
+          body.gst_number ?? null,
+          body.invoice_prefix ?? null,
+          body.upi_id ?? null,
+          body.enable_online_booking !== undefined ? (body.enable_online_booking ? 1 : 0) : null,
+          body.razorpay_key_id ?? null,
+          body.razorpay_key_secret ?? null,
+          body.razorpay_enabled !== undefined ? (body.razorpay_enabled ? 1 : 0) : null,
+          body.advance_payment_policy ?? null,
+          body.advance_payment_percent !== undefined ? Number(body.advance_payment_percent) : null,
+          body.advance_payment_fixed_paise !== undefined ? Number(body.advance_payment_fixed_paise) : null,
+          body.booking_engine_terms ?? null,
+          now,
+          propertyId,
+          tenantId
+        )
+        .run();
+    }
   }
 
   await recordAuditLog(c, {

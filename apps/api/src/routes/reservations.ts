@@ -663,6 +663,7 @@ reservationRoutes.patch('/:id/check-out', requireRole(['owner', 'manager', 'rece
   const tenantId = c.get('tenantId')!;
   const id = c.req.param('id');
   const now = Math.floor(Date.now() / 1000);
+  const today = new Date().toISOString().split('T')[0];
 
   const res: any = await c.env.DB.prepare('SELECT * FROM reservations WHERE id = ? AND tenant_id = ?')
     .bind(id, tenantId)
@@ -672,30 +673,69 @@ reservationRoutes.patch('/:id/check-out', requireRole(['owner', 'manager', 'rece
     return c.json({ error: 'Reservation not found' }, 404);
   }
 
+  // Check property setting for instant turnaround on checkout (defaults to true)
+  let shouldAutoRelease = true;
+  try {
+    const propSettings: any = await c.env.DB.prepare(
+      `SELECT auto_release_on_checkout FROM property_settings WHERE property_id = ?`
+    ).bind(res.property_id).first();
+    if (propSettings && propSettings.auto_release_on_checkout !== undefined && propSettings.auto_release_on_checkout !== null) {
+      shouldAutoRelease = propSettings.auto_release_on_checkout !== 0;
+    }
+  } catch {
+    shouldAutoRelease = true;
+  }
+
+  // If guest is checking out early (booked till tomorrow or later),
+  // adjust check_out_date to today so today and future dates are immediately freed in all queries
+  const effectiveCheckoutDate = res.check_out_date > today ? today : res.check_out_date;
+
   const statements: any[] = [
     c.env.DB.prepare(
-      `UPDATE reservations SET status = 'checked_out', check_out_time_actual = ?, updated_at = ? WHERE id = ? AND tenant_id = ?`
-    ).bind(now, now, id, tenantId)
+      `UPDATE reservations
+       SET status = 'checked_out',
+           check_out_date = ?,
+           check_out_time_actual = ?,
+           updated_at = ?
+       WHERE id = ? AND tenant_id = ?`
+    ).bind(effectiveCheckoutDate, now, now, id, tenantId)
   ];
 
   if (res.room_id) {
-    // Free the room and mark it dirty for housekeeping
-    statements.push(
-      c.env.DB.prepare(
-        `UPDATE rooms SET status = 'available', housekeeping_status = 'dirty', updated_at = ? WHERE id = ? AND tenant_id = ?`
-      ).bind(now, res.room_id, tenantId)
-    );
+    if (shouldAutoRelease) {
+      // Immediately mark room available and CLEAN so it is instantly bookable by other guests for today
+      statements.push(
+        c.env.DB.prepare(
+          `UPDATE rooms SET status = 'available', housekeeping_status = 'clean', updated_at = ? WHERE id = ? AND tenant_id = ?`
+        ).bind(now, res.room_id, tenantId)
+      );
 
-    // Auto-create Housekeeping Task for cleaning
-    const taskId = `hk_${crypto.randomUUID()}`;
-    const today = new Date().toISOString().split('T')[0];
-    statements.push(
-      c.env.DB.prepare(
-        `INSERT INTO housekeeping_tasks (
-          id, property_id, tenant_id, room_id, task_type, priority, status, scheduled_date, notes, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, 'cleaning', 'high', 'pending', ?, 'Checkout clean required for new arrival', ?, ?)`
-      ).bind(taskId, res.property_id, tenantId, res.room_id, today, now, now)
-    );
+      // Record completed turnaround without raising an urgent siren/dirty alarm
+      const taskId = `hk_${crypto.randomUUID()}`;
+      statements.push(
+        c.env.DB.prepare(
+          `INSERT INTO housekeeping_tasks (
+            id, property_id, tenant_id, room_id, task_type, priority, status, scheduled_date, notes, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, 'cleaning', 'low', 'completed', ?, 'Instant room turnaround completed on checkout - ready for same-day arrival', ?, ?)`
+        ).bind(taskId, res.property_id, tenantId, res.room_id, today, now, now)
+      );
+    } else {
+      // Admin configured holding room for housekeeping: mark dirty and queue cleaning task
+      statements.push(
+        c.env.DB.prepare(
+          `UPDATE rooms SET status = 'available', housekeeping_status = 'dirty', updated_at = ? WHERE id = ? AND tenant_id = ?`
+        ).bind(now, res.room_id, tenantId)
+      );
+
+      const taskId = `hk_${crypto.randomUUID()}`;
+      statements.push(
+        c.env.DB.prepare(
+          `INSERT INTO housekeeping_tasks (
+            id, property_id, tenant_id, room_id, task_type, priority, status, scheduled_date, notes, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, 'cleaning', 'high', 'pending', ?, 'Checkout clean required for new arrival', ?, ?)`
+        ).bind(taskId, res.property_id, tenantId, res.room_id, today, now, now)
+      );
+    }
   }
 
   await c.env.DB.batch(statements);
@@ -704,9 +744,20 @@ reservationRoutes.patch('/:id/check-out', requireRole(['owner', 'manager', 'rece
     action: 'reservation.check_out',
     resourceType: 'reservation',
     resourceId: id,
+    newValues: {
+      autoReleasedClean: shouldAutoRelease,
+      effectiveCheckoutDate,
+    },
   });
 
-  return c.json({ success: true, message: `Reservation #${res.reservation_number} checked out` });
+  return c.json({
+    success: true,
+    message: shouldAutoRelease
+      ? `Reservation #${res.reservation_number} checked out. Room is immediately available & clean for today's new arrivals.`
+      : `Reservation #${res.reservation_number} checked out. Room marked dirty for housekeeping.`,
+    roomReleased: true,
+    isClean: shouldAutoRelease,
+  });
 });
 
 // -----------------------------------------------------------------------------

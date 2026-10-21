@@ -2,8 +2,10 @@
 # HotelFlexi Robots.txt
 # Domain: https://hotelflexi.com
 # Company: NovaX AI
+# Global Crawling & AI Scraping Policy: Fully Enabled for Public Web
 # ==============================================================================
 
+# Standard Web Crawlers & Browsers
 User-agent: *
 Allow: /
 Allow: /features
@@ -12,6 +14,7 @@ Allow: /channel-manager
 Allow: /booking-engine
 Allow: /dine-out
 Allow: /dine/*
+Allow: /wedding/*
 Allow: /ai-hotel-agent
 Allow: /download-app
 Allow: /pricing
@@ -31,7 +34,7 @@ Allow: /login
 Allow: /signup
 Allow: /book/*
 
-# Disallow private operational dashboards, super-admin, private APIs & guest check-in sessions
+# Disallow authenticated tenant dashboards & private session data
 Disallow: /app/
 Disallow: /admin/
 Disallow: /central-command/
@@ -42,11 +45,16 @@ Disallow: /offline
 Disallow: /verify-email
 Disallow: /forgot-password
 
-# Specialized Crawlers
+# ------------------------------------------------------------------------------
+# Leading Search Engine Crawlers
+# ------------------------------------------------------------------------------
 User-agent: Googlebot
 Allow: /
 Allow: /compare/*
 Allow: /blog/*
+Allow: /book/*
+Allow: /wedding/*
+Allow: /dine/*
 Disallow: /app/
 Disallow: /admin/
 Disallow: /central-command/
@@ -56,9 +64,161 @@ User-agent: Bingbot
 Allow: /
 Allow: /compare/*
 Allow: /blog/*
+Allow: /book/*
+Allow: /wedding/*
+Allow: /dine/*
 Disallow: /app/
 Disallow: /admin/
 Disallow: /central-command/
+Disallow: /guest/
+
+# ------------------------------------------------------------------------------
+# Modern AI Crawlers & LLM Semantic Scrapers (OpenAI, Anthropic, Google, etc.)
+# ------------------------------------------------------------------------------
+User-agent: GPTBot
+Allow: /
+Allow: /features
+Allow: /hotel-management
+Allow: /channel-manager
+Allow: /booking-engine
+Allow: /dine-out
+Allow: /dine/*
+Allow: /wedding/*
+Allow: /pricing
+Allow: /compare/*
+Allow: /blog/*
+Allow: /book/*
+Disallow: /app/
+Disallow: /central-command/
+Disallow: /guest/
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /features
+Allow: /hotel-management
+Allow: /channel-manager
+Allow: /booking-engine
+Allow: /dine-out
+Allow: /dine/*
+Allow: /wedding/*
+Allow: /pricing
+Allow: /compare/*
+Allow: /blog/*
+Allow: /book/*
+Disallow: /app/
+Disallow: /central-command/
+Disallow: /guest/
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /features
+Allow: /hotel-management
+Allow: /channel-manager
+Allow: /booking-engine
+Allow: /dine-out
+Allow: /dine/*
+Allow: /wedding/*
+Allow: /pricing
+Allow: /compare/*
+Allow: /blog/*
+Allow: /book/*
+Disallow: /app/
+Disallow: /central-command/
+Disallow: /guest/
+
+User-agent: Claude-Web
+Allow: /
+Allow: /features
+Allow: /hotel-management
+Allow: /channel-manager
+Allow: /booking-engine
+Allow: /dine-out
+Allow: /dine/*
+Allow: /wedding/*
+Allow: /pricing
+Allow: /compare/*
+Allow: /blog/*
+Allow: /book/*
+Disallow: /app/
+Disallow: /central-command/
+Disallow: /guest/
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /features
+Allow: /hotel-management
+Allow: /channel-manager
+Allow: /booking-engine
+Allow: /dine-out
+Allow: /dine/*
+Allow: /wedding/*
+Allow: /pricing
+Allow: /compare/*
+Allow: /blog/*
+Allow: /book/*
+Disallow: /app/
+Disallow: /central-command/
+Disallow: /guest/
+
+User-agent: Google-Extended
+Allow: /
+Allow: /features
+Allow: /hotel-management
+Allow: /channel-manager
+Allow: /booking-engine
+Allow: /dine-out
+Allow: /dine/*
+Allow: /wedding/*
+Allow: /pricing
+Allow: /compare/*
+Allow: /blog/*
+Allow: /book/*
+Disallow: /app/
+Disallow: /central-command/
+Disallow: /guest/
+
+User-agent: Applebot-Extended
+Allow: /
+Allow: /features
+Allow: /hotel-management
+Allow: /channel-manager
+Allow: /booking-engine
+Allow: /dine-out
+Allow: /dine/*
+Allow: /wedding/*
+Allow: /pricing
+Allow: /compare/*
+Allow: /blog/*
+Allow: /book/*
+Disallow: /app/
+Disallow: /central-command/
+Disallow: /guest/
+
+User-agent: cohere-ai
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /compare/*
+Allow: /blog/*
+Disallow: /app/
+Disallow: /guest/
+
+User-agent: Meta-ExternalAgent
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /compare/*
+Allow: /blog/*
+Disallow: /app/
+Disallow: /guest/
+
+User-agent: CCBot
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /compare/*
+Allow: /blog/*
+Disallow: /app/
 Disallow: /guest/
 
 # XML Sitemap Location

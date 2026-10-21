@@ -57,6 +57,23 @@ export default function DirectBookingPage() {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
 
+  // Add-ons & Activities
+  const [publicAddons, setPublicAddons] = useState<any[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<Record<string, number>>({});
+
+  const handleAddonQtyChange = (addonId: string, delta: number, min = 1, max = 10) => {
+    setSelectedAddons((prev) => {
+      const current = prev[addonId] || 0;
+      const next = current + delta;
+      if (next <= 0) {
+        const copy = { ...prev };
+        delete copy[addonId];
+        return copy;
+      }
+      return { ...prev, [addonId]: Math.min(max, Math.max(min, next)) };
+    });
+  };
+
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +109,12 @@ export default function DirectBookingPage() {
   useEffect(() => {
     async function loadProperty() {
       try {
-        const propData = await apiClient(`/public/properties/${slug}`);
+        const [propData, addonsData] = await Promise.all([
+          apiClient(`/public/properties/${slug}`),
+          apiClient(`/public/addons/slug/${slug}`).catch(() => ({ addons: [] })),
+        ]);
         setProperty(propData.property);
+        setPublicAddons(addonsData.addons || []);
         await fetchAvailability();
       } catch (e: any) {
         setError('Hotel property not found or booking engine disabled.');
@@ -142,6 +163,23 @@ export default function DirectBookingPage() {
     setError(null);
 
     try {
+      const addonsPayload = Object.entries(selectedAddons)
+        .filter(([_, qty]) => qty > 0)
+        .map(([addonId, qty]) => {
+          const addon = publicAddons.find((a) => a.id === addonId);
+          const isPerson = addon?.pricing_type === 'per_person';
+          const unitPrice = addon?.pricing_type === 'free' ? 0 : (addon?.price_paise || 0);
+          const total = isPerson ? unitPrice * qty * adults : unitPrice * qty;
+          return {
+            id: addonId,
+            name: addon?.name || 'Add-on Activity',
+            pricingType: addon?.pricing_type || 'flat',
+            quantity: qty,
+            unitPricePaise: unitPrice,
+            totalPricePaise: total,
+          };
+        });
+
       const payload = {
         roomTypeId: selectedRoom.id,
         checkInDate,
@@ -153,6 +191,7 @@ export default function DirectBookingPage() {
         children,
         couponCode: appliedCoupon ? appliedCoupon.code : undefined,
         specialRequests,
+        selectedAddons: addonsPayload,
       };
 
       const result = await apiClient(`/public/properties/${slug}/book`, {
@@ -231,10 +270,16 @@ export default function DirectBookingPage() {
 
   const childCutoffAge = property?.childCutoffAge ?? property?.child_cutoff_age ?? 10;
   const childRatePaise = property?.childRatePaise ?? property?.child_rate_paise ?? 0;
-  const galleryImages: string[] = Array.isArray(property?.galleryImages)
+  const galleryImages: string[] = Array.isArray(property?.photos)
+    ? property.photos
+    : typeof property?.photos === 'string'
+    ? JSON.parse(property.photos || '[]')
+    : Array.isArray(property?.galleryImages)
     ? property.galleryImages
     : typeof property?.gallery_images === 'string'
     ? JSON.parse(property.gallery_images || '[]')
+    : Array.isArray(property?.gallery_images)
+    ? property.gallery_images
     : [];
 
   const propertyAmenities: string[] = Array.isArray(property?.amenities)
@@ -795,9 +840,98 @@ export default function DirectBookingPage() {
                   />
                 </div>
 
+                {/* Optional Add-on Services & Experiences */}
+                {publicAddons.length > 0 && (
+                  <div className="p-3.5 bg-blue-50/60 rounded-xl border border-blue-200/80 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-extrabold text-blue-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-brand-blue" />
+                        Enhance Your Stay with Add-ons &amp; Activities
+                      </label>
+                      <span className="text-[10px] text-blue-700 font-semibold">Optional extras</span>
+                    </div>
+
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {publicAddons.map((addon) => {
+                        const qty = selectedAddons[addon.id] || 0;
+                        const isPerson = addon.pricing_type === 'per_person';
+                        const isFree = addon.pricing_type === 'free';
+                        const unitRupees = isFree ? 0 : addon.price_paise / 100;
+
+                        return (
+                          <div
+                            key={addon.id}
+                            className={`p-2.5 rounded-xl border transition flex items-center justify-between gap-2 ${
+                              qty > 0
+                                ? 'bg-white border-brand-blue shadow-xs'
+                                : 'bg-white/80 border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {addon.image_url && (
+                                <img
+                                  src={addon.image_url}
+                                  alt={addon.name}
+                                  className="w-10 h-10 rounded-lg object-cover shrink-0 border border-slate-200"
+                                />
+                              )}
+                              <div className="min-w-0">
+                                <div className="font-bold text-xs text-slate-900 truncate">{addon.name}</div>
+                                <div className="text-[10px] text-brand-blue font-semibold">
+                                  {isFree ? 'FREE' : `₹${unitRupees} / ${addon.pricing_type.replace('per_', '')}`}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Quantity Selector */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                disabled={qty <= 0}
+                                onClick={() => handleAddonQtyChange(addon.id, -1, addon.min_qty || 1, addon.max_qty || 10)}
+                                className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold flex items-center justify-center disabled:opacity-30"
+                              >
+                                -
+                              </button>
+                              <span className="w-5 text-center font-bold text-xs text-slate-900">{qty}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleAddonQtyChange(addon.id, 1, addon.min_qty || 1, addon.max_qty || 10)}
+                                className="w-6 h-6 rounded-lg bg-brand-blue text-white font-bold flex items-center justify-center hover:bg-brand-blue-hover"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Dynamic Pricing & Advance Calculation */}
                 {(() => {
-                  const finalTotalPaise = Math.max(0, selectedRoom.totalPaise - (appliedCoupon?.discountPaise || 0));
+                  let addonsTotalPaise = 0;
+                  const selectedAddonDetails: Array<{ name: string; qty: number; totalPaise: number }> = [];
+
+                  for (const [addonId, qty] of Object.entries(selectedAddons)) {
+                    if (qty > 0) {
+                      const addon = publicAddons.find((a) => a.id === addonId);
+                      if (addon) {
+                        const isPerson = addon.pricing_type === 'per_person';
+                        const unit = addon.pricing_type === 'free' ? 0 : addon.price_paise;
+                        const subtotal = isPerson ? unit * qty * adults : unit * qty;
+                        addonsTotalPaise += subtotal;
+                        selectedAddonDetails.push({
+                          name: addon.name + (isPerson && adults > 1 ? ` (${qty} × ${adults} guests)` : ` (Qty: ${qty})`),
+                          qty,
+                          totalPaise: subtotal,
+                        });
+                      }
+                    }
+                  }
+
+                  const finalTotalPaise = Math.max(0, selectedRoom.totalPaise + addonsTotalPaise - (appliedCoupon?.discountPaise || 0));
                   const advancePolicy = property?.advancePaymentPolicy || 'full';
                   let advancePaise = finalTotalPaise;
                   if (advancePolicy === 'partial_percent') {
@@ -831,6 +965,12 @@ export default function DirectBookingPage() {
                             <span className="font-bold">+{formatINR(selectedRoom.totalExtraAdultChargePaise)}</span>
                           </div>
                         )}
+                        {selectedAddonDetails.map((ad, idx) => (
+                          <div key={idx} className="flex justify-between text-blue-900 bg-blue-50/80 px-2 py-1 rounded">
+                            <span>+ {ad.name}</span>
+                            <span className="font-bold">{ad.totalPaise === 0 ? 'FREE' : formatINR(ad.totalPaise)}</span>
+                          </div>
+                        ))}
                         <div className="flex justify-between text-content-secondary-light">
                           <span>Applicable GST</span>
                           <span>{formatINR(selectedRoom.taxPaise)}</span>

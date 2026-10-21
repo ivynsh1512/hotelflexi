@@ -380,6 +380,93 @@ adminRoutes.delete('/tenants/:id', async (c) => {
   });
 });
 
+// Approve Tenant Deletion Request
+adminRoutes.post('/tenants/:id/approve-deletion', async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user')!;
+
+  const tenant: any = await c.env.DB.prepare('SELECT * FROM tenants WHERE id = ?').bind(id).first();
+  if (!tenant) return c.json({ error: 'Tenant not found' }, 404);
+
+  const now = Math.floor(Date.now() / 1000);
+
+  // 1. Mark as approved & suspended to revoke all active sessions immediately
+  await c.env.DB.prepare(
+    `UPDATE tenants SET
+       deletion_status = 'approved',
+       account_access_status = 'suspended',
+       suspension_reason = 'Account deletion requested and approved by Super Admin',
+       updated_at = ?
+     WHERE id = ?`
+  ).bind(now, id).run();
+
+  // 2. Purge transactional records (reservations, folios, guests, tickets, invoices)
+  try {
+    await c.env.DB.batch([
+      c.env.DB.prepare('DELETE FROM reservation_guests WHERE reservation_id IN (SELECT id FROM reservations WHERE tenant_id = ?)').bind(id),
+      c.env.DB.prepare('DELETE FROM reservation_addons WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM folio_transactions WHERE reservation_id IN (SELECT id FROM reservations WHERE tenant_id = ?)').bind(id),
+      c.env.DB.prepare('DELETE FROM reservations WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM housekeeping_tasks WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM maintenance_tickets WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM complaints WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM payments WHERE tenant_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM invoices WHERE tenant_id = ?').bind(id),
+    ]);
+  } catch (err: any) {
+    console.error('[Purge Error]:', err);
+  }
+
+  await recordAuditLog(c, {
+    tenantId: id,
+    userId: user.uid,
+    actorType: 'super_admin',
+    action: 'tenant.deletion_approved',
+    resourceType: 'tenant',
+    resourceId: id,
+    newValues: { status: 'approved', purgedAt: new Date().toISOString() },
+  });
+
+  return c.json({
+    success: true,
+    message: `Account deletion approved for ${tenant.name}. Hotel data purged and access revoked.`,
+  });
+});
+
+// Reject Tenant Deletion Request
+adminRoutes.post('/tenants/:id/reject-deletion', async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user')!;
+
+  const tenant: any = await c.env.DB.prepare('SELECT name FROM tenants WHERE id = ?').bind(id).first();
+  if (!tenant) return c.json({ error: 'Tenant not found' }, 404);
+
+  const now = Math.floor(Date.now() / 1000);
+
+  await c.env.DB.prepare(
+    `UPDATE tenants SET
+       deletion_status = 'rejected',
+       deletion_requested_at = NULL,
+       updated_at = ?
+     WHERE id = ?`
+  ).bind(now, id).run();
+
+  await recordAuditLog(c, {
+    tenantId: id,
+    userId: user.uid,
+    actorType: 'super_admin',
+    action: 'tenant.deletion_rejected',
+    resourceType: 'tenant',
+    resourceId: id,
+    newValues: { status: 'rejected' },
+  });
+
+  return c.json({
+    success: true,
+    message: `Deletion request for ${tenant.name} has been rejected. Account restored to normal state.`,
+  });
+});
+
 // Update Tenant Subscription Plan or Extend Trial
 adminRoutes.patch('/tenants/:id/plan', async (c) => {
   const id = c.req.param('id');

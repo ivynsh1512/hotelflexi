@@ -394,20 +394,63 @@ channelManagerRoutes.post('/simulate-booking', requireRole(['owner', 'manager'])
     return c.json({ error: 'connectionId, roomTypeId, checkInDate, and checkOutDate are required' }, 400);
   }
 
-  const result = await processOtaReservationEvent(c.env.DB, tenantId, connectionId, {
-    channelBookingRef: bookingRef,
-    channelName: body.channelName || 'simulated',
-    status,
-    guestName,
-    checkInDate,
-    checkOutDate,
-    roomTypeId,
-    adults: body.adults || 2,
-    children: body.children || 0,
-    nightlyRatePaise: Math.round(totalAmountPaise / 1),
-    totalAmountPaise,
-    currency: 'INR',
-  });
+  try {
+    const result = await processOtaReservationEvent(c.env.DB, tenantId, connectionId, {
+      channelBookingRef: bookingRef,
+      channelName: body.channelName || 'simulated',
+      status,
+      guestName,
+      checkInDate,
+      checkOutDate,
+      roomTypeId,
+      adults: body.adults || 2,
+      children: body.children || 0,
+      nightlyRatePaise: Math.round(totalAmountPaise / 1),
+      totalAmountPaise,
+      currency: 'INR',
+    });
+    return c.json(result);
+  } catch (err: any) {
+    // If connection was created in Channel Manager V2 (hotel_channel_connections table)
+    const v2Conn: any = await c.env.DB.prepare(
+      `SELECT hcc.*, cp.code as provider_code FROM hotel_channel_connections hcc
+       JOIN channel_providers cp ON cp.id = hcc.provider_id
+       WHERE hcc.id = ? AND hcc.tenant_id = ?`
+    ).bind(connectionId, tenantId).first();
 
-  return c.json(result);
+    if (v2Conn) {
+      // Delegate to ingestChannelReservationEvent from V2
+      const { ingestChannelReservationEvent } = await import('../services/channelManager/reservationIngestion');
+      const v2Result = await ingestChannelReservationEvent(c.env.DB, tenantId, connectionId, {
+        channelCode: v2Conn.provider_code,
+        externalReservationId: bookingRef,
+        action: status === 'cancelled' ? 'cancel' : status === 'modified' ? 'modify' : 'create',
+        externalRoomTypeId: roomTypeId,
+        checkInDate,
+        checkOutDate,
+        guestName,
+        guestEmail: 'simulated@example.com',
+        guestPhone: '+919999999999',
+        adults: 2,
+        children: 0,
+        totalAmountMinor: totalAmountPaise,
+        currency: 'INR',
+        payloadHash: `sim_${Date.now()}`,
+        rawPayload: body,
+      });
+      return c.json({
+        success: v2Result.success,
+        action: v2Result.action,
+        reservationId: v2Result.reservationId,
+        reservationNumber: v2Result.reservationNumber,
+        externalReservationId: v2Result.externalReservationId,
+        message: v2Result.message,
+      });
+    }
+
+    return c.json({
+      success: false,
+      message: err.message || 'Failed to simulate reservation event',
+    }, 400);
+  }
 });

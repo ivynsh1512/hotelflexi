@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { Env, AppVariables } from '../types';
+import { sendPaymentSuccessEmail } from '../services/email';
 
 export const webhookRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -92,6 +93,34 @@ webhookRoutes.post('/razorpay', async (c) => {
         )
           .bind(amountPaise, amountPaise, amountPaise, now, notes.reservationId)
           .run();
+
+        // Send instant payment confirmation email to hotel admin
+        try {
+          const resRow: any = await c.env.DB.prepare(
+            `SELECT res.*, p.name as property_name, p.email as property_email
+             FROM reservations res
+             JOIN properties p ON p.id = res.property_id
+             WHERE res.id = ?`
+          ).bind(notes.reservationId).first();
+
+          if (resRow) {
+            const formatRupees = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`;
+            sendPaymentSuccessEmail(c.env, {
+              ownerEmail: resRow.property_email || resRow.email || undefined,
+              propertyName: resRow.property_name || 'HotelFlexi',
+              reservationNumber: resRow.reservation_number || notes.reservationId,
+              guestName: resRow.guest_name || 'Guest',
+              amountRupees: formatRupees(amountPaise),
+              paymentMethod: 'razorpay_webhook',
+              paymentId: paymentId || orderId || 'N/A',
+              checkInDate: resRow.check_in_date || '',
+              checkOutDate: resRow.check_out_date || '',
+              remainingBalanceRupees: formatRupees(resRow.balance_amount_paise || 0),
+            }).catch((err) => console.error('[Webhook Payment Email Error]:', err));
+          }
+        } catch (emailErr) {
+          console.error('[Webhook Email Lookup Error]:', emailErr);
+        }
       }
 
       // Handle SaaS Subscription Payment

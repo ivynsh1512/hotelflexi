@@ -22,6 +22,8 @@ import {
   Shield,
   MessageSquare,
   AlertCircle,
+  Image as ImageIcon,
+  Star,
 } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://hotelflexi.divyansh-shukla.workers.dev/api/v1';
@@ -98,6 +100,46 @@ export default function PublicWeddingEnginePage() {
   const settings = data?.settings;
   const packages = data?.packages || [];
   const decorThemes = data?.decorThemes || [];
+
+  // Extract venue amenities
+  const venueAmenities: string[] = useMemo(() => {
+    if (Array.isArray(settings?.amenities) && settings.amenities.length > 0) {
+      return settings.amenities;
+    }
+    if (settings?.description && settings.description.includes('--- Venue Amenities ---')) {
+      try {
+        const parts = settings.description.split('--- Venue Amenities ---');
+        return parts[1].split(',').map((x: string) => x.trim()).filter(Boolean);
+      } catch {}
+    }
+    return [
+      'Bridal Suite with Private Washroom',
+      'Groom Changing Room',
+      'Dedicated Mandap & Stage Area',
+      'High-Power Acoustic Sound & DJ Setup',
+      '100% Genset Power Backup (24/7)',
+      'Valet Parking & Dedicated Parking Lot',
+      'Separate Pure Veg / Jain Kitchen Facility',
+      'Attached Guest Accommodation Rooms',
+    ];
+  }, [settings]);
+
+  // Extract all venue photos
+  const venuePhotos: string[] = useMemo(() => {
+    const list: string[] = [];
+    if (Array.isArray(settings?.galleryImages)) {
+      list.push(...settings.galleryImages);
+    }
+    if (Array.isArray(data?.gallery)) {
+      list.push(...data.gallery);
+    }
+    if (settings?.cover_image_url && !list.includes(settings.cover_image_url)) {
+      list.unshift(settings.cover_image_url);
+    }
+    return Array.from(new Set(list)).filter(Boolean);
+  }, [settings, data]);
+
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   // Live Cost Estimation Breakdown (CATERING IS STRICTLY CALCULATED PER DAY, NOT PER EVENT!)
   const estimation = useMemo(() => {
@@ -331,6 +373,92 @@ export default function PublicWeddingEnginePage() {
               <span className="text-[11px] text-purple-600 font-semibold block">Bridal Suite with 24/7 Butler</span>
             </div>
           </div>
+
+          {/* VENUE AMENITIES & INCLUSIONS */}
+          {venueAmenities.length > 0 && (
+            <div className="max-w-4xl mx-auto pt-6 space-y-3">
+              <div className="text-center">
+                <span className="text-[10px] uppercase font-bold text-rose-600 tracking-wider">Hospitality Highlights</span>
+                <h3 className="text-lg font-extrabold text-slate-900">Venue Amenities &amp; Royal Inclusions</h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                {venueAmenities.map((amenity, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-2 text-xs font-semibold text-slate-800"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="leading-tight text-[11px]">{amenity}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* VENUE PHOTO GALLERY */}
+          {venuePhotos.length > 0 && (
+            <div className="max-w-6xl mx-auto pt-8 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-rose-600 tracking-wider">Visual Tour</span>
+                  <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5 text-rose-500" />
+                    Wedding Venue &amp; Banquet Gallery
+                  </h3>
+                </div>
+                <span className="text-xs font-bold text-slate-500">
+                  {venuePhotos.length} {venuePhotos.length === 1 ? 'Photo' : 'Photos'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {venuePhotos.map((photo, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => setSelectedPhoto(photo)}
+                    className="group relative rounded-2xl overflow-hidden aspect-[4/3] bg-slate-100 border border-slate-200 shadow-xs cursor-pointer"
+                  >
+                    <img
+                      src={photo}
+                      alt={`Venue ${idx + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center p-2 text-center">
+                      <span className="px-3 py-1 rounded-full bg-white text-slate-900 font-bold text-xs shadow-md">
+                        View Full Photo
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Lightbox Modal */}
+          {selectedPhoto && (
+            <div
+              onClick={() => setSelectedPhoto(null)}
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4"
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="max-w-4xl w-full bg-slate-950 rounded-3xl overflow-hidden shadow-2xl relative border border-slate-800"
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelectedPhoto(null)}
+                  className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black transition z-10 font-bold"
+                >
+                  ✕
+                </button>
+                <img
+                  src={selectedPhoto}
+                  alt="Venue preview"
+                  className="w-full max-h-[80vh] object-contain mx-auto"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

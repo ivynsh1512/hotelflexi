@@ -40,6 +40,10 @@ import {
   EyeOff,
   Shield,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  AlertTriangle,
 } from 'lucide-react';
 
 declare global {
@@ -105,6 +109,9 @@ export default function HotelSettingsPage() {
   const [childCutoffAge, setChildCutoffAge] = useState('10');
   const [childRate, setChildRate] = useState('0');
 
+  // Room Turnover on Checkout
+  const [autoReleaseOnCheckout, setAutoReleaseOnCheckout] = useState(true);
+
   // Owner Razorpay Credentials
   const [razorpayKeyId, setRazorpayKeyId] = useState('');
   const [razorpayKeySecret, setRazorpayKeySecret] = useState('');
@@ -126,6 +133,13 @@ export default function HotelSettingsPage() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [newEmailAddress, setNewEmailAddress] = useState('');
   const [emailCooldown, setEmailCooldown] = useState(0);
+
+  // Danger Zone - Account & Data Deletion
+  const [deletionStatus, setDeletionStatus] = useState<any>(null);
+  const [showDeletionModal, setShowDeletionModal] = useState(false);
+  const [deletionReason, setDeletionReason] = useState('');
+  const [deletionConfirmText, setDeletionConfirmText] = useState('');
+  const [deletionSubmitting, setDeletionSubmitting] = useState(false);
 
   useEffect(() => {
     if (emailCooldown <= 0) return;
@@ -268,6 +282,7 @@ export default function HotelSettingsPage() {
           setBookingEngineTerms(activeProp.booking_engine_terms || '');
           setChildCutoffAge(String(activeProp.child_cutoff_age ?? 10));
           setChildRate(activeProp.child_rate_paise ? String(activeProp.child_rate_paise / 100) : '0');
+          setAutoReleaseOnCheckout(activeProp.auto_release_on_checkout !== 0);
 
           // Parse amenities
           let amList: string[] = [];
@@ -298,6 +313,14 @@ export default function HotelSettingsPage() {
           // Load developer setup status
           const devData = await apiClient(`/developer-setup/status?property_id=${activeProp.id}`);
           setDevSetupRequest(devData.request);
+
+          // Load account deletion status
+          try {
+            const delData = await apiClient('/account/deletion-status');
+            setDeletionStatus(delData);
+          } catch {
+            // non-blocking
+          }
         }
       } catch (e) {
         console.error(e);
@@ -343,6 +366,52 @@ export default function HotelSettingsPage() {
 
   const handleRemoveGalleryImage = (idx: number) => {
     setGalleryImages(galleryImages.filter((_, i) => i !== idx));
+  };
+
+  const handleMoveGalleryImage = (idx: number, direction: 'left' | 'right') => {
+    const targetIdx = direction === 'left' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= galleryImages.length) return;
+    const updated = [...galleryImages];
+    const temp = updated[idx];
+    updated[idx] = updated[targetIdx];
+    updated[targetIdx] = temp;
+    setGalleryImages(updated);
+  };
+
+  const handleSetPrimaryGalleryImage = (idx: number) => {
+    if (idx <= 0 || idx >= galleryImages.length) return;
+    const updated = [...galleryImages];
+    const [selected] = updated.splice(idx, 1);
+    updated.unshift(selected);
+    setGalleryImages(updated);
+  };
+
+  const handleRequestDeletion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (deletionConfirmText !== 'DELETE') {
+      alert('Please type "DELETE" exactly to confirm.');
+      return;
+    }
+    setDeletionSubmitting(true);
+    try {
+      const res = await apiClient('/account/request-deletion', {
+        method: 'POST',
+        body: JSON.stringify({
+          reason: deletionReason.trim() || 'Hotelier requested account closure and data deletion',
+          confirmText: 'DELETE',
+        }),
+      });
+      alert(res.message || 'Deletion request submitted to Super Admin.');
+      setShowDeletionModal(false);
+      setDeletionReason('');
+      setDeletionConfirmText('');
+      const statusRes = await apiClient('/account/deletion-status');
+      setDeletionStatus(statusRes);
+    } catch (err: any) {
+      alert(err.message || 'Failed to submit deletion request.');
+    } finally {
+      setDeletionSubmitting(false);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -417,6 +486,7 @@ export default function HotelSettingsPage() {
           booking_engine_terms: bookingEngineTerms || null,
           child_cutoff_age: parseInt(childCutoffAge, 10) || 10,
           child_rate_paise: Math.round((parseFloat(childRate) || 0) * 100),
+          auto_release_on_checkout: autoReleaseOnCheckout ? 1 : 0,
           razorpay_key_id: razorpayKeyId || null,
           razorpay_key_secret: razorpayKeySecret || undefined,
           razorpay_enabled: razorpayEnabled,
@@ -744,20 +814,74 @@ export default function HotelSettingsPage() {
               </div>
 
               {galleryImages.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                  {galleryImages.map((url, idx) => (
-                    <div key={idx} className="relative group rounded-xl overflow-hidden aspect-video border border-border-light bg-surface-light">
-                      <img src={url} alt="Gallery" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveGalleryImage(idx)}
-                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition shadow"
-                        title="Remove photo"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500">
+                    <span>{galleryImages.length} photo{galleryImages.length > 1 ? 's' : ''} uploaded &bull; First photo is used as primary cover</span>
+                    <span className="text-[10px] text-slate-400">Use arrows to re-order photos</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {galleryImages.map((url, idx) => (
+                      <div key={idx} className="relative group rounded-xl overflow-hidden aspect-video border border-border-light bg-surface-light shadow-sm">
+                        <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                        
+                        {/* Primary Badge */}
+                        {idx === 0 ? (
+                          <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-emerald-600/90 text-white font-bold text-[9px] flex items-center gap-1 shadow">
+                            <Star className="w-2.5 h-2.5 fill-white" /> Cover Photo
+                          </div>
+                        ) : (
+                          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/60 text-white font-bold text-[9px]">
+                            #{idx + 1}
+                          </span>
+                        )}
+
+                        {/* Top action buttons */}
+                        <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                          {idx > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimaryGalleryImage(idx)}
+                              title="Set as Cover Photo"
+                              className="p-1 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition shadow"
+                            >
+                              <Star className="w-3 h-3" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGalleryImage(idx)}
+                            className="p-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition shadow"
+                            title="Remove photo"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {/* Bottom reorder bar */}
+                        <div className="absolute bottom-1 inset-x-1 flex items-center justify-between opacity-0 group-hover:opacity-100 transition bg-black/60 backdrop-blur-sm rounded-lg px-1 py-0.5">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => handleMoveGalleryImage(idx, 'left')}
+                            className="p-1 text-white hover:text-blue-300 disabled:opacity-20 transition"
+                            title="Move left"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-[9px] text-slate-200 font-medium">Reorder</span>
+                          <button
+                            type="button"
+                            disabled={idx === galleryImages.length - 1}
+                            onClick={() => handleMoveGalleryImage(idx, 'right')}
+                            className="p-1 text-white hover:text-blue-300 disabled:opacity-20 transition"
+                            title="Move right"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -861,6 +985,51 @@ export default function HotelSettingsPage() {
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Room Turnover & Instant Checkout Turnaround */}
+          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b border-border-light pb-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <h3 className="font-bold text-sm text-content-primary-light">
+                  Room Turnover &amp; Same-Day Availability Policy
+                </h3>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Turnaround Rule
+              </span>
+            </div>
+
+            <p className="text-content-secondary-light leading-relaxed">
+              Decide whether rooms are immediately released as Clean &amp; Ready when a guest checks out, or held in a dirty/maintenance state until staff inspects.
+            </p>
+
+            <label className={`p-4 rounded-xl border flex items-start gap-3 cursor-pointer transition ${
+              autoReleaseOnCheckout
+                ? 'border-emerald-500 bg-emerald-50/40 shadow-xs'
+                : 'border-border-light bg-surface-light hover:bg-slate-50'
+            }`}>
+              <input
+                type="checkbox"
+                checked={autoReleaseOnCheckout}
+                onChange={(e) => setAutoReleaseOnCheckout(e.target.checked)}
+                className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 shrink-0"
+              />
+              <div className="space-y-1">
+                <span className="font-bold text-slate-900 block text-xs">
+                  Instant Room Turnaround on Checkout (Recommended)
+                </span>
+                <p className="text-[11px] text-slate-600 leading-normal">
+                  Immediately mark the room as <strong>Clean &amp; Available</strong> for today&apos;s date as soon as the guest checks out. Don&apos;t hold or block the room for housekeeping so incoming guests and direct bookers can instantly reserve and check in.
+                </p>
+                {!autoReleaseOnCheckout && (
+                  <p className="text-[10px] text-amber-700 font-semibold pt-1">
+                    ⚠️ Disabled: Rooms will be marked &quot;Dirty&quot; on checkout and held until housekeeping staff manually inspects and marks them clean.
+                  </p>
+                )}
+              </div>
+            </label>
           </div>
 
           {/* Booking Engine Rules & Advance Payment Policy */}
@@ -1415,6 +1584,142 @@ export default function HotelSettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Danger Zone: Account & Data Purge */}
+      <div className="p-6 rounded-2xl bg-red-50/60 border border-red-200 shadow-sm space-y-4 text-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-red-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-red-900">Danger Zone: Account &amp; Data Purge</h3>
+              <p className="text-red-700 text-xs">
+                Request permanent deletion of your property data, reservations, folios, guest profiles, and staff accounts.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            {deletionStatus?.hasPendingRequest ? (
+              <div className="px-3 py-1.5 rounded-xl bg-amber-100 text-amber-800 font-bold border border-amber-300 flex items-center gap-1.5">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-700" />
+                Pending Super Admin Approval
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowDeletionModal(true)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition shadow-sm flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Request Account Deletion
+              </button>
+            )}
+          </div>
+        </div>
+
+        {deletionStatus?.hasPendingRequest ? (
+          <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 space-y-1">
+            <div className="font-bold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+              Account &amp; Data Deletion Request is Under Review
+            </div>
+            <p className="text-amber-800">
+              Requested on: <span className="font-mono">{deletionStatus.deletionRequestedAt ? new Date(deletionStatus.deletionRequestedAt).toLocaleString('en-IN') : 'Recently'}</span>
+            </p>
+            {deletionStatus.deletionReason && (
+              <p className="text-amber-700 italic">
+                &ldquo;{deletionStatus.deletionReason}&rdquo;
+              </p>
+            )}
+            <p className="text-[11px] text-amber-600 pt-1">
+              Your property records and services will remain available until the Super Admin verifies and executes the purge in Central Command.
+            </p>
+          </div>
+        ) : (
+          <p className="text-slate-500 text-[11px] leading-relaxed">
+            Once submitted, our Super Admin team will verify your ownership and securely purge all operational database records within 24–48 hours. If you wish to cancel or have questions, contact <a href="mailto:info@novaxai.in" className="text-brand-blue underline font-semibold">info@novaxai.in</a>.
+          </p>
+        )}
+      </div>
+
+      {/* Account Deletion Confirmation Modal */}
+      {showDeletionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-red-200 space-y-4">
+            <div className="flex items-center gap-3 text-red-600 border-b border-red-100 pb-3">
+              <div className="p-2 bg-red-100 rounded-xl">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-slate-900">Request Data Purge &amp; Deletion</h3>
+                <p className="text-xs text-red-600 font-semibold">Irreversible action upon approval</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs text-red-800 space-y-1.5 leading-relaxed">
+              <p className="font-bold">By submitting this request, you agree to purge:</p>
+              <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                <li>All rooms, live inventory, and pricing configurations</li>
+                <li>All reservations, guest profiles, folios, and GST invoices</li>
+                <li>All connected OTA channel mappings and credentials</li>
+                <li>All staff logins, roles, and hotel access</li>
+              </ul>
+            </div>
+
+            <form onSubmit={handleRequestDeletion} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Reason for account closure <span className="text-slate-400 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={deletionReason}
+                  onChange={(e) => setDeletionReason(e.target.value)}
+                  placeholder="e.g. Property sold, switching software, closing business..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Type <span className="font-mono text-red-600 font-extrabold">DELETE</span> to confirm *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={deletionConfirmText}
+                  onChange={(e) => setDeletionConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  className="w-full px-3 py-2 rounded-xl border border-red-300 font-mono font-bold text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeletionModal(false);
+                    setDeletionConfirmText('');
+                    setDeletionReason('');
+                  }}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deletionSubmitting || deletionConfirmText !== 'DELETE'}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 disabled:opacity-50 transition shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  {deletionSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

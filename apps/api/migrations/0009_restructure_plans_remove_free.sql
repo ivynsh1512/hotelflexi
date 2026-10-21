@@ -14,7 +14,7 @@ INSERT OR REPLACE INTO subscription_plans (
   max_properties, max_rooms, max_users, has_pms, has_booking_engine,
   has_channel_manager, max_channel_connections, has_ai_agent, ai_monthly_limit,
   has_advanced_reports, has_accounting, has_multi_property, has_custom_website,
-  has_website_maintenance, is_active, sort_order
+  has_website_maintenance, is_active, sort_order, created_at, updated_at
 ) VALUES (
   'essential',
   'Essential',
@@ -36,7 +36,9 @@ INSERT OR REPLACE INTO subscription_plans (
   0,
   0,
   1,
-  1
+  1,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
 );
 
 -- Update / Insert Pro Plan (₹999/mo - formerly Growth)
@@ -45,7 +47,7 @@ INSERT OR REPLACE INTO subscription_plans (
   max_properties, max_rooms, max_users, has_pms, has_booking_engine,
   has_channel_manager, max_channel_connections, has_ai_agent, ai_monthly_limit,
   has_advanced_reports, has_accounting, has_multi_property, has_custom_website,
-  has_website_maintenance, is_active, sort_order
+  has_website_maintenance, is_active, sort_order, created_at, updated_at
 ) VALUES (
   'pro',
   'Pro',
@@ -67,7 +69,9 @@ INSERT OR REPLACE INTO subscription_plans (
   1,
   1,
   1,
-  2
+  2,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
 );
 
 -- Mirror growth ID to Pro pricing and features for seamless backwards compatibility
@@ -92,7 +96,7 @@ INSERT OR REPLACE INTO subscription_plans (
   max_properties, max_rooms, max_users, has_pms, has_booking_engine,
   has_channel_manager, max_channel_connections, has_ai_agent, ai_monthly_limit,
   has_advanced_reports, has_accounting, has_multi_property, has_custom_website,
-  has_website_maintenance, is_active, sort_order
+  has_website_maintenance, is_active, sort_order, created_at, updated_at
 ) VALUES (
   'enterprise',
   'Enterprise',
@@ -114,5 +118,7 @@ INSERT OR REPLACE INTO subscription_plans (
   1,
   1,
   1,
-  3
+  3,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
 );

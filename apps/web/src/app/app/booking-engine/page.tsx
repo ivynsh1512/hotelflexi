@@ -17,7 +17,27 @@ import {
   Trash2,
   Baby,
   Building,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  FileText,
+  Sparkles,
 } from 'lucide-react';
+
+const HOTEL_AMENITIES = [
+  'Free High-Speed WiFi',
+  'Swimming Pool',
+  'Air Conditioning',
+  'Restaurant & In-Room Dining',
+  'Free On-Site Parking',
+  '24/7 Front Desk Reception',
+  'Power Backup / Genset',
+  'Scenic Mountain / River View',
+  'Electric Kettle & Tea Maker',
+  'Daily Housekeeping',
+  'Airport / Railway Station Transfers',
+  'Doctor on Call',
+];
 
 export default function BookingEngineAppPage() {
   const { currentTenant } = useAuth();
@@ -29,6 +49,9 @@ export default function BookingEngineAppPage() {
 
   // Branding states
   const [logoUrl, setLogoUrl] = useState('');
+  const [description, setDescription] = useState('');
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [customAmenity, setCustomAmenity] = useState('');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
 
@@ -45,13 +68,26 @@ export default function BookingEngineAppPage() {
         if (activeProp) {
           setProperty(activeProp);
           setLogoUrl(activeProp.logo_url || '');
+          setDescription(activeProp.description || '');
+
           let imgs: string[] = [];
-          if (Array.isArray(activeProp.gallery_images)) {
+          if (Array.isArray(activeProp.photos)) {
+            imgs = activeProp.photos;
+          } else if (Array.isArray(activeProp.gallery_images)) {
             imgs = activeProp.gallery_images;
           } else if (typeof activeProp.gallery_images === 'string') {
             try { imgs = JSON.parse(activeProp.gallery_images); } catch {}
           }
           setGalleryImages(imgs || []);
+
+          let amList: string[] = [];
+          if (Array.isArray(activeProp.amenities)) {
+            amList = activeProp.amenities;
+          } else if (typeof activeProp.amenities === 'string') {
+            try { amList = JSON.parse(activeProp.amenities); } catch {}
+          }
+          setAmenities(amList);
+
           setChildCutoffAge(activeProp.child_cutoff_age ?? 10);
           setChildRateRupees(String((activeProp.child_rate_paise ?? 50000) / 100));
         }
@@ -106,6 +142,43 @@ export default function BookingEngineAppPage() {
     e.target.value = '';
   };
 
+  const handleMoveGalleryImage = (index: number, direction: 'left' | 'right') => {
+    setGalleryImages((prev) => {
+      const targetIndex = direction === 'left' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const copy = [...prev];
+      const [moved] = copy.splice(index, 1);
+      copy.splice(targetIndex, 0, moved);
+      return copy;
+    });
+  };
+
+  const handleSetPrimaryGalleryImage = (index: number) => {
+    setGalleryImages((prev) => {
+      if (index === 0) return prev;
+      const copy = [...prev];
+      const [promoted] = copy.splice(index, 1);
+      return [promoted, ...copy];
+    });
+  };
+
+  const toggleAmenity = (item: string) => {
+    if (amenities.includes(item)) {
+      setAmenities(amenities.filter((a) => a !== item));
+    } else {
+      setAmenities([...amenities, item]);
+    }
+  };
+
+  const handleAddCustomAmenity = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = customAmenity.trim();
+    if (trimmed && !amenities.includes(trimmed)) {
+      setAmenities([...amenities, trimmed]);
+      setCustomAmenity('');
+    }
+  };
+
   const handleAddGalleryImage = (e: React.FormEvent) => {
     e.preventDefault();
     if (newImageUrl.trim()) {
@@ -132,8 +205,11 @@ export default function BookingEngineAppPage() {
       await apiClient(`/properties/${property.id}/settings`, {
         method: 'PATCH',
         body: JSON.stringify({
+          description,
+          amenities,
           logo_url: logoUrl,
           gallery_images: galleryImages,
+          photos: galleryImages,
           child_cutoff_age: childCutoffAge,
           child_rate_paise: childRatePaise,
         }),
@@ -295,19 +371,135 @@ export default function BookingEngineAppPage() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
                 {galleryImages.map((img, idx) => (
-                  <div key={idx} className="group relative rounded-xl overflow-hidden border border-border-light aspect-video bg-surface-light">
+                  <div key={idx} className="group relative rounded-xl overflow-hidden border border-border-light aspect-video bg-surface-light shadow-xs">
                     <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(idx)}
-                      className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white opacity-0 group-hover:opacity-100 transition hover:bg-red-600"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    
+                    {idx === 0 && (
+                      <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-bold flex items-center gap-0.5 shadow-sm">
+                        <Star className="w-2.5 h-2.5 fill-current" /> Cover
+                      </span>
+                    )}
+
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1 p-1">
+                      {idx > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleMoveGalleryImage(idx, 'left')}
+                          className="p-1 rounded bg-white/80 hover:bg-white text-slate-800 transition"
+                          title="Move Left"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {idx !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetPrimaryGalleryImage(idx)}
+                          className="p-1 rounded bg-amber-400 hover:bg-amber-300 text-slate-900 transition"
+                          title="Set as Cover Photo"
+                        >
+                          <Star className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {idx < galleryImages.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleMoveGalleryImage(idx, 'right')}
+                          className="p-1 rounded bg-white/80 hover:bg-white text-slate-800 transition"
+                          title="Move Right"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(idx)}
+                        className="p-1 rounded bg-red-600 hover:bg-red-700 text-white transition ml-1"
+                        title="Delete Photo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+
+          {/* About Hotel / Description */}
+          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
+            <h3 className="font-bold text-sm text-content-primary-light border-b border-border-light pb-2 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-brand-blue" />
+              About Hotel / Property Overview
+            </h3>
+
+            <p className="text-content-secondary-light leading-relaxed">
+              Introduce your property to guests booking direct online. Highlight scenic views, proximity to attractions, and hospitality features.
+            </p>
+
+            <textarea
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. Nestled in the heart of the valley, Hotel Grand offers luxurious mountain-facing rooms, fine dining, and warm Himalayan hospitality..."
+              className="w-full px-3 py-2 rounded-xl border border-border-light bg-surface-light focus:outline-none focus:ring-1 focus:ring-brand-blue text-xs leading-relaxed"
+            />
+          </div>
+
+          {/* Amenities & Guest Facilities */}
+          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
+            <div className="border-b border-border-light pb-2">
+              <h3 className="font-bold text-sm text-content-primary-light flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-brand-blue" />
+                Hotel Amenities &amp; Guest Facilities
+              </h3>
+              <p className="text-[11px] text-content-secondary-light mt-0.5">
+                Check all amenities available at your property to display badges on the direct booking engine.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-1">
+              {HOTEL_AMENITIES.map((am) => {
+                const checked = amenities.includes(am);
+                return (
+                  <label
+                    key={am}
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition ${
+                      checked
+                        ? 'bg-blue-50 border-brand-blue text-brand-blue font-bold shadow-xs'
+                        : 'bg-white border-border-light text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleAmenity(am)}
+                      className="rounded text-brand-blue"
+                    />
+                    <span className="truncate">{am}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Custom Amenities Add */}
+            <div className="pt-2 flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={customAmenity}
+                onChange={(e) => setCustomAmenity(e.target.value)}
+                placeholder="Add custom amenity (e.g. Bonfire, EV Charging Station, Jacuzzi)..."
+                className="flex-1 px-3 py-2 rounded-xl border border-border-light bg-surface-light focus:outline-none focus:ring-1 focus:ring-brand-blue text-xs"
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomAmenity}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-1.5 shrink-0 text-xs shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Amenity</span>
+              </button>
+            </div>
           </div>
 
           {/* Child Pricing & Age Policy Rules */}

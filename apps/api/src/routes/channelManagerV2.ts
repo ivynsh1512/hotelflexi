@@ -1129,6 +1129,99 @@ channelManagerV2Routes.post('/reconciliation/:id/resolve', requireRole(['owner',
   }
 });
 
+// -----------------------------------------------------------------------------
+// 11. OTA RESERVATION WEBHOOK & CONCURRENCY SIMULATOR
+// -----------------------------------------------------------------------------
+channelManagerV2Routes.post('/simulate-booking', requireRole(['owner', 'manager']), async (c) => {
+  const tenantId = c.get('tenantId')!;
+  const body = await c.req.json();
+  const {
+    connectionId,
+    bookingRef = `SIM-${Math.floor(100000 + Math.random() * 900000)}`,
+    guestName = 'Simulated OTA Guest',
+    roomTypeId,
+    checkInDate,
+    checkOutDate,
+    status = 'confirmed',
+    totalAmountPaise = 350000,
+  } = body;
+
+  if (!connectionId || !roomTypeId || !checkInDate || !checkOutDate) {
+    return c.json({
+      success: false,
+      message: 'Connection, Room Category, Check-In, and Check-Out dates are required.',
+    }, 400);
+  }
+
+  const conn: any = await c.env.DB.prepare(
+    `SELECT hcc.*, cp.code as provider_code, cp.display_name as provider_name
+     FROM hotel_channel_connections hcc
+     JOIN channel_providers cp ON cp.id = hcc.provider_id
+     WHERE hcc.id = ? AND hcc.tenant_id = ?`
+  )
+    .bind(connectionId, tenantId)
+    .first();
+
+  if (!conn) {
+    return c.json({
+      success: false,
+      message: 'Channel connection not found or unauthorized. Please select a valid channel connection.',
+    }, 404);
+  }
+
+  try {
+    const rawPayload = {
+      simulated: true,
+      bookingRef,
+      guestName,
+      roomTypeId,
+      checkInDate,
+      checkOutDate,
+      totalAmountPaise,
+      timestamp: new Date().toISOString(),
+    };
+    const payloadHash = `hash_${bookingRef}_${status}_${Date.now()}`;
+
+    const ingestionResult = await ingestChannelReservationEvent(
+      c.env.DB,
+      tenantId,
+      connectionId,
+      {
+        channelCode: conn.provider_code,
+        externalReservationId: bookingRef,
+        action: status === 'cancelled' ? 'cancel' : status === 'modified' ? 'modify' : 'create',
+        externalRoomTypeId: roomTypeId,
+        checkInDate,
+        checkOutDate,
+        guestName,
+        guestEmail: 'simulated@example.com',
+        guestPhone: '+919999999999',
+        adults: 2,
+        children: 0,
+        totalAmountMinor: totalAmountPaise,
+        currency: 'INR',
+        payloadHash,
+        rawPayload,
+      }
+    );
+
+    return c.json({
+      success: ingestionResult.success,
+      action: ingestionResult.action,
+      reservationId: ingestionResult.reservationId,
+      reservationNumber: ingestionResult.reservationNumber,
+      externalReservationId: ingestionResult.externalReservationId,
+      message: ingestionResult.message || `Simulated reservation ${bookingRef} processed successfully.`,
+    });
+  } catch (err: any) {
+    console.error('[Simulator Ingestion Exception]:', err);
+    return c.json({
+      success: false,
+      message: err.message || 'Simulation encountered an unexpected processing error.',
+    }, 400);
+  }
+});
+
 // =============================================================================
 // Public Webhook Router for Incoming OTA Callbacks
 // =============================================================================

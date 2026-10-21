@@ -105,6 +105,9 @@ guestPortalRoutes.get('/:token', async (c) => {
     .bind(res.id)
     .all();
 
+  const today = new Date().toISOString().split('T')[0];
+  const isArrivalDayOrLater = !res.check_in_date || today >= res.check_in_date;
+
   return c.json({
     expired: false,
     reservation: {
@@ -113,6 +116,7 @@ guestPortalRoutes.get('/:token', async (c) => {
       status: res.status,
       checkInDate: res.check_in_date,
       checkOutDate: res.check_out_date,
+      canSelfCheckin: isArrivalDayOrLater,
       adults: res.adults,
       children: res.children,
       nightlyRatePaise: res.nightly_rate_paise,
@@ -166,7 +170,12 @@ guestPortalRoutes.post('/:token/self-checkin', async (c) => {
   const body = await c.req.json();
 
   const res: any = await c.env.DB.prepare(
-    `SELECT id, tenant_id, check_out_date, guest_portal_expires_at, children FROM reservations WHERE guest_portal_token = ?`
+    `SELECT res.id, res.tenant_id, res.property_id, res.check_in_date, res.check_out_date,
+            res.guest_portal_expires_at, res.children, res.guest_name,
+            r.room_number
+     FROM reservations res
+     LEFT JOIN rooms r ON r.id = res.room_id
+     WHERE res.guest_portal_token = ?`
   )
     .bind(token)
     .first();
@@ -177,6 +186,15 @@ guestPortalRoutes.post('/:token/self-checkin', async (c) => {
 
   if (isPortalExpired(res.check_out_date, res.guest_portal_expires_at)) {
     return c.json({ error: 'This FlexiLink has expired (7 days past checkout)' }, 410);
+  }
+
+  // Enforce arrival date constraint
+  const today = new Date().toISOString().split('T')[0];
+  if (res.check_in_date && today < res.check_in_date) {
+    return c.json({
+      error: `Self check-in is only permitted on or after your arrival date (${res.check_in_date}) upon arriving at the hotel.`,
+      checkInDate: res.check_in_date,
+    }, 400);
   }
 
   const {
@@ -227,6 +245,33 @@ guestPortalRoutes.post('/:token/self-checkin', async (c) => {
       res.id
     )
   ]);
+
+  // Create a siren/complaint for front desk staff to be alerted
+  try {
+    const guestName = res.guest_name || 'Guest';
+    const roomNum = res.room_number ? `Room ${res.room_number}` : 'allocated room';
+    const sirenId = `cmp_${crypto.randomUUID()}`;
+    await c.env.DB.prepare(
+      `INSERT INTO complaints (
+        id, property_id, tenant_id, reservation_id, guest_name, room_number,
+        category, description, priority, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 'self_checkin', ?, 'high', 'open', ?, ?)`
+    )
+      .bind(
+        sirenId,
+        res.property_id,
+        res.tenant_id,
+        res.id,
+        guestName,
+        res.room_number || null,
+        `${guestName} has completed self check-in for ${roomNum} via the guest portal. Please prepare key card and welcome them.`,
+        now,
+        now
+      )
+      .run();
+  } catch (sirenErr) {
+    console.error('[Self-Checkin Siren Error]:', sirenErr);
+  }
 
   return c.json({
     success: true,
