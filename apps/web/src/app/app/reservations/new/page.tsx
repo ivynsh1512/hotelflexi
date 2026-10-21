@@ -339,7 +339,7 @@ export default function NewReservationPage() {
               >
                 {Array.from({ length: Math.max(16, selectedRoomType?.max_occupancy || 6) }, (_, i) => i + 1).map((n) => (
                   <option key={n} value={n}>
-                    {n} Adult{n > 1 ? 's' : ''} {selectedRoomType?.base_occupancy && n > selectedRoomType.base_occupancy ? `(+${n - selectedRoomType.base_occupancy} Extra)` : ''}
+                    {n} Adult{n > 1 ? 's' : ''}
                   </option>
                 ))}
               </select>
