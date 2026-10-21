@@ -283,12 +283,13 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
   }
 
   let calculatedRoomChargePaise = 0;
-  const currentD = new Date(checkInDate);
-  const endD = new Date(checkOutDate);
+  const currentD = new Date(`${checkInDate}T12:00:00Z`);
+  const endD = new Date(`${checkOutDate}T12:00:00Z`);
 
   while (currentD < endD) {
     const dStr = currentD.toISOString().split('T')[0];
-    const isWeekend = currentD.getDay() === 0 || currentD.getDay() === 6;
+    const day = currentD.getUTCDay();
+    const isWeekend = day === 0 || day === 5 || day === 6; // Friday, Saturday, Sunday
     if (dailyOverrides.has(dStr)) {
       calculatedRoomChargePaise += dailyOverrides.get(dStr)!;
     } else if (body.nightlyRatePaise) {
@@ -298,7 +299,7 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
     } else {
       calculatedRoomChargePaise += roomType.base_price_paise;
     }
-    currentD.setDate(currentD.getDate() + 1);
+    currentD.setUTCDate(currentD.getUTCDate() + 1);
   }
 
   const nightlyRatePaise = Math.round(calculatedRoomChargePaise / nights);

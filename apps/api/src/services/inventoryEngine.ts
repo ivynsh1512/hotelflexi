@@ -135,8 +135,9 @@ export async function calculateDateInventory(
     pricePaise = dailyRateRow.price_paise;
     isCustomPrice = true;
   } else {
-    const curDate = new Date(date);
-    const isWeekend = curDate.getDay() === 0 || curDate.getDay() === 6;
+    const curDate = new Date(`${date}T12:00:00Z`);
+    const day = curDate.getUTCDay();
+    const isWeekend = day === 0 || day === 5 || day === 6; // Friday, Saturday, Sunday
     if (isWeekend && roomType.weekend_price_paise) {
       pricePaise = roomType.weekend_price_paise;
     }

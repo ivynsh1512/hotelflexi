@@ -33,21 +33,19 @@ export default function DashboardOverviewPage() {
       setError(null);
       try {
         // Fetch properties
-        const propData = await apiClient('/properties');
+        const propData = await apiClient('/properties').catch(() => ({ properties: [] }));
         const activeProp = propData.properties?.[0];
         setProperty(activeProp);
 
         if (activeProp) {
-          // Fetch rooms
-          const roomData = await apiClient(`/rooms?property_id=${activeProp.id}`);
+          const [roomData, resData, colData] = await Promise.all([
+            apiClient(`/rooms?property_id=${activeProp.id}`).catch(() => ({ rooms: [] })),
+            apiClient(`/reservations?property_id=${activeProp.id}&status=confirmed`).catch(() => ({ reservations: [] })),
+            apiClient(`/reports/daily-collections?property_id=${activeProp.id}&date=${today}`).catch(() => ({ totalPaise: 0 })),
+          ]);
+
           setRooms(roomData.rooms || []);
-
-          // Fetch reservations today
-          const resData = await apiClient(`/reservations?property_id=${activeProp.id}&status=confirmed`);
           setArrivals(resData.reservations?.slice(0, 5) || []);
-
-          // Fetch daily collections
-          const colData = await apiClient(`/reports/daily-collections?property_id=${activeProp.id}&date=${today}`);
           setDailyCollections(colData.totalPaise || 0);
         }
       } catch (err: any) {

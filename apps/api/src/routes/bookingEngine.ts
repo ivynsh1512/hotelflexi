@@ -166,19 +166,24 @@ bookingEngineRoutes.get('/properties/:slug/availability', async (c) => {
       }
 
       let singleRoomChargePaise = 0;
-      const cur = new Date(checkIn);
-      const end = new Date(checkOut);
+      let weekendNightsCount = 0;
+      let weekdayNightsCount = 0;
+      const cur = new Date(`${checkIn}T12:00:00Z`);
+      const end = new Date(`${checkOut}T12:00:00Z`);
       while (cur < end) {
         const dStr = cur.toISOString().split('T')[0];
-        const isWeekend = cur.getDay() === 0 || cur.getDay() === 6;
+        const day = cur.getUTCDay();
+        const isWeekend = day === 0 || day === 5 || day === 6; // Friday, Saturday, Sunday
         if (dailyMap.has(dStr)) {
           singleRoomChargePaise += dailyMap.get(dStr)!;
         } else if (isWeekend && rt.weekend_price_paise) {
           singleRoomChargePaise += rt.weekend_price_paise;
+          weekendNightsCount++;
         } else {
           singleRoomChargePaise += rt.base_price_paise;
+          weekdayNightsCount++;
         }
-        cur.setDate(cur.getDate() + 1);
+        cur.setUTCDate(cur.getUTCDate() + 1);
       }
 
       // Calculate extra adult surcharge
@@ -206,6 +211,12 @@ bookingEngineRoutes.get('/properties/:slug/availability', async (c) => {
         extraAdultPricePaise,
         totalExtraAdultChargePaise,
         availableCount,
+        basePricePaise: rt.base_price_paise,
+        weekendPricePaise: rt.weekend_price_paise || rt.base_price_paise,
+        hasWeekendPricing: Boolean(rt.weekend_price_paise && rt.weekend_price_paise !== rt.base_price_paise),
+        isWeekendPricingActive: weekendNightsCount > 0 && Boolean(rt.weekend_price_paise && rt.weekend_price_paise !== rt.base_price_paise),
+        weekendNightsCount,
+        weekdayNightsCount,
         nightlyPricePaise: effectiveNightlyPaise,
         perRoomNightlyPaise,
         totalRoomChargePaise: roomChargePaise,
@@ -309,20 +320,23 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
   }
 
   let calculatedRoomChargePaise = 0;
-  const currentD = new Date(checkInDate);
-  const endD = new Date(checkOutDate);
+  let bookingWeekendNights = 0;
+  const currentD = new Date(`${checkInDate}T12:00:00Z`);
+  const endD = new Date(`${checkOutDate}T12:00:00Z`);
 
   while (currentD < endD) {
     const dStr = currentD.toISOString().split('T')[0];
-    const isWeekend = currentD.getDay() === 0 || currentD.getDay() === 6;
+    const day = currentD.getUTCDay();
+    const isWeekend = day === 0 || day === 5 || day === 6; // Friday, Saturday, Sunday
     if (dailyOverrides.has(dStr)) {
       calculatedRoomChargePaise += dailyOverrides.get(dStr)!;
     } else if (isWeekend && roomType.weekend_price_paise) {
       calculatedRoomChargePaise += roomType.weekend_price_paise;
+      bookingWeekendNights++;
     } else {
       calculatedRoomChargePaise += roomType.base_price_paise;
     }
-    currentD.setDate(currentD.getDate() + 1);
+    currentD.setUTCDate(currentD.getUTCDate() + 1);
   }
 
   const nightlyRatePaise = Math.round(calculatedRoomChargePaise / nights);

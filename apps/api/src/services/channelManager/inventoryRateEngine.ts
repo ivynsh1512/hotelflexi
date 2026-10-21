@@ -113,7 +113,8 @@ export async function calculateCanonicalAvailability(
 
   while (cur < end) {
     const dStr = cur.toISOString().split('T')[0];
-    const isWeekend = cur.getDay() === 0 || cur.getDay() === 6; // Sun or Sat
+    const day = cur.getUTCDay();
+    const isWeekend = day === 0 || day === 5 || day === 6; // Fri, Sat, Sun
 
     // Count reserved rooms on this date
     const reservedCount = reservations.filter(
