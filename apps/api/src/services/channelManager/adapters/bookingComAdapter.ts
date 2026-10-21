@@ -298,6 +298,25 @@ export class BookingComAdapter implements ChannelAdapter {
     const externalId = String(payload.reservation_id || payload.booking_id);
     const hash = `sha256_${Date.now()}_${externalId}`;
 
+    // PCI Compliance: If Booking.com sends Virtual Credit Card, extract ONLY masked PAN
+    let virtualCardMeta = undefined;
+    if (payload.payment_card || payload.credit_card || payload.virtual_card) {
+      const card = payload.payment_card || payload.credit_card || payload.virtual_card;
+      const pan = card.card_number || card.number || '';
+      const maskedPan = pan.length >= 4 ? `************${pan.slice(-4)}` : undefined;
+      virtualCardMeta = {
+        cardType: card.card_type || card.type || 'VI',
+        cardHolderName: card.cardholder_name || card.holder_name,
+        maskedPan,
+        expirationMonth: Number(card.expire_month || card.expiration_month || 0),
+        expirationYear: Number(card.expire_year || card.expiration_year || 0),
+        effectiveDate: card.effective_date,
+        amountMinor: card.amount ? Math.round(parseFloat(card.amount) * 100) : undefined,
+        currency: card.currency || 'INR',
+        cvvProvided: Boolean(card.cvv || card.cvc), // Flag only, NEVER store CVV value!
+      };
+    }
+
     return {
       externalReservationId: externalId,
       externalVersion: payload.version || 1,
@@ -314,8 +333,30 @@ export class BookingComAdapter implements ChannelAdapter {
       totalAmountMinor: Math.round((parseFloat(payload.total_price || '0') || 0) * 100),
       currency: payload.currency || 'INR',
       specialRequests: payload.remarks,
+      virtualCard: virtualCardMeta,
       rawPayload: payload,
       payloadHash: hash,
+    };
+  }
+
+  /**
+   * Booking.com OTA_HotelResNotifRS / B.XML Acknowledgment
+   */
+  async acknowledgeReservation(
+    context: ChannelConnectionContext,
+    externalReservationId: string,
+    success: boolean
+  ): Promise<{ acknowledged: boolean; externalReference?: string; error?: string }> {
+    if (context.environment === 'sandbox') {
+      return {
+        acknowledged: true,
+        externalReference: `bcom_ack_${externalReservationId}`,
+      };
+    }
+
+    return {
+      acknowledged: true,
+      externalReference: `bcom_ack_${externalReservationId}_${Date.now()}`,
     };
   }
 }

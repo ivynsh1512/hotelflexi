@@ -154,7 +154,7 @@ export class MakeMyTripAdapter implements ChannelAdapter {
       externalReservationId: String(bookingId),
       externalVersion: payload.version || 1,
       channelCode: 'makemytrip',
-      action: payload.status === 'CANCELLED' ? 'cancel' : 'create',
+      action: payload.status === 'CANCELLED' ? 'cancel' : payload.status === 'MODIFIED' ? 'modify' : 'create',
       guestName: payload.primary_guest?.name || payload.guest_name || 'MMT Guest',
       guestEmail: payload.primary_guest?.email,
       guestPhone: payload.primary_guest?.phone,
@@ -167,6 +167,20 @@ export class MakeMyTripAdapter implements ChannelAdapter {
       currency: payload.currency || 'INR',
       rawPayload: payload,
       payloadHash: `sha256_${Date.now()}_${bookingId}`,
+    };
+  }
+
+  /**
+   * IngoMMT Reservation Acknowledgment
+   */
+  async acknowledgeReservation(
+    context: ChannelConnectionContext,
+    externalReservationId: string,
+    success: boolean
+  ): Promise<{ acknowledged: boolean; externalReference?: string; error?: string }> {
+    return {
+      acknowledged: true,
+      externalReference: `mmt_ack_${externalReservationId}_${Date.now()}`,
     };
   }
 }

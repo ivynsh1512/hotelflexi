@@ -74,11 +74,33 @@ export interface ChannelOperationResult {
   retryable: boolean;
   httpStatus?: number;
   providerStatus?: string;
+  errorCategory?: 'AUTH_FAILURE' | 'MAPPING_ERROR' | 'NETWORK_TIMEOUT' | 'RATE_LIMIT_EXCEEDED' | 'PROVIDER_OUTAGE' | 'VALIDATION_ERROR';
   errors: Array<{
     code: string;
     message: string;
   }>;
   rawResponse?: any;
+}
+
+export interface VirtualCreditCardMetadata {
+  tokenizedCardId?: string;
+  cardType?: string; // 'VI', 'MC', 'AX'
+  cardHolderName?: string;
+  maskedPan?: string; // e.g. '************4242'
+  expirationMonth?: number;
+  expirationYear?: number;
+  effectiveDate?: string;
+  amountMinor?: number;
+  currency?: string;
+  cvvProvided?: boolean; // flag only, NEVER store CVV value (PCI DSS Req 3.2.2)
+}
+
+export interface OAuthTokenResult {
+  success: boolean;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresInSeconds?: number;
+  error?: string;
 }
 
 export interface NormalizedReservationEvent {
@@ -98,6 +120,7 @@ export interface NormalizedReservationEvent {
   totalAmountMinor: number;
   currency: string;
   specialRequests?: string;
+  virtualCard?: VirtualCreditCardMetadata;
   rawPayload: any;
   payloadHash: string;
 }
@@ -163,4 +186,14 @@ export interface ChannelAdapter {
     context: ChannelConnectionContext,
     request: VerifiedWebhookRequest
   ): Promise<NormalizedReservationEvent | null>;
+
+  refreshOAuthToken?(
+    context: ChannelConnectionContext
+  ): Promise<OAuthTokenResult>;
+
+  acknowledgeReservation?(
+    context: ChannelConnectionContext,
+    externalReservationId: string,
+    success: boolean
+  ): Promise<{ acknowledged: boolean; externalReference?: string; error?: string }>;
 }
