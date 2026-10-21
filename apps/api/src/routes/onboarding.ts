@@ -69,17 +69,35 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
   const now = Math.floor(Date.now() / 1000);
   const trialEnds = now + 14 * 86400; // 14-day full feature trial
 
-  // Check existing user in users table
-  await c.env.DB.prepare(
-    `INSERT INTO users (id, email, full_name, phone, email_verified, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       full_name = COALESCE(excluded.full_name, users.full_name),
-       phone = COALESCE(excluded.phone, users.phone),
-       updated_at = excluded.updated_at`
+  // Safely find existing user by Firebase UID or Email to avoid UNIQUE constraint collisions
+  const existingUser: any = await c.env.DB.prepare(
+    'SELECT id, email_verified FROM users WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?)) LIMIT 1'
   )
-    .bind(user.uid, user.email, ownerName, phone, user.email_verified ? 1 : 0, now, now)
-    .run();
+    .bind(user.uid, user.email)
+    .first();
+
+  const effectiveUserId = existingUser?.id || user.uid;
+
+  if (existingUser) {
+    await c.env.DB.prepare(
+      `UPDATE users SET
+         email = ?,
+         full_name = COALESCE(?, full_name),
+         phone = COALESCE(?, phone),
+         email_verified = 1,
+         updated_at = ?
+       WHERE id = ?`
+    )
+      .bind(user.email, ownerName, phone, now, existingUser.id)
+      .run();
+  } else {
+    await c.env.DB.prepare(
+      `INSERT INTO users (id, email, full_name, phone, email_verified, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 1, ?, ?)`
+    )
+      .bind(user.uid, user.email, ownerName, phone, now, now)
+      .run();
+  }
 
   // 1. Create Tenant (Trial starts with Essential Plan)
   const stmtTenant = c.env.DB.prepare(
@@ -87,13 +105,13 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
       id, name, slug, owner_user_id, account_access_status, subscription_status,
       current_plan_id, trial_ends_at, current_period_ends_at, created_at, updated_at
     ) VALUES (?, ?, ?, ?, 'active', 'trial', 'essential', ?, ?, ?, ?)`
-  ).bind(tenantId, propertyName, tenantSlug, user.uid, trialEnds, trialEnds, now, now);
+  ).bind(tenantId, propertyName, tenantSlug, effectiveUserId, trialEnds, trialEnds, now, now);
 
   // 2. Create Owner Membership
   const stmtMembership = c.env.DB.prepare(
     `INSERT INTO tenant_memberships (id, tenant_id, user_id, role, created_at, updated_at)
      VALUES (?, ?, ?, 'owner', ?, ?)`
-  ).bind(membershipId, tenantId, user.uid, now, now);
+  ).bind(membershipId, tenantId, effectiveUserId, now, now);
 
   // 3. Create Feature Entitlements (Essential Plan features)
   const stmtEntitlements = c.env.DB.prepare(

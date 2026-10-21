@@ -18,20 +18,36 @@ authRoutes.post('/sync', authMiddleware, async (c) => {
   const verifiedInt = user.email_verified ? 1 : 0;
   const adminAllowed = isSuperAdmin(user.email, c.env.ADMIN_EMAILS, user.email_verified) ? 1 : 0;
 
-  await c.env.DB.prepare(
-    `INSERT INTO users (id, email, full_name, phone, avatar_url, email_verified, is_platform_admin, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       email = excluded.email,
-       full_name = COALESCE(excluded.full_name, users.full_name),
-       phone = COALESCE(excluded.phone, users.phone),
-       avatar_url = COALESCE(excluded.avatar_url, users.avatar_url),
-       email_verified = CASE WHEN users.email_verified = 1 THEN 1 ELSE excluded.email_verified END,
-       is_platform_admin = excluded.is_platform_admin,
-       updated_at = excluded.updated_at`
+  // Safely find existing user by Firebase UID or Email to avoid UNIQUE constraint collisions
+  const existingUser: any = await c.env.DB.prepare(
+    'SELECT id, email_verified FROM users WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?)) LIMIT 1'
   )
-    .bind(user.uid, user.email, fullName, phone, avatarUrl, verifiedInt, adminAllowed, now, now)
-    .run();
+    .bind(user.uid, user.email)
+    .first();
+
+  if (existingUser) {
+    const isNowVerified = (existingUser.email_verified === 1 || verifiedInt === 1) ? 1 : 0;
+    await c.env.DB.prepare(
+      `UPDATE users SET
+         email = ?,
+         full_name = COALESCE(?, full_name),
+         phone = COALESCE(?, phone),
+         avatar_url = COALESCE(?, avatar_url),
+         email_verified = ?,
+         is_platform_admin = ?,
+         updated_at = ?
+       WHERE id = ?`
+    )
+      .bind(user.email, fullName, phone, avatarUrl, isNowVerified, adminAllowed, now, existingUser.id)
+      .run();
+  } else {
+    await c.env.DB.prepare(
+      `INSERT INTO users (id, email, full_name, phone, avatar_url, email_verified, is_platform_admin, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(user.uid, user.email, fullName, phone, avatarUrl, verifiedInt, adminAllowed, now, now)
+      .run();
+  }
 
   // Auto-accept any pending team invitations for this user's email
   if (user.email) {
@@ -123,10 +139,10 @@ authRoutes.get('/me', authMiddleware, async (c) => {
             t.trial_ends_at, t.current_period_ends_at, t.suspension_reason
      FROM tenant_memberships tm
      JOIN tenants t ON t.id = tm.tenant_id
-     WHERE tm.user_id = ?
+     WHERE tm.user_id = ? OR tm.user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?))
      ORDER BY t.created_at ASC`
   )
-    .bind(user.uid)
+    .bind(user.uid, user.email)
     .all();
 
   const evaluatedTenants = ((memberships.results || []) as any[]).map((m) => {

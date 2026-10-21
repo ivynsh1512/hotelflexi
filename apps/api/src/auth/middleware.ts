@@ -73,9 +73,9 @@ export const tenantMiddleware: MiddlewareHandler<{ Bindings: Env; Variables: App
             t.current_plan_id, t.trial_ends_at, t.current_period_ends_at
      FROM tenant_memberships tm
      JOIN tenants t ON t.id = tm.tenant_id
-     WHERE tm.tenant_id = ? AND tm.user_id = ?`
+     WHERE tm.tenant_id = ? AND (tm.user_id = ? OR tm.user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?)))`
   )
-    .bind(tenantId, user.uid)
+    .bind(tenantId, user.uid, user.email)
     .first();
 
   if (!row) {
