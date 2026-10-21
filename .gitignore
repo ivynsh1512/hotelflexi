@@ -36,6 +36,7 @@ Thumbs.db
 
 # Android build outputs
 android/.gradle/
+android/.kotlin/
 android/app/build/
 android/local.properties
 android/*.aab
