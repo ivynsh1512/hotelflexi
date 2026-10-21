@@ -18,7 +18,15 @@ import { processOtaReservationEvent } from '../services/channelReservationServic
 
 export const channelManagerRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
-channelManagerRoutes.use('*', authMiddleware, tenantMiddleware);
+channelManagerRoutes.use('*', async (c, next) => {
+  if (c.req.path.includes('/v2')) {
+    await next();
+    return;
+  }
+  await authMiddleware(c, async () => {
+    await tenantMiddleware(c, next);
+  });
+});
 
 // -----------------------------------------------------------------------------
 // 1. GET ALL OTA CONNECTIONS FOR PROPERTY
