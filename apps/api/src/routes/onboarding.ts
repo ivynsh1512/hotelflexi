@@ -25,17 +25,23 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
   }
 
   // Prevent spam/unverified onboardings: Require email verification
+  // email_verified is already true for Google OAuth users (sign_in_provider === 'google.com')
   let isEmailVerified = Boolean(user.email_verified);
 
+  // Fallback: check DB in case user verified email but token hasn't refreshed yet
   if (!isEmailVerified) {
-    const dbUser: any = await c.env.DB.prepare(
-      'SELECT email_verified, is_platform_admin FROM users WHERE id = ?'
-    )
-      .bind(user.uid)
-      .first();
+    try {
+      const dbUser: any = await c.env.DB.prepare(
+        'SELECT email_verified, is_platform_admin FROM users WHERE id = ?'
+      )
+        .bind(user.uid)
+        .first();
 
-    if (dbUser && (dbUser.email_verified === 1 || dbUser.is_platform_admin === 1)) {
-      isEmailVerified = true;
+      if (dbUser && (dbUser.email_verified === 1 || dbUser.is_platform_admin === 1)) {
+        isEmailVerified = true;
+      }
+    } catch (dbErr) {
+      console.warn('[Onboarding] DB email_verified fallback check failed:', dbErr);
     }
   }
 

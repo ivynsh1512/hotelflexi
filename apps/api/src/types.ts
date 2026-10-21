@@ -18,6 +18,7 @@ export interface AuthUser {
   uid: string;
   email: string;
   email_verified: boolean;
+  sign_in_provider?: string; // 'google.com', 'password', 'phone', etc.
   name?: string;
   picture?: string;
   phone?: string;
