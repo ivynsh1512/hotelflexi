@@ -569,6 +569,12 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
 
   const formatINR = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`;
 
+  // Check if tenant has FlexiLink enabled (Pro & Enterprise only, not Essential)
+  const tenantRow: any = await c.env.DB.prepare(
+    'SELECT current_plan_id FROM tenants WHERE id = ?'
+  ).bind(property.tenant_id).first().catch(() => null);
+  const isEssential = (tenantRow?.current_plan_id || 'essential') === 'essential';
+
   // Send confirmation emails to guest and property owner
   sendBookingEmails(c.env, {
     reservationNumber,
@@ -590,6 +596,7 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
     paidAmountRupees: formatINR(0),
     balanceAmountRupees: formatINR(totalAmountPaise),
     guestPortalUrl,
+    hasFlexiLink: !isEssential,
   }).catch((e) => console.error('[Resend Error]', e));
 
   return c.json({

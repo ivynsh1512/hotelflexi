@@ -558,6 +558,12 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
   const guestPortalUrl = `https://hotelflexi.vercel.app/guest/${guestPortalToken}`;
   const formatINR = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`;
 
+  // Check if tenant has FlexiLink enabled (Pro & Enterprise only, not Essential)
+  const tenantRow: any = await c.env.DB.prepare(
+    'SELECT current_plan_id FROM tenants WHERE id = ?'
+  ).bind(tenantId).first().catch(() => null);
+  const isEssential = (tenantRow?.current_plan_id || 'essential') === 'essential';
+
   // Dispatch confirmation emails to both guest and property admin/owner
   sendBookingEmails(c.env, {
     reservationNumber,
@@ -579,6 +585,7 @@ reservationRoutes.post('/', requireRole(['owner', 'manager', 'receptionist']), a
     paidAmountRupees: formatINR(paidPaise),
     balanceAmountRupees: formatINR(balancePaise),
     guestPortalUrl,
+    hasFlexiLink: !isEssential,
   }).catch((err) => console.error('[Email Notification Error]', err));
 
   await recordAuditLog(c, {

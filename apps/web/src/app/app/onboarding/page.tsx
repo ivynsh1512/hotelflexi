@@ -24,6 +24,7 @@ export default function OnboardingPage() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Auto-redirect if property already exists (Resolves onboarding loop on login!)
   React.useEffect(() => {
@@ -102,7 +103,7 @@ export default function OnboardingPage() {
 
       // Refresh auth context so newly created tenant becomes active
       await refreshUser();
-      router.push('/app');
+      setShowSuccess(true);
     } catch (err: any) {
       console.error('Onboarding failed:', err);
       setError(err.message || 'Failed to complete hotel onboarding.');
@@ -111,6 +112,59 @@ export default function OnboardingPage() {
     }
   };
 
+  // ─── SUCCESS / CELEBRATION SCREEN ───────────────────────────────────────────
+  if (showSuccess) {
+    return (
+      <div className="max-w-lg mx-auto py-12 px-4 text-center">
+        <div className="bg-white p-8 rounded-3xl border border-border-light shadow-xl space-y-6">
+          {/* Big celebration emoji */}
+          <div className="text-6xl">🎉</div>
+
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 mb-3">
+              <CheckCircle2 className="w-3.5 h-3.5" /> 14-Day Free Trial Activated
+            </div>
+            <h1 className="text-2xl font-extrabold text-content-primary-light">
+              Congratulations! 🚀
+            </h1>
+            <p className="text-sm text-content-secondary-light mt-2 leading-relaxed">
+              Your hotel workspace is live. You&apos;ve unlocked a <strong>14-day Essential Trial</strong> — explore all core features with zero commitment.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-surface-light border border-border-light text-left space-y-2.5 text-xs">
+            <div className="font-bold text-content-primary-light text-sm mb-1">✅ What&apos;s included in your trial:</div>
+            {[
+              '🛏️ Manage up to 10 rooms — front desk & reservations',
+              '📅 Booking calendar, check-in/check-out management',
+              '🧾 GST billing, invoices & payment recording',
+              '🤖 50 AI assistant queries per month',
+              '👥 Up to 2 staff accounts',
+              '🌐 Direct booking engine (0% commission)',
+            ].map((f) => (
+              <div key={f} className="flex items-start gap-2 text-content-secondary-light">
+                <span>{f}</span>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => router.push('/app')}
+            className="w-full py-3.5 rounded-xl bg-brand-blue text-white font-extrabold text-sm hover:bg-brand-blue-hover transition shadow-lg flex items-center justify-center gap-2"
+          >
+            Start Exploring Your Hotel Dashboard
+            <ArrowRight className="w-5 h-5" />
+          </button>
+
+          <p className="text-[11px] text-content-secondary-light">
+            Trial ends in 14 days. No credit card required to start.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── EMAIL VERIFICATION GATE ─────────────────────────────────────────────────
   if (user && !isEmailVerified) {
     return (
       <div className="max-w-md mx-auto py-12 px-4 text-center">
@@ -156,6 +210,7 @@ export default function OnboardingPage() {
     );
   }
 
+  // ─── ONBOARDING FORM ─────────────────────────────────────────────────────────
   return (
     <div className="max-w-2xl mx-auto py-10 px-4">
       <div className="text-center mb-8">
@@ -163,7 +218,7 @@ export default function OnboardingPage() {
           <Hotel className="w-6 h-6" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-content-primary-light tracking-tight">
-          Welcome! Let's set up your property
+          Welcome! Let&apos;s set up your property
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-content-secondary-light">
           HotelFlexi will configure your room inventory, rate plans, and booking engine automatically.
@@ -307,15 +362,15 @@ export default function OnboardingPage() {
             <div className="font-semibold text-content-primary-light mb-1">Your Property Workspace Setup:</div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-brand-blue" />
-              <span>Dedicated Direct Booking Engine & Commission-Free Guest Portal</span>
+              <span>Dedicated Direct Booking Engine &amp; Commission-Free Guest Portal</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-brand-blue" />
-              <span>Indian GST Rules (12% / 18%) & Invoice Prefix: 'HF-1001'</span>
+              <span>Indian GST Rules (12% / 18%) &amp; Invoice Prefix: &apos;HF-1001&apos;</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-brand-blue" />
-              <span>14-Day Free Trial Activated (Starter Plan Features)</span>
+              <span>14-Day Essential Trial — 50 AI chats, 10 rooms, 2 staff</span>
             </div>
           </div>
 

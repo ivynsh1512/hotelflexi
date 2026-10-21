@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   MessageCircle,
   ExternalLink,
+  Lock,
 } from 'lucide-react';
 
 export default function ReservationsListPage() {
@@ -254,32 +255,40 @@ export default function ReservationsListPage() {
 
                           {res.guest_portal_token && (
                             <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => copyFlexiLink(res.guest_portal_token)}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-brand-blue font-semibold text-[10px] border border-blue-200 transition"
-                                title="Copy Guest FlexiLink"
-                              >
-                                {copiedToken === res.guest_portal_token ? (
-                                  <span className="text-emerald-700 font-bold">Copied!</span>
-                                ) : (
-                                  <>
-                                    <Copy className="w-2.5 h-2.5" /> FlexiLink
-                                  </>
-                                )}
-                              </button>
-
-                              {res.guest_phone && (
-                                  <a
-                                    href={`https://wa.me/${res.guest_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                                      `Namaste ${res.guest_name || 'Guest'}, here is your FlexiLink for reservation #${res.reservation_number}${res.room_number ? ` (Room ${res.room_number})` : ''}: https://hotelflexi.com/guest/${res.guest_portal_token} to open your direct guest portal without any login. Download our Android App on Google Play: https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso (Access valid during stay and up to 7 days after checkout).`
-                                    )}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="p-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition"
-                                    title="Share FlexiLink via WhatsApp"
+                              {currentTenant?.current_plan_id !== 'essential' ? (
+                                <>
+                                  <button
+                                    onClick={() => copyFlexiLink(res.guest_portal_token)}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-brand-blue font-semibold text-[10px] border border-blue-200 transition"
+                                    title="Copy Guest FlexiLink"
                                   >
-                                  <MessageCircle className="w-3 h-3" />
-                                </a>
+                                    {copiedToken === res.guest_portal_token ? (
+                                      <span className="text-emerald-700 font-bold">Copied!</span>
+                                    ) : (
+                                      <>
+                                        <Copy className="w-2.5 h-2.5" /> FlexiLink
+                                      </>
+                                    )}
+                                  </button>
+
+                                  {res.guest_phone && (
+                                      <a
+                                        href={`https://wa.me/${res.guest_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                                          `Namaste ${res.guest_name || 'Guest'}, here is your FlexiLink for reservation #${res.reservation_number}${res.room_number ? ` (Room ${res.room_number})` : ''}: https://hotelflexi.com/guest/${res.guest_portal_token} to open your direct guest portal without any login. Download our Android App on Google Play: https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso (Access valid during stay and up to 7 days after checkout).`
+                                        )}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="p-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition"
+                                        title="Share FlexiLink via WhatsApp"
+                                      >
+                                      <MessageCircle className="w-3 h-3" />
+                                    </a>
+                                  )}
+                                </>
+                              ) : (
+                                <Link href="/app/subscription" className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition" title="FlexiLink available on Pro & Enterprise plans">
+                                  <Lock className="w-3 h-3" /> FlexiLink — Upgrade to Pro
+                                </Link>
                               )}
                             </div>
                           )}

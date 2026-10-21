@@ -16,9 +16,9 @@ subscriptionRoutes.get('/plans', async (c) => {
     const now = Math.floor(Date.now() / 1000);
     await c.env.DB.batch([
       c.env.DB.prepare("UPDATE subscription_plans SET is_active = 0 WHERE id IN ('starter', 'growth')"),
-      c.env.DB.prepare("UPDATE subscription_plans SET name = 'Essential', monthly_price_paise = 49900, annual_price_paise = 499000, max_rooms = 30, max_users = 5, sort_order = 1, is_active = 1, updated_at = ? WHERE id = 'essential'").bind(now),
-      c.env.DB.prepare("UPDATE subscription_plans SET name = 'Pro', description = 'Everything in Essential plus 2-Way Live OTA Channel Manager, Wedding Engine, Custom Website with Free Domain, Hosting & Maintenance', monthly_price_paise = 99900, annual_price_paise = 999000, max_rooms = 75, max_users = 15, has_channel_manager = 1, max_channel_connections = 10, sort_order = 2, is_active = 1, updated_at = ? WHERE id = 'pro'").bind(now),
-      c.env.DB.prepare("UPDATE subscription_plans SET name = 'Enterprise', monthly_price_paise = 199900, annual_price_paise = 1999000, sort_order = 3, is_active = 1, updated_at = ? WHERE id = 'enterprise'").bind(now),
+      c.env.DB.prepare("UPDATE subscription_plans SET name = 'Essential', description = 'For small hotels, guest houses and budget properties.', monthly_price_paise = 49900, annual_price_paise = 499000, max_rooms = 10, max_users = 2, ai_monthly_limit = 50, sort_order = 1, is_active = 1, updated_at = ? WHERE id = 'essential'").bind(now),
+      c.env.DB.prepare("UPDATE subscription_plans SET name = 'Pro', description = 'For growing hotels and resorts.', monthly_price_paise = 99900, annual_price_paise = 999000, max_rooms = 50, max_users = 10, ai_monthly_limit = 200, has_channel_manager = 1, max_channel_connections = 10, sort_order = 2, is_active = 1, updated_at = ? WHERE id = 'pro'").bind(now),
+      c.env.DB.prepare("UPDATE subscription_plans SET name = 'Enterprise', description = 'For premium hotels, resorts and multi-property businesses.', monthly_price_paise = 199900, annual_price_paise = 1999000, max_rooms = 9999, max_users = 9999, ai_monthly_limit = 2000, sort_order = 3, is_active = 1, updated_at = ? WHERE id = 'enterprise'").bind(now),
     ]);
   } catch (syncErr) {
     console.error('Plan sync error:', syncErr);
@@ -440,33 +440,11 @@ subscriptionRoutes.post('/upgrade', requireRole(['owner']), async (c) => {
   const body = await c.req.json();
   const planId = body.planId;
 
-  // Free starter can be switched directly
   if (planId === 'starter') {
-    const res = await c.env.DB.prepare(
-      "SELECT * FROM subscription_plans WHERE id = 'starter'"
-    ).first();
-    if (res) {
-      // Delegate to switch-free
-      const tenantId = c.get('tenantId')!;
-      const now = Math.floor(Date.now() / 1000);
-      await c.env.DB.prepare(
-        `UPDATE tenants
-         SET current_plan_id = 'starter',
-             subscription_status = 'active',
-             account_access_status = 'active',
-             suspension_reason = NULL,
-             current_period_ends_at = NULL,
-             updated_at = ?
-         WHERE id = ?`
-      )
-        .bind(now, tenantId)
-        .run();
-
-      return c.json({
-        success: true,
-        message: 'Plan changed to Free Starter tier.',
-      });
-    }
+    return c.json(
+      { error: 'The free starter tier has been discontinued. HotelFlexi offers Essential (₹499/mo), Pro (₹999/mo), and Enterprise (₹1,999/mo).' },
+      400
+    );
   }
 
   // Reject all paid plan upgrades without payment

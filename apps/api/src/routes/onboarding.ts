@@ -113,13 +113,13 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
      VALUES (?, ?, ?, 'owner', ?, ?)`
   ).bind(membershipId, tenantId, effectiveUserId, now, now);
 
-  // 3. Create Feature Entitlements (Essential Plan features)
+  // 3. Create Feature Entitlements (Essential Plan 14-day trial features)
   const stmtEntitlements = c.env.DB.prepare(
     `INSERT INTO feature_entitlements (
       id, tenant_id, max_properties, max_rooms, max_users, has_pms, has_booking_engine,
       has_channel_manager, max_channel_connections, has_ai_agent, ai_monthly_limit,
       has_advanced_reports, has_accounting, has_multi_property, created_at, updated_at
-    ) VALUES (?, ?, 1, 30, 5, 1, 1, 1, 4, 1, 200, 1, 1, 0, ?, ?)`
+    ) VALUES (?, ?, 1, 10, 2, 1, 1, 0, 0, 1, 50, 0, 0, 0, ?, ?)`
   ).bind(entitlementId, tenantId, now, now);
 
   // 4. Create Property

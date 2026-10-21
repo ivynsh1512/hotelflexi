@@ -534,27 +534,38 @@ aiAgentRoutes.post('/chat', async (c) => {
     return c.json({ error: 'Message cannot be empty' }, 400);
   }
 
-  // Quota enforcement: Free trial / Starter plan allows maximum 2 AI chats per day
+  // Monthly AI Quota enforcement according to plan tiers:
+  // - Essential (and 14-day Essential Trial): 50 AI chats / month
+  // - Pro: 200 AI agent tasks / month
+  // - Enterprise: 2,000 AI chats / month (fair-use policy)
   const tenant: any = await c.env.DB.prepare('SELECT current_plan_id, subscription_status FROM tenants WHERE id = ?')
     .bind(tenantId)
     .first();
 
-  const isFreeOrStarter = !tenant?.current_plan_id || tenant.current_plan_id === 'starter' || tenant.subscription_status === 'trial';
-  if (isFreeOrStarter) {
-    const todayStart = Math.floor(new Date().setHours(0, 0, 0, 0) / 1000);
-    const dailyCountRow: any = await c.env.DB.prepare(
-      `SELECT COUNT(*) as count FROM ai_messages WHERE tenant_id = ? AND role = 'user' AND created_at >= ?`
-    ).bind(tenantId, todayStart).first();
+  const planId = (tenant?.current_plan_id || 'essential').toLowerCase();
+  let monthlyLimit = 50;
+  if (planId === 'pro') {
+    monthlyLimit = 200;
+  } else if (planId === 'enterprise') {
+    monthlyLimit = 2000;
+  }
 
-    const currentCount = dailyCountRow?.count || 0;
-    if (currentCount >= 2) {
-      return c.json({
-        error: 'Daily free AI limit reached (2 chats/day on Starter Trial). Please upgrade to Essential, Growth, or Pro plan for unlimited AI commands.',
-        requiresUpgrade: true,
-        currentCount,
-        maxAllowed: 2
-      }, 403);
-    }
+  // Calculate beginning of current calendar month in UTC
+  const nowObj = new Date();
+  const monthStart = Math.floor(new Date(Date.UTC(nowObj.getUTCFullYear(), nowObj.getUTCMonth(), 1)).getTime() / 1000);
+
+  const monthlyCountRow: any = await c.env.DB.prepare(
+    `SELECT COUNT(*) as count FROM ai_messages WHERE tenant_id = ? AND role = 'user' AND created_at >= ?`
+  ).bind(tenantId, monthStart).first().catch(() => ({ count: 0 }));
+
+  const currentCount = monthlyCountRow?.count || 0;
+  if (currentCount >= monthlyLimit) {
+    return c.json({
+      error: `Monthly AI command limit reached (${currentCount}/${monthlyLimit} used this month on ${planId.toUpperCase()} plan). Upgrade to ${planId === 'essential' ? 'Pro' : 'Enterprise'} for higher AI limits.`,
+      requiresUpgrade: true,
+      currentCount,
+      maxAllowed: monthlyLimit
+    }, 403);
   }
 
   // Fetch contextual tenant data: room types and property details

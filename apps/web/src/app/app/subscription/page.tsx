@@ -231,66 +231,64 @@ export default function SubscriptionPage() {
 
   const currentPlan = subData?.subscription;
   const entitlements = subData?.entitlements;
-  const activePlanId = currentPlan?.current_plan_id || 'starter';
+  const activePlanId = currentPlan?.current_plan_id || 'essential';
 
   const comparisonRows = [
     { name: 'Monthly Tariff (INR)', essential: '₹499 / mo', pro: '₹999 / mo', enterprise: '₹1,999 / mo' },
-    { name: 'Room Inventory Capacity', essential: 'Up to 30 Rooms', pro: 'Up to 75 Rooms', enterprise: 'Unlimited Rooms' },
-    { name: 'Staff User Logins', essential: '5 Users', pro: '15 Users', enterprise: 'Unlimited Staff' },
-    { name: 'Properties Managed', essential: '1 Property', pro: 'Up to 3 Properties', enterprise: 'Unlimited Properties' },
-    // Channel Manager
-    { name: '— CHANNEL MANAGER —', essential: '', pro: '', enterprise: '' },
-    { name: '2-Way Live OTA Channel Manager', essential: false, pro: true, enterprise: true },
-    { name: 'OTA Connections (MMT, Agoda, Booking.com, Airbnb, Expedia)', essential: 'Direct Only', pro: '10 Live Channels', enterprise: 'Unlimited Channels' },
-    { name: 'Sub-second ARI Sync (Availability, Rates & Inventory)', essential: false, pro: true, enterprise: true },
-    { name: 'Channel-Specific Rate Markup Rules', essential: false, pro: true, enterprise: true },
-    // Booking Engine
-    { name: '— BOOKING ENGINE —', essential: '', pro: '', enterprise: '' },
-    { name: 'Direct Booking Engine (/book/slug)', essential: true, pro: true, enterprise: true },
-    { name: '0% Commission on Direct Bookings', essential: true, pro: true, enterprise: true },
-    { name: 'Custom Advance Deposit Rules (% / Fixed / Full / Pay at Hotel)', essential: true, pro: true, enterprise: true },
-    { name: 'Razorpay Direct Settlement to Hotel Account', essential: true, pro: true, enterprise: true },
-    { name: 'Google Hotel Center & Free Booking Links (FBL)', essential: true, pro: true, enterprise: true },
-    { name: 'Custom Hotel Website + Free Domain + Annual AMC', essential: false, pro: 'Included Free', enterprise: 'Included Free' },
-    // Wedding Engine
-    { name: '— WEDDING ENGINE —', essential: '', pro: '', enterprise: '' },
-    { name: 'Destination Wedding Package Engine', essential: false, pro: true, enterprise: true },
-    { name: 'Decoration Tiers & Day-wise Catering Pricing', essential: false, pro: true, enterprise: true },
-    { name: 'Instant Branded PDF Quotation Builder', essential: false, pro: true, enterprise: true },
-    { name: 'Bulk Room Blocking for Wedding Groups', essential: false, pro: true, enterprise: true },
-    // AI Agent
-    { name: '— AI AGENT —', essential: '', pro: '', enterprise: '' },
-    { name: 'Bilingual FlexiAI Agent (Hindi + English)', essential: true, pro: true, enterprise: true },
-    { name: 'AI Monthly Prompt Quota', essential: '200 / mo', pro: '600 / mo', enterprise: '10,000 / mo' },
-    { name: 'Autonomous PMS Command Execution', essential: true, pro: true, enterprise: true },
-    // Accounting & Finance
-    { name: '— ACCOUNTING & FINANCE —', essential: '', pro: '', enterprise: '' },
-    { name: 'GST Billing & Invoicing (12% / 18% SAC 9963)', essential: true, pro: true, enterprise: true },
-    { name: 'Expense Tracking & P&L Reports', essential: true, pro: true, enterprise: true },
-    { name: 'Payments & Collection Ledger', essential: true, pro: true, enterprise: true },
-    { name: 'Custom Webhooks & REST API Integrations', essential: false, pro: false, enterprise: true },
-    // Operations
-    { name: '— OPERATIONS —', essential: '', pro: '', enterprise: '' },
-    { name: 'Guest Portal (FlexiLink) with ID Upload', essential: 'Full', pro: 'Full', enterprise: 'Full + Custom Domain' },
-    { name: 'Housekeeping Urgency Siren (880Hz + Vibration)', essential: true, pro: true, enterprise: true },
-    { name: 'In-Stay Room Service & Food Orders', essential: true, pro: true, enterprise: true },
-    { name: 'Dine-Out Table Bookings (Restaurant POS)', essential: true, pro: true, enterprise: true },
-    { name: 'Dynamic Pricing Matrix & Date-Rate Overrides', essential: true, pro: true, enterprise: true },
-    { name: 'Competitor Rate Shopper', essential: false, pro: true, enterprise: true },
+    // Hotel Management
+    { name: '— HOTEL MANAGEMENT —', essential: '', pro: '', enterprise: '' },
+    { name: 'Room Inventory', essential: 'Up to 10 Rooms', pro: 'Up to 50 Rooms', enterprise: 'Unlimited Rooms' },
+    { name: 'Staff Accounts', essential: 'Up to 2', pro: 'Up to 10', enterprise: 'Unlimited' },
+    { name: 'Properties Managed', essential: '1 Property', pro: '1 Property', enterprise: 'Multi-Property' },
+    { name: 'Front Desk & Reservation Calendar', essential: true, pro: true, enterprise: true },
+    { name: 'Room Status Management', essential: true, pro: true, enterprise: true },
+    { name: 'Basic Housekeeping Tracking', essential: true, pro: true, enterprise: true },
+    { name: 'Smart Automated Housekeeping Workflows', essential: false, pro: true, enterprise: true },
+    { name: 'Guest Profiles & Reservation Management', essential: true, pro: true, enterprise: true },
+    { name: 'Check-in & Check-out Management', essential: true, pro: true, enterprise: true },
+    { name: 'Role-Based Access & Permissions', essential: false, pro: false, enterprise: true },
+    { name: 'Multi-Property Management', essential: false, pro: false, enterprise: true },
+    // Bookings & Billing
+    { name: '— BOOKINGS & BILLING —', essential: '', pro: '', enterprise: '' },
+    { name: 'Direct Booking Engine (0% Commission)', essential: true, pro: true, enterprise: true },
+    { name: 'Booking Confirmation Emails', essential: true, pro: true, enterprise: true },
+    { name: 'Basic Billing & Invoices (GST)', essential: true, pro: true, enterprise: true },
+    { name: 'Payment Recording', essential: true, pro: true, enterprise: true },
+    { name: 'Basic Occupancy & Revenue Reports', essential: true, pro: true, enterprise: true },
+    { name: 'Advanced Financial Reports & Accounting', essential: false, pro: true, enterprise: true },
+    { name: 'Automated Email Reports & Business Summaries', essential: false, pro: true, enterprise: true },
+    { name: 'Advanced Billing & Accounting Tools', essential: false, pro: true, enterprise: true },
+    { name: 'Destination Wedding Booking Engine', essential: false, pro: true, enterprise: true },
+    { name: 'Coupons & Promotional Offers', essential: false, pro: true, enterprise: true },
+    { name: 'Payment Gateway Integrations', essential: false, pro: false, enterprise: true },
+    { name: 'Data Export & Audit History', essential: false, pro: false, enterprise: true },
+    { name: 'API & Integration Access', essential: false, pro: false, enterprise: true },
+    // AI & Team
+    { name: '— AI AGENT & TEAM —', essential: '', pro: '', enterprise: '' },
+    { name: 'AI Business Agent Monthly Quota', essential: '50 chats / mo', pro: '200 tasks / mo', enterprise: 'Expanded (fair-use)' },
+    { name: 'AI-Assisted Business Insights', essential: false, pro: true, enterprise: true },
+    { name: 'Advanced Analytics & Performance Dashboards', essential: false, pro: false, enterprise: true },
+    // Guest Experience (FlexiLink)
+    { name: '— GUEST EXPERIENCE —', essential: '', pro: '', enterprise: '' },
+    { name: 'FlexiLink Guest Portal', essential: false, pro: true, enterprise: true },
+    { name: 'Digital Self Check-In', essential: false, pro: true, enterprise: true },
+    { name: 'Guest ID Upload', essential: false, pro: true, enterprise: true },
+    { name: 'Online Payment Options for Guests', essential: false, pro: true, enterprise: true },
+    { name: 'Hotel Restaurant Food Ordering', essential: false, pro: true, enterprise: true },
+    { name: 'Guest Service Requests & Hotel Facilities', essential: false, pro: true, enterprise: true },
+    { name: 'Custom Branding Options', essential: false, pro: false, enterprise: true },
     // Support
     { name: '— SUPPORT —', essential: '', pro: '', enterprise: '' },
-    { name: 'Support SLA', essential: 'WhatsApp & Email', pro: 'Priority WhatsApp & Phone', enterprise: '24/7 Dedicated Manager' },
-    { name: 'White-Label Android App on Play Store', essential: false, pro: false, enterprise: true },
-    { name: '99.99% Uptime SLA Guarantee', essential: false, pro: false, enterprise: true },
+    { name: 'Support Level', essential: 'Standard Support', pro: 'Priority Support', enterprise: 'Priority Onboarding & Support' },
+    { name: 'Custom Branding & White-Label', essential: false, pro: false, enterprise: true },
   ];
 
   const planTierOrder: Record<string, number> = {
-    starter: 0,
     essential: 1,
     pro: 2,
     enterprise: 3,
   };
-  const currentTierLevel = planTierOrder[activePlanId] ?? 0;
+  const currentTierLevel = planTierOrder[activePlanId] ?? 1;
   const visiblePlans = plans.filter((p) => (planTierOrder[p.id] ?? 0) >= currentTierLevel && p.id !== 'starter');
 
   return (
@@ -347,7 +345,7 @@ export default function SubscriptionPage() {
               </div>
               <p className="text-xs text-red-100 max-w-2xl leading-relaxed">
                 {currentPlan?.suspension_reason ||
-                  'Protected front desk, channel manager, and rate sync operations are locked. Complete payment below for Essential, Growth, or Enterprise, or switch to the Free Starter tier to unlock your hotel workspace.'}
+                  'Your trial has ended or subscription has expired. Please choose a plan below to restore full access to your hotel workspace.'}
               </p>
             </div>
           )}
@@ -383,6 +381,25 @@ export default function SubscriptionPage() {
               </div>
             </div>
           </div>
+
+          {/* Trial Countdown Banner */}
+          {(currentPlan?.subscription_status === 'trial' || currentPlan?.subscription_status === 'trialing') && currentPlan?.trial_ends_at && (() => {
+            const nowSec = Math.floor(Date.now() / 1000);
+            const daysLeft = Math.max(0, Math.ceil((currentPlan.trial_ends_at - nowSec) / 86400));
+            return (
+              <div className={`p-4 rounded-2xl border flex items-center gap-4 ${daysLeft <= 3 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                <div className="text-3xl">⏳</div>
+                <div>
+                  <div className="font-extrabold text-sm">{daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining in your Essential Trial</div>
+                  <div className="text-xs opacity-80 mt-0.5">
+                    {daysLeft > 0
+                      ? `Trial ends on ${new Date(currentPlan.trial_ends_at * 1000).toLocaleDateString('en-IN')} — upgrade below to keep your workspace running`
+                      : 'Your trial has ended — choose a plan below to restore access'}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Active Feature Entitlements Meters */}
           {activePlanId === 'enterprise' ? (
@@ -516,12 +533,31 @@ export default function SubscriptionPage() {
                         </div>
 
                         <div className="py-3 space-y-1.5 text-xs text-content-primary-light border-b border-border-light font-medium">
-                          <div>🛏️ Up to {p.max_rooms} Rooms</div>
-                          <div>👥 {p.max_users} Staff Accounts</div>
-                          <div>
-                            🌐 {p.max_channel_connections > 0 ? `${p.max_channel_connections} OTA Channels` : 'Direct Only'}
-                          </div>
-                          <div>🤖 {p.ai_monthly_limit} AI Prompts/mo</div>
+                          {p.id === 'essential' && <>
+                            <div>🛏️ Up to 10 rooms</div>
+                            <div>📅 Front desk & reservation calendar</div>
+                            <div>🧾 GST billing & invoices</div>
+                            <div>🤖 50 AI chats / month</div>
+                            <div>👥 Up to 2 staff accounts</div>
+                            <div>🌐 Direct booking engine</div>
+                          </>}
+                          {p.id === 'pro' && <>
+                            <div>🛏️ Up to 50 rooms</div>
+                            <div>✅ Everything in Essential</div>
+                            <div>🔗 FlexiLink guest portal</div>
+                            <div>📱 Digital self check-in & ID upload</div>
+                            <div>🍽️ Restaurant food ordering</div>
+                            <div>🤖 200 AI tasks / month</div>
+                            <div>👥 Up to 10 staff accounts</div>
+                          </>}
+                          {p.id === 'enterprise' && <>
+                            <div>🏨 Unlimited rooms & staff</div>
+                            <div>✅ Everything in Pro</div>
+                            <div>🏢 Multi-property management</div>
+                            <div>🤖 Expanded AI (fair-use)</div>
+                            <div>🎨 Custom branding</div>
+                            <div>📊 Advanced analytics</div>
+                          </>}
                         </div>
                       </div>
 

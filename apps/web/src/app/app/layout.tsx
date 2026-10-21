@@ -385,6 +385,54 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
+        {/* Trial Countdown Banner */}
+        {currentTenant?.subscription_status === 'trial' && currentTenant?.trial_ends_at && (() => {
+          const nowSec = Math.floor(Date.now() / 1000);
+          const daysLeft = Math.max(0, Math.ceil((currentTenant.trial_ends_at - nowSec) / 86400));
+          return (
+            <div className="mx-3 mb-2">
+              <Link
+                href="/app/subscription"
+                className={`block p-3 rounded-xl border text-xs font-semibold transition ${
+                  daysLeft <= 3
+                    ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
+                    : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>⏳ Trial: {daysLeft} day{daysLeft !== 1 ? 's' : ''} left</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide">Upgrade →</span>
+                </div>
+                <div className="text-[10px] font-normal mt-0.5 opacity-75">Essential Plan — Tap to upgrade</div>
+              </Link>
+            </div>
+          );
+        })()}
+
+        {/* Trial Countdown Banner */}
+        {(currentTenant?.subscription_status === 'trial' || currentTenant?.subscription_status === 'trialing') && currentTenant?.trial_ends_at && (() => {
+          const nowSec = Math.floor(Date.now() / 1000);
+          const daysLeft = Math.max(0, Math.ceil((currentTenant.trial_ends_at - nowSec) / 86400));
+          return (
+            <div className="mx-3 mb-2">
+              <Link
+                href="/app/subscription"
+                className={`block p-3 rounded-xl border text-xs font-semibold transition ${
+                  daysLeft <= 3
+                    ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
+                    : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>⏳ Trial: {daysLeft} day{daysLeft !== 1 ? 's' : ''} left</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide">Upgrade →</span>
+                </div>
+                <div className="text-[10px] font-normal mt-0.5 opacity-75">Essential Plan — Tap to upgrade</div>
+              </Link>
+            </div>
+          );
+        })()}
+
         {/* Sidebar Footer */}
         <div className="p-3 border-t border-border-light bg-surface-light">
           <div className="flex items-center justify-between pt-1">

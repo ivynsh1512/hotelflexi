@@ -20,6 +20,7 @@ interface BookingNotificationData {
   paidAmountRupees: string;
   balanceAmountRupees: string;
   guestPortalUrl: string;
+  hasFlexiLink?: boolean;
 }
 
 export async function sendBookingEmails(env: Env, data: BookingNotificationData) {
@@ -85,6 +86,7 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
             </div>
           </div>
 
+          ${data.hasFlexiLink !== false ? `
           <!-- DIRECT GUEST ACCESS (NO LOGIN REQUIRED) -->
           <div style="text-align:center;padding:10px 0;">
             <p style="font-size:13px;color:#475569;margin-bottom:6px;">
@@ -114,6 +116,13 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
           <p style="font-size:11px;color:#64748b;margin:18px 0 0 0;text-align:center;line-height:1.5;">
             🔒 <em>Security &amp; Privacy: Your digital guest portal access is securely active during your stay and will be automatically removed 7 days after checkout (${data.checkOutDate}).</em>
           </p>
+          ` : `
+          <div style="text-align:center;padding:12px;background:#f8fafc;border-radius:10px;margin:12px 0;border:1px dashed #cbd5e1;">
+            <p style="font-size:12px;color:#475569;margin:0;">
+              Please present your booking reference <strong>#${data.reservationNumber}</strong> and a valid government ID upon arrival at the front desk for check-in.
+            </p>
+          </div>
+          `}
 
           <div style="margin-top:24px;padding:16px;background:#eff6ff;border-radius:10px;font-size:12px;color:#1e40af;">
             <strong>Hotel Contact:</strong><br/>
@@ -161,10 +170,11 @@ export async function sendBookingEmails(env: Env, data: BookingNotificationData)
               <div>Outstanding Balance: <strong style="color:#b45309;">${data.balanceAmountRupees}</strong></div>
             </div>
           </div>
+          ${data.hasFlexiLink !== false ? `
           <p style="font-size:12px;color:#64748b;">
             Guest Direct FlexiLink: <a href="${data.guestPortalUrl}">${data.guestPortalUrl}</a><br/>
             <em>(Access automatically expires 7 days after checkout)</em>
-          </p>
+          </p>` : ''}
         </div>
       </div>
     </body>

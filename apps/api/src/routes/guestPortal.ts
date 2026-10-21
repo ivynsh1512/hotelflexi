@@ -26,12 +26,14 @@ guestPortalRoutes.get('/:token', async (c) => {
             p.city as property_city, p.state as property_state, p.country as property_country,
             p.phone as property_phone, p.email as property_email, p.logo_url as property_logo_url,
             p.check_in_time, p.check_out_time,
-            ps.upi_id as property_upi_id, ps.razorpay_key_id as property_razorpay_key, ps.razorpay_enabled
+            ps.upi_id as property_upi_id, ps.razorpay_key_id as property_razorpay_key, ps.razorpay_enabled,
+            t.current_plan_id as tenant_current_plan_id
      FROM reservations res
      LEFT JOIN properties p ON p.id = res.property_id
      LEFT JOIN property_settings ps ON ps.property_id = res.property_id
      LEFT JOIN rooms r ON r.id = res.room_id
      LEFT JOIN room_types rt ON rt.id = res.room_type_id
+     LEFT JOIN tenants t ON t.id = res.tenant_id
      WHERE res.guest_portal_token = ?`
   )
     .bind(token)
@@ -39,6 +41,19 @@ guestPortalRoutes.get('/:token', async (c) => {
 
   if (!res) {
     return c.json({ error: 'Guest portal link not found or invalid' }, 404);
+  }
+
+  // FlexiLink is only available on Pro & Enterprise plans
+  if (res.tenant_current_plan_id === 'essential') {
+    return c.json(
+      {
+        disabled: true,
+        message: 'FlexiLink Guest Portal is available on Pro & Enterprise plans. Please visit hotel front desk for express check-in and assistance.',
+        propertyName: res.property_name,
+        propertyPhone: res.property_phone,
+      },
+      403
+    );
   }
 
   // Token Expiration Rule: strictly 7 days after checkout date
