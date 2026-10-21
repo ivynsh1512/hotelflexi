@@ -113,7 +113,7 @@ app.onError((err, c) => {
   console.error(`[Error] ${c.req.method} ${c.req.path}:`, err);
   return c.json(
     {
-      error: 'An internal error occurred',
+      error: err.message || 'An internal error occurred',
       message: err.message,
       requestId: c.get('requestId'),
     },

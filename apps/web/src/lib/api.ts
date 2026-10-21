@@ -49,7 +49,7 @@ export async function apiClient<T = any>(
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
-    const errorMsg = data?.error || data?.message || `HTTP Error ${res.status}`;
+    const errorMsg = data?.message || data?.error || `HTTP Error ${res.status}`;
     const err: any = new Error(errorMsg);
     err.status = res.status;
     err.code = data?.code;
