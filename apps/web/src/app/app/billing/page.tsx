@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/lib/AuthContext';
@@ -264,11 +264,34 @@ export default function BillingInvoicesPage() {
       {selectedInvoice && (
         <div
           onClick={() => setSelectedInvoice(null)}
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150 print:p-0 print:bg-white print:static print:inset-auto"
         >
+          <style jsx global>{`
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #invoice-print-container, #invoice-print-container * {
+                visibility: visible !important;
+              }
+              #invoice-print-container {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 32px !important;
+                border: none !important;
+                box-shadow: none !important;
+                background: white !important;
+              }
+            }
+          `}</style>
           <div
+            id="invoice-print-container"
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl border border-border-light max-h-[90vh] overflow-y-auto print:p-0 print:border-none print:shadow-none"
+            className="relative bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl border border-border-light max-h-[90vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0 print:border-none print:shadow-none"
           >
             {/* Top-Right Cross Button */}
             <button
@@ -331,15 +354,17 @@ export default function BillingInvoicesPage() {
                 <thead className="border-b border-border-light font-bold text-content-secondary-light text-[10px] uppercase">
                   <tr>
                     <th className="py-2">Description</th>
+                    <th className="py-2 text-center">HSN/SAC</th>
                     <th className="py-2 text-right">Rate</th>
                     <th className="py-2 text-right">Tax</th>
                     <th className="py-2 text-right">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border-light">
+                <tbody className="divide-y border-border-light">
                   {selectedInvoice.items?.map((item: any) => (
                     <tr key={item.id}>
                       <td className="py-2.5 font-medium">{item.description}</td>
+                      <td className="py-2.5 text-center font-mono text-[11px] text-slate-500">{item.hsn_code || '996311'}</td>
                       <td className="py-2.5 text-right">{formatINR(item.unit_price_paise)}</td>
                       <td className="py-2.5 text-right text-content-secondary-light">{formatINR(item.tax_amount_paise)}</td>
                       <td className="py-2.5 text-right font-bold">{formatINR(item.amount_paise)}</td>

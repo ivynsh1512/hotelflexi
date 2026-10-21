@@ -573,14 +573,19 @@ aiAgentRoutes.post('/chat', async (c) => {
     property,
   };
 
-  // Ensure conversation exists
+  // Ensure conversation exists with valid user ID
+  const dbUser: any = await c.env.DB.prepare(
+    'SELECT id FROM users WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?)) LIMIT 1'
+  ).bind(user.uid, user.email).first().catch(() => null);
+  const effectiveUserId = dbUser?.id || membership.user_id || user.uid;
+
   if (!conversationId) {
     conversationId = `conv_${crypto.randomUUID()}`;
     await c.env.DB.prepare(
       `INSERT INTO ai_conversations (id, tenant_id, user_id, title, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`
     )
-      .bind(conversationId, tenantId, user.uid, message.slice(0, 40), now, now)
+      .bind(conversationId, tenantId, effectiveUserId, message.slice(0, 40), now, now)
       .run();
   }
 
@@ -603,7 +608,7 @@ aiAgentRoutes.post('/chat', async (c) => {
     const ctx: ToolExecutionContext = {
       env: c.env,
       tenantId,
-      userId: user.uid,
+      userId: effectiveUserId,
       role: membership.role,
       propertyId: property?.id,
       language: lang,

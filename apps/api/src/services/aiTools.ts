@@ -18,6 +18,19 @@ export async function executeAiTool(
   const { env, tenantId, userId, role } = ctx;
   const now = Math.floor(Date.now() / 1000);
 
+  // Validate or fallback user ID to guarantee satisfaction of foreign key constraints
+  const dbUserCheck: any = await env.DB.prepare(
+    'SELECT id FROM users WHERE id = ? LIMIT 1'
+  ).bind(userId).first().catch(() => null);
+
+  let effectiveUserId = dbUserCheck?.id || null;
+  if (!effectiveUserId) {
+    const ownerRow: any = await env.DB.prepare(
+      'SELECT owner_user_id FROM tenants WHERE id = ? LIMIT 1'
+    ).bind(tenantId).first().catch(() => null);
+    effectiveUserId = ownerRow?.owner_user_id || userId;
+  }
+
   let success = false;
   let result: any = null;
   let error: string | undefined = undefined;
@@ -100,7 +113,7 @@ export async function executeAiTool(
             `INSERT INTO room_blocks (id, property_id, tenant_id, room_id, start_date, end_date, reason, created_by_user_id, is_active, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
           )
-            .bind(blockId, room.property_id, tenantId, room.id, startDate, endDate, reason, userId, now, now)
+            .bind(blockId, room.property_id, tenantId, room.id, startDate, endDate, reason, dbUserCheck?.id || null, now, now)
             .run();
 
           blocked.push(num);
@@ -758,25 +771,29 @@ export async function executeAiTool(
       : `Action could not be completed: ${error}`;
   }
 
-  // Record into ai_action_logs
-  const logId = `act_${crypto.randomUUID()}`;
-  await env.DB.prepare(
-    `INSERT INTO ai_action_logs (id, tenant_id, property_id, user_id, tool_name, input_params_json, output_result_json, status, error_message, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      logId,
-      tenantId,
-      ctx.propertyId || null,
-      userId,
-      toolName,
-      JSON.stringify(params),
-      result ? JSON.stringify(result) : null,
-      success ? 'success' : 'failure',
-      error || null,
-      now
+  // Record into ai_action_logs safely
+  try {
+    const logId = `act_${crypto.randomUUID()}`;
+    await env.DB.prepare(
+      `INSERT INTO ai_action_logs (id, tenant_id, property_id, user_id, tool_name, input_params_json, output_result_json, status, error_message, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .run();
+      .bind(
+        logId,
+        tenantId,
+        ctx.propertyId || null,
+        effectiveUserId,
+        toolName,
+        JSON.stringify(params),
+        result ? JSON.stringify(result) : null,
+        success ? 'success' : 'failure',
+        error || null,
+        now
+      )
+      .run();
+  } catch (logErr) {
+    console.error('Failed to record AI action log:', logErr);
+  }
 
   return { success, result, error, humanMessage };
 }

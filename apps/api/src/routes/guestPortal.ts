@@ -269,6 +269,22 @@ guestPortalRoutes.post('/:token/self-checkin', async (c) => {
         now
       )
       .run();
+
+    // Also dispatch to in-app notifications
+    const notifId = `notif_${crypto.randomUUID()}`;
+    await c.env.DB.prepare(
+      `INSERT INTO notifications (id, tenant_id, title, message, category, link_url, is_read, created_at)
+       VALUES (?, ?, ?, ?, 'alert', '/app/reservations', 0, ?)`
+    )
+      .bind(
+        notifId,
+        res.tenant_id,
+        'Guest Self-Checked In',
+        `${guestName} has completed self check-in for ${roomNum}. Key preparation required.`,
+        now
+      )
+      .run()
+      .catch(() => {});
   } catch (sirenErr) {
     console.error('[Self-Checkin Siren Error]:', sirenErr);
   }

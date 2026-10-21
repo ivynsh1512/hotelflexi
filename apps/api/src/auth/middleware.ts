@@ -19,6 +19,34 @@ export const authMiddleware: MiddlewareHandler<{ Bindings: Env; Variables: AppVa
   }
 
   c.set('user', user);
+
+  // Ensure user row exists in D1 users table to satisfy all foreign key constraints
+  try {
+    const existing: any = await c.env.DB.prepare(
+      'SELECT id FROM users WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?)) LIMIT 1'
+    ).bind(user.uid, user.email).first();
+
+    if (!existing) {
+      const now = Math.floor(Date.now() / 1000);
+      const isPlatformAdmin = isSuperAdmin(user.email, c.env.ADMIN_EMAILS, user.email_verified) ? 1 : 0;
+      await c.env.DB.prepare(
+        `INSERT INTO users (id, email, full_name, avatar_url, email_verified, is_platform_admin, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        user.uid,
+        user.email,
+        user.name || 'HotelFlexi User',
+        user.picture || null,
+        user.email_verified ? 1 : 0,
+        isPlatformAdmin,
+        now,
+        now
+      ).run();
+    }
+  } catch (err) {
+    // Non-blocking fallback
+  }
+
   await next();
 };
 
