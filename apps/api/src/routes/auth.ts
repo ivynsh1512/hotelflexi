@@ -26,7 +26,7 @@ authRoutes.post('/sync', authMiddleware, async (c) => {
        full_name = COALESCE(excluded.full_name, users.full_name),
        phone = COALESCE(excluded.phone, users.phone),
        avatar_url = COALESCE(excluded.avatar_url, users.avatar_url),
-       email_verified = excluded.email_verified,
+       email_verified = CASE WHEN users.email_verified = 1 THEN 1 ELSE excluded.email_verified END,
        is_platform_admin = excluded.is_platform_admin,
        updated_at = excluded.updated_at`
   )

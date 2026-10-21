@@ -8,6 +8,7 @@ const API_BASE_URL =
 
 export interface ApiFetchOptions extends RequestInit {
   tenantId?: string;
+  forceRefreshToken?: boolean;
 }
 
 export async function apiClient<T = any>(
@@ -24,7 +25,7 @@ export async function apiClient<T = any>(
   // Attach Firebase ID Token if logged in
   if (auth.currentUser) {
     try {
-      const idToken = await auth.currentUser.getIdToken();
+      const idToken = await auth.currentUser.getIdToken(Boolean(options.forceRefreshToken));
       headers.set('Authorization', `Bearer ${idToken}`);
     } catch (e) {
       console.warn('Failed to retrieve Firebase ID token:', e);

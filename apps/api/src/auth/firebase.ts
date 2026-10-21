@@ -36,10 +36,36 @@ export async function verifyFirebaseToken(
       return null;
     }
 
+    let isVerified = Boolean(payload.email_verified);
+
+    // If token claims say email is not verified, check Google Identity Toolkit in case the user
+    // recently verified in email and the client's cached token has not refreshed its claims yet
+    if (!isVerified) {
+      try {
+        const lookupRes = await fetch(
+          'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=AIzaSyCeUG4AhkqO0aDwq4l88eo2JVobzfSdUL0',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken: token }),
+          }
+        );
+        if (lookupRes.ok) {
+          const lookupData: any = await lookupRes.json();
+          const googleUser = lookupData?.users?.[0];
+          if (googleUser?.emailVerified) {
+            isVerified = true;
+          }
+        }
+      } catch (lookupErr) {
+        console.warn('Firebase accounts:lookup check failed (non-fatal):', lookupErr);
+      }
+    }
+
     return {
       uid: payload.sub,
       email: typeof payload.email === 'string' ? payload.email : '',
-      email_verified: Boolean(payload.email_verified),
+      email_verified: isVerified,
       name: typeof payload.name === 'string' ? payload.name : undefined,
       picture: typeof payload.picture === 'string' ? payload.picture : undefined,
     };

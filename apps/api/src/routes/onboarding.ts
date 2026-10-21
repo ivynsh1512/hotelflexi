@@ -25,7 +25,21 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
   }
 
   // Prevent spam/unverified onboardings: Require email verification
-  if (!user.email_verified) {
+  let isEmailVerified = Boolean(user.email_verified);
+
+  if (!isEmailVerified) {
+    const dbUser: any = await c.env.DB.prepare(
+      'SELECT email_verified, is_platform_admin FROM users WHERE id = ?'
+    )
+      .bind(user.uid)
+      .first();
+
+    if (dbUser && (dbUser.email_verified === 1 || dbUser.is_platform_admin === 1)) {
+      isEmailVerified = true;
+    }
+  }
+
+  if (!isEmailVerified) {
     return c.json(
       { error: 'Email verification required before onboarding your property. Please check your inbox and verify your email.' },
       403

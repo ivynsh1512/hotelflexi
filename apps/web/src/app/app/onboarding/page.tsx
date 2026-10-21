@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
+import { auth } from '@/lib/firebase';
 import AddressAutocomplete, { SelectedLocation } from '@/components/ui/AddressAutocomplete';
 import { Hotel, MapPin, Phone, BedDouble, CheckCircle2, ArrowRight, Loader2, AlertCircle, Compass } from 'lucide-react';
 
@@ -58,8 +59,26 @@ export default function OnboardingPage() {
     setLoading(true);
     setError(null);
 
-    if (!isEmailVerified) {
-      setError('Email verification is required before configuring your hotel property. Please check your inbox.');
+    // Force-reload user from Firebase & force-refresh the ID token so that
+    // email_verified claim in the JWT is up-to-date even if the user just clicked
+    // the verification link in another tab without logging out.
+    try {
+      if (auth.currentUser) {
+        await auth.currentUser.reload();
+        await auth.currentUser.getIdToken(true); // force fresh token with updated claims
+        await refreshUser();
+      }
+    } catch (reloadErr) {
+      console.warn('Token refresh before onboarding (non-fatal):', reloadErr);
+    }
+
+    // Re-evaluate after reload
+    const currentUser = auth.currentUser;
+    const isGoogleUser2 = currentUser?.providerData?.some((p) => p.providerId === 'google.com');
+    const isVerifiedNow = Boolean(currentUser?.emailVerified || isGoogleUser2);
+
+    if (!isVerifiedNow) {
+      setError('Email verification is required before configuring your hotel property. Please check your inbox and click the link we sent you.');
       setLoading(false);
       return;
     }
@@ -108,11 +127,17 @@ export default function OnboardingPage() {
           <div className="space-y-2 pt-2">
             <button
               onClick={async () => {
-                await user.reload();
-                if (user.emailVerified) {
-                  window.location.reload();
-                } else {
-                  setError('Email not verified yet. Please check your inbox / spam folder.');
+                try {
+                  await user.reload();
+                  await user.getIdToken(true);
+                  await refreshUser();
+                  if (user.emailVerified) {
+                    window.location.reload();
+                  } else {
+                    setError('Email not verified yet. Please check your inbox / spam folder.');
+                  }
+                } catch {
+                  setError('Could not refresh verification status. Please try again.');
                 }
               }}
               className="w-full py-2.5 px-4 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-xl text-xs font-bold transition shadow-sm"

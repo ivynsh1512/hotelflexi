@@ -96,6 +96,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setUser(fbUser);
       if (fbUser) {
+        // Reload user from Firebase to catch any email verification performed in another tab
+        await fbUser.reload().catch(() => {});
+        if (fbUser.emailVerified) {
+          await fbUser.getIdToken(true).catch(() => {});
+        }
         await syncAndFetchUser(fbUser);
       } else {
         setIsPlatformAdmin(false);
@@ -112,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     if (auth.currentUser) {
       await auth.currentUser.reload().catch(() => {});
+      await auth.currentUser.getIdToken(true).catch(() => {});
       setUser(auth.currentUser);
       await syncAndFetchUser(auth.currentUser);
     }
