@@ -310,7 +310,7 @@ export default function BookingEnginePage() {
                 </li>
                 <li className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-brand-blue shrink-0" />
-                  <span><strong>Instant Play Store Integration:</strong> Guest app download link (<a href="https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso" target="_blank" rel="noreferrer" className="text-brand-blue underline">in.novaxai.hotelflexiso</a>) automatically routes guests into their personalized booking portal.</span>
+                  <span><strong>Instant Play Store Integration:</strong> Guest app download link (<a href="https://play.google.com/store/apps/details?id=in.novaxai.hotelflexi" target="_blank" rel="noreferrer" className="text-brand-blue underline">in.novaxai.hotelflexi</a>) automatically routes guests into their personalized booking portal.</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-brand-blue shrink-0" />

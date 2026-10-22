@@ -485,7 +485,7 @@ export default function GuestPortalPage() {
             </div>
 
             <a
-              href="https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso"
+              href="https://play.google.com/store/apps/details?id=in.novaxai.hotelflexi"
               target="_blank"
               rel="noreferrer"
               className="px-4 py-2 rounded-xl bg-white text-slate-900 font-extrabold text-xs hover:bg-slate-100 transition shadow flex items-center gap-2 shrink-0 self-start sm:self-auto"

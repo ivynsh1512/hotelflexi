@@ -309,7 +309,7 @@ export default function ReservationsListPage() {
                                   {res.guest_phone && (
                                       <a
                                         href={`https://wa.me/${res.guest_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                                          `Namaste ${res.guest_name || 'Guest'}, here is your FlexiLink for reservation #${res.reservation_number}${res.room_number ? ` (Room ${res.room_number})` : ''}: https://hotelflexi.com/guest/${res.guest_portal_token} to open your direct guest portal without any login. Download our Android App on Google Play: https://play.google.com/store/apps/details?id=in.novaxai.hotelflexiso (Access valid during stay and up to 7 days after checkout).`
+                                          `Namaste ${res.guest_name || 'Guest'}, here is your FlexiLink for reservation #${res.reservation_number}${res.room_number ? ` (Room ${res.room_number})` : ''}: https://hotelflexi.com/guest/${res.guest_portal_token} to open your direct guest portal without any login. Download our Android App on Google Play: https://play.google.com/store/apps/details?id=in.novaxai.hotelflexi (Access valid during stay and up to 7 days after checkout).`
                                         )}`}
                                         target="_blank"
                                         rel="noreferrer"

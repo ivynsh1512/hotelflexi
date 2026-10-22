@@ -28,7 +28,7 @@ export default function DownloadAppPage() {
           <div className="text-center max-w-3xl mx-auto space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-              <span>Official Android App • Version 1.0.4</span>
+              <span>Official Native Android App • Version 2.0.1</span>
             </div>
 
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight">
@@ -46,7 +46,7 @@ export default function DownloadAppPage() {
                 className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-brand-blue hover:bg-brand-blue-hover text-white font-extrabold text-sm shadow-xl flex items-center justify-center gap-2.5 transition transform hover:-translate-y-0.5"
               >
                 <Download className="w-5 h-5" />
-                <span>Download Universal APK (1.65 MB)</span>
+                <span>Download Universal APK (Release)</span>
               </a>
 
               <a
@@ -67,7 +67,7 @@ export default function DownloadAppPage() {
               </span>
               <span className="flex items-center gap-1.5">
                 <Zap className="w-4 h-4 text-amber-400" />
-                Ultra Fast (1.65 MB)
+                Jetpack Compose Native
               </span>
               <span className="flex items-center gap-1.5">
                 <Bell className="w-4 h-4 text-blue-400" />
@@ -161,7 +161,7 @@ export default function DownloadAppPage() {
                 <Smartphone className="w-8 h-8" />
               </div>
               <div>
-                <div className="font-extrabold text-sm">HotelFlexi Android v1.0.4</div>
+                <div className="font-extrabold text-sm">HotelFlexi Android v2.0.1</div>
                 <div className="text-[11px] text-slate-400">Package: in.novaxai.hotelflexi</div>
               </div>
               <a
