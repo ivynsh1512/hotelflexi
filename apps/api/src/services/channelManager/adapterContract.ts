@@ -21,6 +21,8 @@ export interface ChannelConnectionContext {
   propertyId: string;
   connectionId: string;
   environment: 'sandbox' | 'production';
+  /** Optional provider code hint (e.g. 'agoda', 'expedia') for logging/diagnostics. */
+  providerCode?: string;
   externalPropertyId?: string;
   credentials?: Record<string, any>;
 }
