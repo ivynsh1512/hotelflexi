@@ -1,4 +1,4 @@
-﻿package novaxai.hotelflexi.data.model
+﻿package `in`.novaxai.hotelflexi.data.model
 
 import com.google.gson.annotations.SerializedName
 

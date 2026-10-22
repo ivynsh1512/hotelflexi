@@ -1,4 +1,4 @@
-﻿package novaxai.hotelflexi
+﻿package `in`.novaxai.hotelflexi
 
 import android.app.Application
 import android.app.NotificationChannel

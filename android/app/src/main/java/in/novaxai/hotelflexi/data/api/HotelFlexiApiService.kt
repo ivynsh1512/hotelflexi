@@ -1,6 +1,6 @@
-﻿package novaxai.hotelflexi.data.api
+﻿package `in`.novaxai.hotelflexi.data.api
 
-import novaxai.hotelflexi.data.model.*
+import `in`.novaxai.hotelflexi.data.model.*
 import retrofit2.Response
 import retrofit2.http.*
 

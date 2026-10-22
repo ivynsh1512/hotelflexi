@@ -1,7 +1,7 @@
-﻿package novaxai.hotelflexi.data.api
+﻿package `in`.novaxai.hotelflexi.data.api
 
 import android.content.Context
-import novaxai.hotelflexi.data.repository.SessionManager
+import `in`.novaxai.hotelflexi.data.repository.SessionManager
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor

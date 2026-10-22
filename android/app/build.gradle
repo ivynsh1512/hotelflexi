@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace "novaxai.hotelflexi"
+    namespace "in.novaxai.hotelflexi"
     compileSdk 34
 
     defaultConfig {

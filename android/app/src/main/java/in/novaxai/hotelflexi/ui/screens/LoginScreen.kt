@@ -1,4 +1,4 @@
-﻿package novaxai.hotelflexi.ui.screens
+﻿package `in`.novaxai.hotelflexi.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -24,8 +24,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import novaxai.hotelflexi.data.repository.HotelRepository
-import novaxai.hotelflexi.ui.theme.*
+import `in`.novaxai.hotelflexi.data.repository.HotelRepository
+import `in`.novaxai.hotelflexi.ui.theme.*
 import kotlinx.coroutines.launch
 
 @Composable

@@ -1,4 +1,4 @@
-﻿package novaxai.hotelflexi.ui.screens
+﻿package `in`.novaxai.hotelflexi.ui.screens
 
 import android.content.Intent
 import android.net.Uri
@@ -20,9 +20,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import novaxai.hotelflexi.data.model.Reservation
-import novaxai.hotelflexi.data.repository.HotelRepository
-import novaxai.hotelflexi.ui.theme.*
+import `in`.novaxai.hotelflexi.data.model.Reservation
+import `in`.novaxai.hotelflexi.data.repository.HotelRepository
+import `in`.novaxai.hotelflexi.ui.theme.*
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

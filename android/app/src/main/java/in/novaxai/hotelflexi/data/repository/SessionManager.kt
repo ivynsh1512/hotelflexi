@@ -1,8 +1,8 @@
-﻿package novaxai.hotelflexi.data.repository
+﻿package `in`.novaxai.hotelflexi.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
-import novaxai.hotelflexi.data.model.AuthUser
+import `in`.novaxai.hotelflexi.data.model.AuthUser
 
 class SessionManager(context: Context) {
 

@@ -1,9 +1,9 @@
-package novaxai.hotelflexi.data.repository
+﻿package `in`.novaxai.hotelflexi.data.repository
 
 import android.content.Context
 import android.os.Build
-import novaxai.hotelflexi.data.api.ApiClient
-import novaxai.hotelflexi.data.model.*
+import `in`.novaxai.hotelflexi.data.api.ApiClient
+import `in`.novaxai.hotelflexi.data.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

@@ -1,4 +1,4 @@
-﻿package novaxai.hotelflexi.ui.theme
+﻿package `in`.novaxai.hotelflexi.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

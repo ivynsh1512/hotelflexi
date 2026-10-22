@@ -1,4 +1,4 @@
-﻿package novaxai.hotelflexi
+﻿package `in`.novaxai.hotelflexi
 
 import android.Manifest
 import android.content.Intent
@@ -19,9 +19,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
-import novaxai.hotelflexi.data.repository.HotelRepository
-import novaxai.hotelflexi.ui.screens.*
-import novaxai.hotelflexi.ui.theme.*
+import `in`.novaxai.hotelflexi.data.repository.HotelRepository
+import `in`.novaxai.hotelflexi.ui.screens.*
+import `in`.novaxai.hotelflexi.ui.theme.*
 
 class MainActivity : ComponentActivity() {
 

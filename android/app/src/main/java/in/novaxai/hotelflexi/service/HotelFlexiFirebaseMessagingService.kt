@@ -1,4 +1,4 @@
-﻿package novaxai.hotelflexi.service
+﻿package `in`.novaxai.hotelflexi.service
 
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -10,11 +10,11 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import novaxai.hotelflexi.HotelFlexiApplication
-import novaxai.hotelflexi.MainActivity
-import novaxai.hotelflexi.R
-import novaxai.hotelflexi.data.repository.HotelRepository
-import novaxai.hotelflexi.data.repository.SessionManager
+import `in`.novaxai.hotelflexi.HotelFlexiApplication
+import `in`.novaxai.hotelflexi.MainActivity
+import `in`.novaxai.hotelflexi.R
+import `in`.novaxai.hotelflexi.data.repository.HotelRepository
+import `in`.novaxai.hotelflexi.data.repository.SessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
