@@ -924,6 +924,82 @@ reservationRoutes.patch('/:id/cancel', requireRole(['owner', 'manager', 'recepti
 });
 
 // -----------------------------------------------------------------------------
+// NO-SHOW STATUS TRANSITION
+// -----------------------------------------------------------------------------
+reservationRoutes.patch('/:id/no-show', requireRole(['owner', 'manager', 'receptionist']), async (c) => {
+  const tenantId = c.get('tenantId')!;
+  const id = c.req.param('id');
+  const user = c.get('user');
+  const body = await c.req.json().catch(() => ({}));
+  const now = Math.floor(Date.now() / 1000);
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const res: any = await c.env.DB.prepare(
+    'SELECT * FROM reservations WHERE id = ? AND tenant_id = ?'
+  ).bind(id, tenantId).first();
+
+  if (!res) {
+    return c.json({ error: 'Reservation not found' }, 404);
+  }
+
+  // Idempotent: If already marked as no_show
+  if (res.status === 'no_show') {
+    return c.json({ success: true, idempotent: true, message: 'Reservation is already marked as no-show' });
+  }
+
+  // Protection: Can only transition to no-show from 'confirmed'
+  if (res.status !== 'confirmed') {
+    return c.json(
+      {
+        error: `Invalid transition: cannot mark a '${res.status}' reservation as no-show. Only 'confirmed' bookings are eligible.`,
+      },
+      409
+    );
+  }
+
+  // Date Check: Cannot mark future bookings as no-show before check-in date
+  if (todayStr < res.check_in_date) {
+    return c.json(
+      {
+        error: `Cannot declare no-show before scheduled check-in date (${res.check_in_date}). Current date is ${todayStr}.`,
+      },
+      400
+    );
+  }
+
+  const notes = body.notes || 'Guest did not arrive on check-in date';
+  const statements: any[] = [
+    c.env.DB.prepare(
+      `UPDATE reservations
+       SET status = 'no_show', no_show_at = ?, no_show_by = ?, no_show_notes = ?, room_id = NULL, updated_at = ?
+       WHERE id = ? AND tenant_id = ?`
+    ).bind(now, user?.email || 'front_desk', notes, now, id, tenantId),
+  ];
+
+  if (res.room_id) {
+    statements.push(
+      c.env.DB.prepare(
+        "UPDATE rooms SET status = 'available', updated_at = ? WHERE id = ? AND tenant_id = ?"
+      ).bind(now, res.room_id, tenantId)
+    );
+  }
+
+  await c.env.DB.batch(statements);
+
+  await recordAuditLog(c, {
+    tenantId,
+    actorType: 'user',
+    userId: user?.uid,
+    action: 'reservation.no_show',
+    resourceType: 'reservation',
+    resourceId: id,
+    newValues: { notes },
+  });
+
+  return c.json({ success: true, message: 'Reservation marked as no-show and room released' });
+});
+
+// -----------------------------------------------------------------------------
 // DELETE RESERVATION & GUEST RECORD
 // -----------------------------------------------------------------------------
 reservationRoutes.delete('/:id', requireRole(['owner', 'manager']), async (c) => {

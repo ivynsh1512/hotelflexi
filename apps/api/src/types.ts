@@ -44,10 +44,20 @@ export interface TenantMembership {
   subscription_status?: string;
 }
 
+export interface ConnectivityPartnerContext {
+  id: string;
+  tenantId: string;
+  partnerName: string;
+  partnerCode: string;
+  mode: 'production' | 'sandbox';
+  rateLimitPerMinute: number;
+}
+
 export interface AppVariables {
   user?: AuthUser;
   membership?: TenantMembership;
   tenantId?: string;
   propertyId?: string;
   requestId: string;
+  connectivityPartner?: ConnectivityPartnerContext;
 }

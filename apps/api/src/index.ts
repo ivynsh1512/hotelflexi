@@ -31,6 +31,8 @@ import { addonsRoutes, publicAddonsRoutes } from './routes/addons';
 import { hrExpensesRoutes } from './routes/hrExpenses';
 import { accountDeletionRoutes } from './routes/accountDeletion';
 import { laundryRoutes } from './routes/laundry';
+import { connectivityRoutes } from './routes/connectivity';
+import { connectivityDocsRoutes } from './routes/connectivityDocs';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -80,6 +82,8 @@ app.route('/api/v1/channels/v2/webhooks', channelManagerV2WebhookRoutes);
 app.route('/api/v1/channel-webhooks', channelManagerV2WebhookRoutes);
 app.route('/api/v1/channels/v2', channelManagerV2Routes);
 app.route('/api/v1/channels', channelManagerRoutes);
+app.route('/api/v1/connectivity', connectivityDocsRoutes);
+app.route('/api/v1/connectivity', connectivityRoutes);
 app.route('/api/v1/public', bookingEngineRoutes);
 app.route('/api/v1/public/addons', publicAddonsRoutes);
 app.route('/api/v1/public/guest-portal', guestPortalRoutes);
