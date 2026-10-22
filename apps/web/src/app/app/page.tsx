@@ -200,6 +200,50 @@ export default function DashboardOverviewPage() {
         </div>
       </div>
 
+      {/* Room Status Board */}
+      {rooms.length > 0 && (
+        <div className="bg-white rounded-2xl border border-border-light p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-extrabold text-content-primary-light">Room Status Board</h2>
+              <p className="text-[10px] text-content-secondary-light">Live occupancy — click a room to manage</p>
+            </div>
+            <Link href="/app/rooms" className="text-[10px] font-bold text-brand-blue hover:underline">View All →</Link>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {rooms.map((room: any) => {
+              const statusColors: Record<string, string> = {
+                available: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+                occupied: 'bg-blue-50 border-blue-200 text-blue-700',
+                dirty: 'bg-amber-50 border-amber-200 text-amber-700',
+                maintenance: 'bg-red-50 border-red-200 text-red-700',
+                blocked: 'bg-gray-100 border-gray-200 text-gray-500',
+                checkout: 'bg-purple-50 border-purple-200 text-purple-700',
+              };
+              const cls = statusColors[room.status] || statusColors.available;
+              return (
+                <Link
+                  key={room.id}
+                  href="/app/rooms"
+                  className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl border text-center transition hover:scale-105 ${cls}`}
+                >
+                  <span className="text-[11px] font-extrabold">{room.room_number}</span>
+                  <span className="text-[8px] font-semibold capitalize mt-0.5">{room.status}</span>
+                </Link>
+              );
+            })}
+          </div>
+          <div className="flex gap-3 mt-3 flex-wrap">
+            {[['available','bg-emerald-400'],['occupied','bg-blue-400'],['dirty','bg-amber-400'],['maintenance','bg-red-400'],['blocked','bg-gray-300']].map(([s, col]) => (
+              <div key={s} className="flex items-center gap-1">
+                <div className={`w-2 h-2 rounded-full ${col}`} />
+                <span className="text-[9px] text-content-secondary-light capitalize">{s}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Main Grid: Room Status Matrix & Today's Arrivals */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Room Status Matrix */}
