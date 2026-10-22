@@ -5,6 +5,10 @@ plugins {
     id 'com.google.gms.google-services' version '4.4.2' apply false
 }
 
+allprojects {
+    layout.buildDirectory.set(file("${System.getProperty('user.home')}/.android-builds/hotelflexi/${project.name}"))
+}
+
 task clean(type: Delete) {
-    delete rootProject.buildDir
+    delete rootProject.layout.buildDirectory
 }

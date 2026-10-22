@@ -38,6 +38,7 @@ Thumbs.db
 android/.gradle/
 android/.kotlin/
 android/app/build/
+android/release/
 android/local.properties
 android/*.aab
 android/*.apk
