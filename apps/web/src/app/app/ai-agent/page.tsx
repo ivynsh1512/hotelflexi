@@ -116,7 +116,7 @@ export default function AiAgentPage() {
     content.startsWith('Action could not be completed:');
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-5rem)] flex flex-col bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">
+    <div className="h-[calc(100vh-5rem)] flex flex-col bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">
       {/* Assistant Header */}
       <div className="px-4 py-3 border-b border-border-light bg-surface-light flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">

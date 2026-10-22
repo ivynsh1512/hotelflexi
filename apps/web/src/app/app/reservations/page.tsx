@@ -34,6 +34,14 @@ export default function ReservationsListPage() {
   const [error, setError] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
+  // Linen modal state
+  const [linenModalOpen, setLinenModalOpen] = useState(false);
+  const [linenResId, setLinenResId] = useState<string>('');
+  const [linenResInfo, setLinenResInfo] = useState<{ guestName: string; roomNumber: string } | null>(null);
+  const [linenAction, setLinenAction] = useState<'laundry' | 'reuse' | 'skip'>('laundry');
+  const [linenCounts, setLinenCounts] = useState({ bedsheets: 1, pillowCovers: 2, bathTowels: 1, handTowels: 1 });
+  const [linenSubmitting, setLinenSubmitting] = useState(false);
+
   const copyFlexiLink = (token: string) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hotelflexi.vercel.app';
     navigator.clipboard.writeText(`${origin}/guest/${token}`);
@@ -78,13 +86,39 @@ export default function ReservationsListPage() {
     }
   };
 
-  const handleCheckOut = async (resId: string) => {
-    if (!confirm('Proceed with guest checkout? The assigned room will be immediately released and marked clean for today\'s new guests.')) return;
+  const handleCheckOut = (resId: string, guestName?: string, roomNumber?: string) => {
+    setLinenResId(resId);
+    setLinenResInfo({ guestName: guestName || 'Guest', roomNumber: roomNumber || '' });
+    setLinenAction('laundry');
+    setLinenCounts({ bedsheets: 1, pillowCovers: 2, bathTowels: 1, handTowels: 1 });
+    setLinenModalOpen(true);
+  };
+
+  const confirmCheckOut = async () => {
+    if (!linenResId) return;
+    setLinenSubmitting(true);
     try {
-      await apiClient(`/reservations/${resId}/check-out`, { method: 'PATCH' });
-      await fetchReservations();
+      const body: Record<string, unknown> = {};
+      if (linenAction !== 'skip') {
+        body.linenAction = linenAction;
+        body.linenCounts = {
+          'Bedsheet': linenCounts.bedsheets,
+          'Pillow Cover': linenCounts.pillowCovers,
+          'Bath Towel': linenCounts.bathTowels,
+          'Hand Towel': linenCounts.handTowels,
+        };
+      }
+      await apiClient(`/reservations/${linenResId}/check-out`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+      setLinenModalOpen(false);
+      alert('Guest checked out successfully');
+      fetchReservations();
     } catch (err: any) {
-      alert(err.message || 'Check-out failed');
+      alert(err.message || 'Failed to check out');
+    } finally {
+      setLinenSubmitting(false);
     }
   };
 
@@ -103,6 +137,7 @@ export default function ReservationsListPage() {
   };
 
   return (
+    <>
     <div className="space-y-5">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border-light">
@@ -323,7 +358,7 @@ export default function ReservationsListPage() {
                         )}
                         {isCheckedIn && (
                           <button
-                            onClick={() => handleCheckOut(res.id)}
+                            onClick={() => handleCheckOut(res.id, res.guest_name, res.room_number)}
                             className="px-2.5 py-1 rounded bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700 transition"
                           >
                             Check Out
@@ -353,5 +388,87 @@ export default function ReservationsListPage() {
         </div>
       )}
     </div>
+
+      {/* Linen Action Modal */}
+      {linenModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+            <div>
+              <h2 className="text-base font-extrabold text-content-primary-light">🧺 Room Linen — Post Checkout</h2>
+              <p className="text-xs text-content-secondary-light mt-0.5">
+                {linenResInfo?.guestName} · {linenResInfo?.roomNumber ? `Room ${linenResInfo.roomNumber}` : 'Unassigned Room'}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-content-primary-light">What should happen with the room linen?</p>
+              {(['laundry', 'reuse', 'skip'] as const).map((option) => (
+                <label key={option} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${linenAction === option ? 'border-brand-blue bg-blue-50' : 'border-border-light hover:bg-surface-light'}`}>
+                  <input
+                    type="radio"
+                    name="linenAction"
+                    value={option}
+                    checked={linenAction === option}
+                    onChange={() => setLinenAction(option)}
+                    className="accent-brand-blue"
+                  />
+                  <div>
+                    <div className="text-xs font-semibold text-content-primary-light">
+                      {option === 'laundry' ? '🧺 Send to Laundry' : option === 'reuse' ? '♻️ Mark for Reuse' : '⏭️ Skip / Decide Later'}
+                    </div>
+                    <div className="text-[10px] text-content-secondary-light">
+                      {option === 'laundry' ? 'Record items sent for washing' : option === 'reuse' ? 'Linen is clean, can be reused' : 'No linen action recorded now'}
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            {linenAction === 'laundry' && (
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-content-primary-light">Item Counts</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { key: 'bedsheets', label: 'Bedsheets' },
+                    { key: 'pillowCovers', label: 'Pillow Covers' },
+                    { key: 'bathTowels', label: 'Bath Towels' },
+                    { key: 'handTowels', label: 'Hand Towels' },
+                  ].map(({ key, label }) => (
+                    <div key={key} className="flex flex-col gap-1">
+                      <label className="text-[10px] font-semibold text-content-secondary-light">{label}</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={20}
+                        value={linenCounts[key as keyof typeof linenCounts]}
+                        onChange={e => setLinenCounts(prev => ({ ...prev, [key]: parseInt(e.target.value) || 0 }))}
+                        className="px-2 py-1.5 text-xs rounded-lg border border-border-light focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setLinenModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-border-light text-xs font-bold text-content-primary-light hover:bg-surface-light transition"
+                disabled={linenSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmCheckOut}
+                disabled={linenSubmitting}
+                className="flex-1 py-2.5 rounded-xl bg-brand-blue text-white text-xs font-bold hover:bg-brand-blue-hover transition disabled:opacity-50 flex items-center justify-center gap-1"
+              >
+                {linenSubmitting ? <><Loader2 className="w-3 h-3 animate-spin" /> Processing...</> : 'Confirm Check-Out'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

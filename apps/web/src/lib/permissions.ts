@@ -128,6 +128,7 @@ export const ROLE_ALLOWED_ROUTES: Record<string, string[]> = {
     '/app/calendar',
     '/app/guests',
     '/app/housekeeping',
+    '/app/laundry',
     '/app/maintenance',
     '/app/complaints',
     '/app/billing',
@@ -144,6 +145,7 @@ export const ROLE_ALLOWED_ROUTES: Record<string, string[]> = {
     '/app/calendar',
     '/app/guests',
     '/app/housekeeping',
+    '/app/laundry',
     '/app/maintenance',
     '/app/complaints',
     '/app/billing',
@@ -166,6 +168,7 @@ export const ROLE_ALLOWED_ROUTES: Record<string, string[]> = {
   ],
   housekeeping: [
     '/app/housekeeping',
+    '/app/laundry',
     '/app/maintenance',
     '/app/complaints',
     '/app/notifications',

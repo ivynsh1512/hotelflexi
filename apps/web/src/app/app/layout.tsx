@@ -43,6 +43,7 @@ import {
   ShieldAlert,
   ArrowRight,
   MailCheck,
+  Package,
   Compass,
 } from 'lucide-react';
 import { isRouteAllowedForRole } from '@/lib/permissions';
@@ -230,6 +231,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       title: 'Operations',
       items: [
         { label: 'Housekeeping', href: '/app/housekeeping', icon: ClipboardList },
+        { label: 'Linen & Laundry', href: '/app/laundry', icon: Package },
         { label: 'Maintenance', href: '/app/maintenance', icon: Wrench },
         { label: 'Complaints', href: '/app/complaints', icon: AlertTriangle },
       ],

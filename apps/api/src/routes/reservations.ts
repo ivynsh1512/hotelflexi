@@ -670,6 +670,8 @@ reservationRoutes.patch('/:id/check-in', requireRole(['owner', 'manager', 'recep
 reservationRoutes.patch('/:id/check-out', requireRole(['owner', 'manager', 'receptionist']), async (c) => {
   const tenantId = c.get('tenantId')!;
   const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const { linenAction, linenCounts, vendorName, notes: linenNotes } = body;
   const now = Math.floor(Date.now() / 1000);
   const today = new Date().toISOString().split('T')[0];
 
@@ -679,6 +681,13 @@ reservationRoutes.patch('/:id/check-out', requireRole(['owner', 'manager', 'rece
 
   if (!res) {
     return c.json({ error: 'Reservation not found' }, 404);
+  }
+
+  // Fetch room number if assigned
+  let roomNumber: string | null = null;
+  if (res.room_id) {
+    const roomRow: any = await c.env.DB.prepare('SELECT room_number FROM rooms WHERE id = ?').bind(res.room_id).first();
+    roomNumber = roomRow?.room_number || null;
   }
 
   // Check property setting for instant turnaround on checkout (defaults to true)
@@ -748,6 +757,69 @@ reservationRoutes.patch('/:id/check-out', requireRole(['owner', 'manager', 'rece
 
   await c.env.DB.batch(statements);
 
+  // --- Linen / Laundry tracking on checkout ---
+  if (linenAction && (linenAction === 'laundry' || linenAction === 'reuse')) {
+    try {
+      const transId = `ltx_${crypto.randomUUID()}`;
+      const itemsSummary = linenCounts
+        ? Object.entries(linenCounts)
+            .filter(([, qty]) => Number(qty) > 0)
+            .map(([name, qty]) => `${name} (${qty} pcs)`)
+            .join(', ') || 'No items specified'
+        : 'All room linen';
+
+      const totalItems = linenCounts
+        ? Object.values(linenCounts).reduce((sum: number, qty) => sum + Number(qty || 0), 0)
+        : 0;
+
+      await c.env.DB.prepare(
+        `INSERT INTO laundry_transactions (
+          id, property_id, tenant_id, reservation_id, room_number,
+          action_type, items_summary, total_items, vendor_name, notes, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        transId,
+        res.property_id,
+        tenantId,
+        id,
+        roomNumber || res.room_number || null,
+        linenAction === 'laundry' ? 'checkout_laundry' : 'checkout_reuse',
+        itemsSummary,
+        totalItems,
+        vendorName || (linenAction === 'laundry' ? 'Laundry Vendor' : null),
+        linenNotes || (linenAction === 'laundry' ? 'Sent to laundry after guest checkout' : 'Linen marked for reuse'),
+        now
+      ).run();
+
+      // If sent to laundry, update inventory counts
+      if (linenAction === 'laundry' && linenCounts) {
+        const linenItems: any = await c.env.DB.prepare(
+          `SELECT id, item_name FROM linen_inventory WHERE property_id = ? AND tenant_id = ?`
+        ).bind(res.property_id, tenantId).all();
+
+        const updateStmts: any[] = [];
+        for (const item of (linenItems.results || [])) {
+          const qty = Number((linenCounts as any)[item.item_name] || 0);
+          if (qty > 0) {
+            updateStmts.push(
+              c.env.DB.prepare(
+                `UPDATE linen_inventory
+                 SET in_rooms = MAX(0, in_rooms - ?),
+                     in_laundry = in_laundry + ?,
+                     updated_at = ?
+                 WHERE id = ? AND tenant_id = ?`
+              ).bind(qty, qty, now, item.id, tenantId)
+            );
+          }
+        }
+        if (updateStmts.length > 0) await c.env.DB.batch(updateStmts);
+      }
+    } catch (linenErr) {
+      console.error('[Checkout Linen Tracking Error]:', linenErr);
+    }
+  }
+  // --- end linen tracking ---
+
   await recordAuditLog(c, {
     action: 'reservation.check_out',
     resourceType: 'reservation',
@@ -755,6 +827,7 @@ reservationRoutes.patch('/:id/check-out', requireRole(['owner', 'manager', 'rece
     newValues: {
       autoReleasedClean: shouldAutoRelease,
       effectiveCheckoutDate,
+      linenAction: linenAction || 'not_specified',
     },
   });
 
@@ -765,6 +838,7 @@ reservationRoutes.patch('/:id/check-out', requireRole(['owner', 'manager', 'rece
       : `Reservation #${res.reservation_number} checked out. Room marked dirty for housekeeping.`,
     roomReleased: true,
     isClean: shouldAutoRelease,
+    linenAction: linenAction || null,
   });
 });
 

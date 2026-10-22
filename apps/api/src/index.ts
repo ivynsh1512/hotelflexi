@@ -30,6 +30,7 @@ import { uploadRoutes } from './routes/upload';
 import { addonsRoutes, publicAddonsRoutes } from './routes/addons';
 import { hrExpensesRoutes } from './routes/hrExpenses';
 import { accountDeletionRoutes } from './routes/accountDeletion';
+import { laundryRoutes } from './routes/laundry';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -85,6 +86,7 @@ app.route('/api/v1/public/guest-portal', guestPortalRoutes);
 app.route('/api/v1/addons', addonsRoutes);
 app.route('/api/v1/salary', hrExpensesRoutes);
 app.route('/api/v1/expenses', hrExpensesRoutes);
+app.route('/api/v1/laundry', laundryRoutes);
 app.route('/api/v1/account', accountDeletionRoutes);
 app.route('/api/v1/coupons', couponRoutes);
 app.route('/api/v1/rooms/daily-rates', dailyRatesRoutes);

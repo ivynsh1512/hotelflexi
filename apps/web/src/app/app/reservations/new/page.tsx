@@ -231,11 +231,10 @@ export default function NewReservationPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-content-primary-light mb-1">
-                Contact Phone *
+                Contact Phone
               </label>
               <input
                 type="tel"
-                required
                 value={guestPhone}
                 onChange={(e) => setGuestPhone(e.target.value)}
                 placeholder="+91 98765 43210"
