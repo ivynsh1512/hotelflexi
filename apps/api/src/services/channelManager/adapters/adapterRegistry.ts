@@ -8,6 +8,7 @@ import { AgodaAdapter } from './agodaAdapter';
 import { ExpediaAdapter } from './expediaAdapter';
 import { MakeMyTripAdapter } from './makeMyTripAdapter';
 import { TripAdvisorAdapter } from './tripAdvisorAdapter';
+import { AirbnbAdapter } from './airbnbAdapter';
 
 const adapters: Record<string, ChannelAdapter> = {
   booking_com: new BookingComAdapter(),
@@ -15,6 +16,7 @@ const adapters: Record<string, ChannelAdapter> = {
   expedia: new ExpediaAdapter(),
   makemytrip: new MakeMyTripAdapter(),
   tripadvisor: new TripAdvisorAdapter(),
+  airbnb: new AirbnbAdapter(),
 };
 
 export function getChannelAdapter(providerCode: string): ChannelAdapter {

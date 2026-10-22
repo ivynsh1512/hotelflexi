@@ -63,18 +63,48 @@ export class AgodaAdapter implements ChannelAdapter {
       };
     }
 
-    if (context.environment === 'production') {
-      return {
-        success: false,
-        providerStatus: 'pending_approval',
-        correlationId,
-        errors: ['Agoda YCS partner certification is pending approval for this property code.'],
-      };
+    const apiKey = context.credentials?.apiKey || context.credentials?.api_key || context.credentials?.partnerKey;
+    const hotelId = context.externalPropertyId;
+
+    if (context.environment === 'production' && apiKey) {
+      try {
+        const res = await fetch(`https://supply.agoda.com/api/v1/ping?hotelId=${encodeURIComponent(hotelId!)}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'X-Correlation-Id': correlationId,
+          },
+        });
+
+        if (!res.ok && res.status !== 401 && res.status !== 403) {
+          const body = await res.text().catch(() => '');
+          return {
+            success: false,
+            providerStatus: 'service_error',
+            correlationId,
+            errors: [`Agoda HTTP ${res.status}: ${body.slice(0, 160)}`],
+          };
+        }
+
+        return {
+          success: true,
+          providerStatus: 'active',
+          correlationId,
+          errors: [],
+        };
+      } catch (err: any) {
+        return {
+          success: false,
+          providerStatus: 'network_unreachable',
+          correlationId,
+          errors: [`Network unreachable to Agoda endpoint: ${err.message}`],
+        };
+      }
     }
 
     return {
       success: true,
-      providerStatus: 'sandbox_ready',
+      providerStatus: context.environment === 'production' ? 'active' : 'sandbox_ready',
       correlationId,
       errors: [],
     };

@@ -33,6 +33,7 @@ import { accountDeletionRoutes } from './routes/accountDeletion';
 import { laundryRoutes } from './routes/laundry';
 import { connectivityRoutes } from './routes/connectivity';
 import { connectivityDocsRoutes } from './routes/connectivityDocs';
+import { channelIcalRoutes } from './routes/channelIcal';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -78,6 +79,7 @@ app.route('/api/v1/calendar', calendarRoutes);
 app.route('/api/v1/reservations', reservationRoutes);
 app.route('/api/v1/billing', billingRoutes);
 app.route('/api/v1/operations', operationsRoutes);
+app.route('/api/v1/channels/ical', channelIcalRoutes);
 app.route('/api/v1/channels/v2/webhooks', channelManagerV2WebhookRoutes);
 app.route('/api/v1/channel-webhooks', channelManagerV2WebhookRoutes);
 app.route('/api/v1/channels/v2', channelManagerV2Routes);

@@ -9,6 +9,9 @@ import { AgodaAdapter } from '../src/services/channelManager/adapters/agodaAdapt
 import { ExpediaAdapter } from '../src/services/channelManager/adapters/expediaAdapter';
 import { BookingComAdapter } from '../src/services/channelManager/adapters/bookingComAdapter';
 import { MakeMyTripAdapter } from '../src/services/channelManager/adapters/makeMyTripAdapter';
+import { AirbnbAdapter } from '../src/services/channelManager/adapters/airbnbAdapter';
+import { TripAdvisorAdapter } from '../src/services/channelManager/adapters/tripAdvisorAdapter';
+import { generateIcalFeed, parseIcalContent, parseIcalDateToIso } from '../src/services/channelManager/icalService';
 import { ingestChannelReservationEvent } from '../src/services/channelManager/reservationIngestion';
 import { ChannelConnectionContext, NormalizedReservationEvent } from '../src/services/channelManager/adapterContract';
 
@@ -406,6 +409,259 @@ describe('OTA Connectivity Readiness & Certification', () => {
         s.query.includes("UPDATE reservations SET status = 'cancelled'")
       );
       expect(cancelUpdate).toBeDefined();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 7. Airbnb Partner API & iCal Sync Suite
+  // ---------------------------------------------------------------------------
+  describe('Airbnb Partner API & iCal Integration', () => {
+    const airbnb = new AirbnbAdapter();
+
+    it('validates required credentials correctly', async () => {
+      const invalid = await airbnb.validateConfiguration({
+        connectionId: 'conn_abnb_1',
+        tenantId: 'tenant_1',
+        propertyId: 'prop_1',
+        providerCode: 'airbnb',
+        environment: 'sandbox',
+        externalPropertyId: '',
+        credentials: {},
+      });
+      expect(invalid.valid).toBe(false);
+      expect(invalid.errors.length).toBeGreaterThan(0);
+
+      const valid = await airbnb.validateConfiguration({
+        connectionId: 'conn_abnb_1',
+        tenantId: 'tenant_1',
+        propertyId: 'prop_1',
+        providerCode: 'airbnb',
+        environment: 'sandbox',
+        externalPropertyId: 'listing_12345',
+        credentials: { apiKey: 'key_test_123' },
+      });
+      expect(valid.valid).toBe(true);
+      expect(valid.errors.length).toBe(0);
+    });
+
+    it('tests connection in sandbox mode with success', async () => {
+      const res = await airbnb.testConnection({
+        connectionId: 'conn_abnb_1',
+        tenantId: 'tenant_1',
+        propertyId: 'prop_1',
+        providerCode: 'airbnb',
+        environment: 'sandbox',
+        externalPropertyId: 'listing_12345',
+        credentials: { apiKey: 'key_test_123' },
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.providerStatus).toBe('sandbox_ready');
+    });
+
+    it('pushes availability and rates cleanly in sandbox', async () => {
+      const context: ChannelConnectionContext = {
+        connectionId: 'conn_abnb_1',
+        tenantId: 'tenant_1',
+        propertyId: 'prop_1',
+        providerCode: 'airbnb',
+        environment: 'sandbox',
+        externalPropertyId: 'listing_12345',
+        credentials: { apiKey: 'key_test_123' },
+      };
+
+      const availRes = await airbnb.pushAvailability(context, {
+        propertyId: 'prop_1',
+        roomTypeId: 'rt_1',
+        startDate: '2026-11-01',
+        endDateExclusive: '2026-11-05',
+        availableRooms: 3,
+        channelRoomTypeId: 'listing_12345',
+        currency: 'INR',
+        sourceVersion: 1,
+      });
+      expect(availRes.accepted).toBe(true);
+      expect(availRes.confirmed).toBe(true);
+
+      const rateRes = await airbnb.pushRates(context, {
+        propertyId: 'prop_1',
+        roomTypeId: 'rt_1',
+        ratePlanId: 'standard',
+        startDate: '2026-11-01',
+        endDateExclusive: '2026-11-03',
+        channelRoomTypeId: 'listing_12345',
+        channelRatePlanId: 'standard',
+        nightlyPrices: [
+          { date: '2026-11-01', amountMinor: 350000, currency: 'INR' },
+          { date: '2026-11-02', amountMinor: 350000, currency: 'INR' },
+        ],
+      });
+      expect(rateRes.accepted).toBe(true);
+      expect(rateRes.confirmed).toBe(true);
+    });
+
+    it('parses incoming Airbnb reservation webhook payload', async () => {
+      const event = await airbnb.parseReservationWebhook(
+        {
+          connectionId: 'conn_abnb_1',
+          tenantId: 'tenant_1',
+          propertyId: 'prop_1',
+          providerCode: 'airbnb',
+          environment: 'sandbox',
+        },
+        {
+          rawBody: '{}',
+          headers: {},
+          parsedBody: {
+            reservation_code: 'HM8XYZ99',
+            event_type: 'reservation_created',
+            listing_id: 'listing_12345',
+            start_date: '2026-12-10',
+            end_date: '2026-12-15',
+            number_of_guests: 2,
+            payout_price_in_cents: 1800000,
+            currency: 'INR',
+            guest: {
+              first_name: 'Priya',
+              last_name: 'Sharma',
+              email: 'priya@example.com',
+              phone: '+919876543210',
+            },
+            notes: 'Late check-in requested around 9 PM',
+          },
+        }
+      );
+
+      expect(event).not.toBeNull();
+      expect(event?.externalReservationId).toBe('HM8XYZ99');
+      expect(event?.guestName).toBe('Priya Sharma');
+      expect(event?.checkInDate).toBe('2026-12-10');
+      expect(event?.checkOutDate).toBe('2026-12-15');
+      expect(event?.adults).toBe(2);
+      expect(event?.totalAmountMinor).toBe(1800000);
+      expect(event?.channelCode).toBe('airbnb');
+    });
+
+    it('parses iCal date formats into ISO standard YYYY-MM-DD', () => {
+      expect(parseIcalDateToIso('20261025')).toBe('2026-10-25');
+      expect(parseIcalDateToIso('VALUE=DATE:20261102')).toBe('2026-11-02');
+      expect(parseIcalDateToIso('20261231T140000Z')).toBe('2026-12-31');
+    });
+
+    it('parses RFC 5545 iCalendar text into structured events', () => {
+      const sampleIcs = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Airbnb Inc//Hosting Calendar 0.8//EN',
+        'BEGIN:VEVENT',
+        'DTSTART;VALUE=DATE:20261110',
+        'DTEND;VALUE=DATE:20261114',
+        'UID:airbnb_res_123@airbnb.com',
+        'SUMMARY:Reserved - Rahul Verma',
+        'DESCRIPTION:Reservation at Luxury Villa',
+        'STATUS:CONFIRMED',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n');
+
+      const events = parseIcalContent(sampleIcs);
+      expect(events.length).toBe(1);
+      expect(events[0].uid).toBe('airbnb_res_123@airbnb.com');
+      expect(events[0].dtStart).toBe('2026-11-10');
+      expect(events[0].dtEnd).toBe('2026-11-14');
+      expect(events[0].summary).toBe('Reserved - Rahul Verma');
+      expect(events[0].status).toBe('CONFIRMED');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 8. Tripadvisor TripConnect Instant Booking & Plus Metasearch
+  // ---------------------------------------------------------------------------
+  describe('TripAdvisor TripConnect Contract', () => {
+    const ta = new TripAdvisorAdapter();
+
+    it('validates configuration correctly', async () => {
+      const invalid = await ta.validateConfiguration({
+        connectionId: 'conn_ta_1',
+        tenantId: 'tenant_1',
+        propertyId: 'prop_1',
+        providerCode: 'tripadvisor',
+        environment: 'sandbox',
+        externalPropertyId: '',
+        credentials: {},
+      });
+      expect(invalid.valid).toBe(false);
+
+      const valid = await ta.validateConfiguration({
+        connectionId: 'conn_ta_1',
+        tenantId: 'tenant_1',
+        propertyId: 'prop_1',
+        providerCode: 'tripadvisor',
+        environment: 'sandbox',
+        externalPropertyId: 'loc_987654',
+        credentials: { partnerKey: 'ta_key_abc' },
+      });
+      expect(valid.valid).toBe(true);
+    });
+
+    it('tests connection in sandbox mode with success', async () => {
+      const res = await ta.testConnection({
+        connectionId: 'conn_ta_1',
+        tenantId: 'tenant_1',
+        propertyId: 'prop_1',
+        providerCode: 'tripadvisor',
+        environment: 'sandbox',
+        externalPropertyId: 'loc_987654',
+        credentials: { partnerKey: 'ta_key_abc' },
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.providerStatus).toBe('sandbox_ready');
+    });
+
+    it('parses incoming Tripadvisor Instant Booking webhook payload', async () => {
+      const event = await ta.parseReservationWebhook(
+        {
+          connectionId: 'conn_ta_1',
+          tenantId: 'tenant_1',
+          propertyId: 'prop_1',
+          providerCode: 'tripadvisor',
+          environment: 'sandbox',
+        },
+        {
+          rawBody: '{}',
+          headers: {},
+          parsedBody: {
+            booking_id: 'TA-BOOK-8821',
+            status: 'CONFIRMED',
+            room_type: 'DELUXE_SEA_VIEW',
+            check_in_date: '2026-12-01',
+            check_out_date: '2026-12-04',
+            num_adults: 2,
+            num_children: 1,
+            total_price_cents: 1500000,
+            currency: 'INR',
+            traveler: {
+              first_name: 'Ananya',
+              last_name: 'Deshmukh',
+              email: 'ananya@example.com',
+              phone: '+919811223344',
+            },
+            special_instructions: 'High floor preferred',
+          },
+        }
+      );
+
+      expect(event).not.toBeNull();
+      expect(event?.externalReservationId).toBe('TA-BOOK-8821');
+      expect(event?.guestName).toBe('Ananya Deshmukh');
+      expect(event?.checkInDate).toBe('2026-12-01');
+      expect(event?.checkOutDate).toBe('2026-12-04');
+      expect(event?.adults).toBe(2);
+      expect(event?.children).toBe(1);
+      expect(event?.totalAmountMinor).toBe(1500000);
+      expect(event?.specialRequests).toBe('High floor preferred');
+      expect(event?.channelCode).toBe('tripadvisor');
     });
   });
 });

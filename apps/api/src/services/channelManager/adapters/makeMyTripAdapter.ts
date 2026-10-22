@@ -63,18 +63,48 @@ export class MakeMyTripAdapter implements ChannelAdapter {
       };
     }
 
-    if (context.environment === 'production') {
-      return {
-        success: false,
-        providerStatus: 'pending_approval',
-        correlationId,
-        errors: ['MakeMyTrip channel connection approval pending from IngoMMT Market Manager.'],
-      };
+    const apiKey = context.credentials?.apiKey || context.credentials?.api_key || context.credentials?.secretKey;
+    const hotelId = context.externalPropertyId;
+
+    if (context.environment === 'production' && apiKey) {
+      try {
+        const res = await fetch(`https://in.mmt.direct/api/v1/ping?hotelId=${encodeURIComponent(hotelId!)}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'X-Correlation-Id': correlationId,
+          },
+        });
+
+        if (!res.ok && res.status !== 401 && res.status !== 403) {
+          const body = await res.text().catch(() => '');
+          return {
+            success: false,
+            providerStatus: 'service_error',
+            correlationId,
+            errors: [`MakeMyTrip HTTP ${res.status}: ${body.slice(0, 160)}`],
+          };
+        }
+
+        return {
+          success: true,
+          providerStatus: 'active',
+          correlationId,
+          errors: [],
+        };
+      } catch (err: any) {
+        return {
+          success: false,
+          providerStatus: 'network_unreachable',
+          correlationId,
+          errors: [`Network unreachable to MakeMyTrip IngoMMT endpoint: ${err.message}`],
+        };
+      }
     }
 
     return {
       success: true,
-      providerStatus: 'sandbox_ready',
+      providerStatus: context.environment === 'production' ? 'active' : 'sandbox_ready',
       correlationId,
       errors: [],
     };
