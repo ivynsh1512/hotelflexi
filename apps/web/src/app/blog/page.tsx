@@ -73,17 +73,6 @@ export default function BlogHubPage() {
       gradient: 'from-blue-600 to-indigo-600',
     },
     {
-      slug: 'best-hotel-channel-manager-india',
-      title: 'Best Hotel Channel Managers in India (2026): 2-Way Sync for MakeMyTrip, Agoda, Booking.com & Airbnb',
-      excerpt:
-        'A comprehensive guide to 2-way live ARI (Availability, Rates & Inventory) synchronization for Indian hotels. How to avoid duplicate booking decrements and eliminate manual OTA updates.',
-      category: 'Channel Management',
-      readTime: '8 min read',
-      date: 'Oct 18, 2026',
-      icon: Layers,
-      gradient: 'from-emerald-600 to-teal-600',
-    },
-    {
       slug: 'streamline-housekeeping-with-urgent-siren-alerts',
       title: 'Why Urgent Siren Alerts for Housekeeping Solve Guest Complaints in Under 7 Minutes',
       excerpt:

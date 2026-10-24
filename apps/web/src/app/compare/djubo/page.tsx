@@ -20,17 +20,15 @@ import {
 export const metadata: Metadata = {
   title: 'HotelFlexi vs Djubo (2026) — Complete Feature & Cost Comparison',
   description:
-    'Compare HotelFlexi vs Djubo. See why Indian hotels prefer HotelFlexi’s unified ₹499/mo suite with 0% direct booking commission, autonomous AI front desk, 2-way live OTA channel manager, and housekeeping urgency siren.',
+    'Compare HotelFlexi vs Djubo. See why Indian hotels prefer HotelFlexi’s unified ₹499/mo suite with 0% direct booking commission, autonomous AI front desk, built-in GST SAC 9963 tax invoicing, and housekeeping urgency siren.',
   keywords: [
     'hotelflexi vs djubo',
     'djubo alternative',
-    'djubo channel manager cost',
-    'best hotel channel manager india',
     'hotel pms with 0 commission',
     'djubo vs hotelflexi',
   ],
   openGraph: {
-    title: 'HotelFlexi vs Djubo — Channel Manager & PMS Comparison',
+    title: 'HotelFlexi vs Djubo — Hotel PMS & Direct Booking Comparison',
     description:
       'Avoid separate modular billing and booking commissions. Switch to HotelFlexi for ₹499/mo all-in-one.',
     url: 'https://hotelflexi.com/compare/djubo',
@@ -41,7 +39,7 @@ export default function DjuboComparePage() {
   const comparisonData = [
     {
       feature: 'Cost Architecture',
-      hotelflexi: '₹499 / month flat all-inclusive (PMS, Channel Manager, Booking Engine & AI)',
+      hotelflexi: '₹499 / month flat all-inclusive (PMS, Direct Booking Engine, GST Billing & AI)',
       djubo: 'Separate fees for Fireball (Channel Manager), PMS & CRS, plus transaction charges',
     },
     {
@@ -60,9 +58,9 @@ export default function DjuboComparePage() {
       djubo: 'No emergency siren alert system',
     },
     {
-      feature: '2-Way Live OTA Channel Manager',
-      hotelflexi: 'Real-time single source of truth for IngoMMT, Agoda, Booking.com, Airbnb & Expedia',
-      djubo: 'Strong channel distribution, but locked behind expensive multi-product subscriptions',
+      feature: 'Built-in SAC 9963 GST Invoicing & P&L',
+      hotelflexi: 'Automated 12% & 18% GST folios with CGST/SGST splits and live P&L ledger',
+      djubo: 'Requires external accounting integration or third-party modules',
     },
     {
       feature: 'Digital Guest Check-In & Food Orders (FlexiLink)',
@@ -90,7 +88,7 @@ export default function DjuboComparePage() {
         name: 'How does HotelFlexi compare to Djubo in pricing?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Djubo charges separate fees for its channel manager (Fireball), PMS, and central reservation modules, often exceeding ₹4,000–₹12,000 per month. HotelFlexi includes the PMS, 2-way OTA channel manager, booking engine, and AI assistant starting at just ₹499/month flat.',
+          text: 'Djubo charges separate fees for its channel manager (Fireball), PMS, and central reservation modules, often exceeding ₹4,000–₹12,000 per month. HotelFlexi includes the PMS, GST billing, direct booking engine, and AI assistant starting at just ₹499/month flat.',
         },
       },
       {
@@ -98,7 +96,7 @@ export default function DjuboComparePage() {
         name: 'Does HotelFlexi prevent room overselling like Djubo does?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Yes. HotelFlexi maintains a strict central source of truth with database concurrency checks and duplicate webhook deduplication, guaranteeing that room inventory is decremented across all OTAs instantly when a reservation occurs.',
+          text: 'Yes. HotelFlexi maintains a strict central source of truth with database concurrency checks and reservation status gates, guaranteeing that room inventory is accurately reserved and protected against double-bookings.',
         },
       },
     ],
@@ -125,7 +123,7 @@ export default function DjuboComparePage() {
             HotelFlexi vs Djubo
           </h1>
           <p className="mt-4 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto">
-            Why pay multiple separate invoices for PMS, Channel Manager, and CRS? Get everything under one intelligent roof for just ₹499/mo.
+            Why pay multiple separate invoices for PMS, billing, and CRS? Get everything under one intelligent roof for just ₹499/mo.
           </p>
         </div>
       </section>
@@ -141,7 +139,7 @@ export default function DjuboComparePage() {
               <h3 className="text-xl font-black text-content-primary-light">HotelFlexi</h3>
               <div className="text-2xl font-black text-brand-blue">₹499 / mo flat</div>
               <p className="text-xs text-content-secondary-light leading-relaxed">
-                Single unified platform combining PMS, 2-way live OTA channel manager, 0% commission direct booking engine, and autonomous AI assistant.
+                Single unified platform combining PMS, GST billing, 0% commission direct booking engine, and autonomous AI assistant.
               </p>
               <ul className="text-xs space-y-2 pt-2 text-slate-700">
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> ₹499/mo flat all-inclusive with zero surprise fees</li>
@@ -215,7 +213,7 @@ export default function DjuboComparePage() {
             Stop Overpaying for Fragmented Hotel Tech
           </h2>
           <p className="text-sm text-slate-300 max-w-xl mx-auto">
-            Get PMS, Channel Manager, Booking Engine, and Autonomous AI in one single ₹499/mo package. Start your 14-day free trial now.
+            Get PMS, Direct Booking Engine, GST Billing, and Autonomous AI in one single ₹499/mo package. Start your 14-day free trial now.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link

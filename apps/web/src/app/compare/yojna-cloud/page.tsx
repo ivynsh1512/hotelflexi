@@ -20,7 +20,7 @@ import {
 export const metadata: Metadata = {
   title: 'HotelFlexi vs Yojna Cloud Solution (YCS PMS) — Why Hoteliers Are Switching',
   description:
-    'Compare HotelFlexi with Yojna Cloud Solution (YCS PMS). Discover why modern hoteliers prefer HotelFlexi for ₹499/mo with zero AMC, installable mobile PWA, autonomous AI front desk, room readiness SLAs, and TallyPrime XML export.',
+    'Compare HotelFlexi with Yojna Cloud Solution (YCS PMS). Discover why modern hoteliers prefer HotelFlexi for ₹499/mo with zero AMC, installable mobile PWA, autonomous AI front desk, room readiness SLAs, and built-in GST accounting.',
   keywords: [
     'hotelflexi vs yojna cloud solution',
     'yojna cloud pms alternative',
@@ -65,8 +65,8 @@ export default function YojnaCloudComparePage() {
       yojna: 'No raw material forecasting; manual guesswork at local mandi',
     },
     {
-      feature: 'TallyPrime Accounting Direct XML Export',
-      hotelflexi: 'One-click vouchers.xml export with balanced double-entry accounting & GST heads',
+      feature: 'Built-in SAC 9963 GST Invoicing & P&L',
+      hotelflexi: 'Automated 12% & 18% GST folios with CGST/SGST splits and live Profit & Loss ledger',
       yojna: 'Requires custom proprietary bridges or manual voucher entry',
     },
     {

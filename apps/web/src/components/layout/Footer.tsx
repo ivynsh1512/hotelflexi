@@ -17,8 +17,8 @@ export const Footer: React.FC = () => {
               />
             </Link>
             <p className="text-sm text-content-secondary-dark max-w-sm leading-relaxed">
-              Your Hotel. One Intelligent System. Complete PMS, channel manager, direct booking engine,
-              Indian GST billing, and bilingual AI business agent for hospitality businesses.
+              Your Hotel. One Intelligent System. Complete Cloud PMS, direct booking engine,
+              Indian GST billing, and bilingual AI front-desk agent for modern hospitality businesses.
             </p>
             <div className="text-xs text-content-secondary-dark space-y-1.5 pt-2">
               <div className="flex items-center gap-2">
@@ -47,9 +47,6 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <Link href="/hotel-management" className="hover:text-white transition">PMS Calendar</Link>
-              </li>
-              <li>
-                <Link href="/channel-manager" className="hover:text-white transition">Channel Manager</Link>
               </li>
               <li>
                 <Link href="/booking-engine" className="hover:text-white transition">Direct Booking Engine</Link>

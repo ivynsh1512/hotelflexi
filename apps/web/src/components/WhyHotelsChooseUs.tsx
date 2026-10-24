@@ -17,7 +17,7 @@ export const WhyHotelsChooseUs: React.FC = () => {
     {
       title: 'All-in-one platform',
       description:
-        'PMS, channel manager, booking engine, dine-out restaurant POS, housekeeping siren, and accounting — all in one place.',
+        'PMS calendar, direct booking engine, dine-out restaurant POS, housekeeping emergency siren, and GST accounting — all in one place.',
       icon: Layers,
     },
     {
@@ -27,9 +27,9 @@ export const WhyHotelsChooseUs: React.FC = () => {
       icon: Bot,
     },
     {
-      title: '100+ OTA integrations',
+      title: 'Direct Booking Engine (0% Commission)',
       description:
-        'Built-in channel manager with instant 2-way sync across MakeMyTrip, Goibibo, Agoda, Booking.com, Expedia, and Airbnb.',
+        'Accept commission-free guest bookings directly with UPI, Razorpay, QR codes, automated tax folios, and instant confirmations.',
       icon: Globe,
     },
     {
@@ -47,7 +47,7 @@ export const WhyHotelsChooseUs: React.FC = () => {
     {
       title: 'Onboard in 10 minutes',
       description:
-        'Go live in minutes with your unique 5-digit hotel code. Free onboarding, channel mapping, and 24/7 dedicated support.',
+        'Go live in minutes with your unique 5-digit hotel code. Free automated AI onboarding, property profile setup, and 24/7 dedicated support.',
       icon: Rocket,
     },
   ];
@@ -96,7 +96,7 @@ export const WhyHotelsChooseUs: React.FC = () => {
               Get Started with the ₹499/mo Starter Plan
             </h3>
             <p className="text-xs sm:text-sm text-blue-200">
-              Includes 2-way OTA Channel Manager, Bilingual AI Agent, Dine-Out POS, and Housekeeping Urgency Siren.
+              Includes Direct Booking Engine, Bilingual AI Agent, Dine-Out POS, and Housekeeping Urgency Siren.
             </p>
           </div>
           <Link

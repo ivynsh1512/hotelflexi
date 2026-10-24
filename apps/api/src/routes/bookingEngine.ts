@@ -522,9 +522,10 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
       `INSERT INTO invoices (
         id, property_id, tenant_id, reservation_id, invoice_number, status,
         guest_name, guest_email, guest_phone, issue_date, subtotal_paise,
-        total_tax_paise, discount_paise, total_amount_paise, paid_amount_paise, balance_amount_paise,
+        cgst_paise, sgst_paise, igst_paise, total_tax_paise, discount_paise,
+        total_amount_paise, paid_amount_paise, balance_amount_paise,
         tax_snapshot_json, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'issued', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, 'issued', ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 0, ?, ?, ?, ?)`
     ).bind(
       invoiceId,
       property.id,
@@ -536,12 +537,32 @@ bookingEngineRoutes.post('/properties/:slug/book', async (c) => {
       guestPhone,
       checkInDate,
       totalRoomChargePaise,
+      Math.round(totalTaxPaise / 2),
+      totalTaxPaise - Math.round(totalTaxPaise / 2),
       totalTaxPaise,
       discountPaise,
       totalAmountPaise,
       totalAmountPaise,
-      JSON.stringify({ gstRateBasisPoints }),
+      JSON.stringify({ gstRateBasisPoints, cgstRate: gstRateBasisPoints / 2, sgstRate: gstRateBasisPoints / 2 }),
       now,
+      now
+    ),
+    // Invoice Line Item
+    c.env.DB.prepare(
+      `INSERT INTO invoice_items (
+        id, invoice_id, tenant_id, description, quantity, unit_price_paise,
+        amount_paise, tax_rate_basis_points, tax_amount_paise, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      `ini_${crypto.randomUUID()}`,
+      invoiceId,
+      property.tenant_id,
+      `Room Accommodation (${nights} Night${nights > 1 ? 's' : ''}) - ${checkInDate} to ${checkOutDate}`,
+      nights,
+      nightlyRatePaise,
+      totalRoomChargePaise,
+      gstRateBasisPoints,
+      totalTaxPaise,
       now
     ),
   ];

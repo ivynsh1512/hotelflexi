@@ -357,7 +357,7 @@ export default function SignupPage() {
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Creating Hotel Account...
+                      Creating account...
                     </>
                   ) : (
                     <>

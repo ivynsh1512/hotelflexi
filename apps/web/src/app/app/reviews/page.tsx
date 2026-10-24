@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
 import {
@@ -46,6 +47,7 @@ export default function GuestReviewsPage() {
   const { currentTenant } = useAuth();
   const [loading, setLoading] = useState(true);
   const [propertyId, setPropertyId] = useState('');
+  const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [stats, setStats] = useState<ReviewStats | null>(null);
 
@@ -69,6 +71,7 @@ export default function GuestReviewsPage() {
         return;
       }
       setPropertyId(activeProp.id);
+      setGoogleReviewUrl(activeProp.google_review_url || null);
 
       const res = await apiClient(`/reviews/property/${activeProp.id}`);
       setReviews(res.reviews || []);
@@ -206,9 +209,49 @@ export default function GuestReviewsPage() {
           <div className="text-2xl font-black text-emerald-600">
             {reviews.filter((r) => r.google_review_clicked === 1).length}
           </div>
-          <p className="text-[11px] text-slate-500">Guests routed to Google</p>
+          <div className="flex items-center justify-between pt-1">
+            <p className="text-[11px] text-slate-500">Guests routed to Google</p>
+            {googleReviewUrl ? (
+              <a
+                href={googleReviewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md hover:bg-emerald-100 flex items-center gap-1"
+              >
+                Test <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            ) : (
+              <Link
+                href="/app/settings"
+                className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md hover:bg-amber-100"
+              >
+                Configure &rarr;
+              </Link>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Review Link Setup Prompt */}
+      {!googleReviewUrl && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-start gap-2.5 text-amber-900">
+            <Star className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Boost your Google Maps reviews automatically!</p>
+              <p className="text-amber-800 text-[11px]">
+                Add your Google Business Profile review link in Settings. Guests who rate 4-5 stars on their checkout invoice will be automatically invited to review your hotel on Google Maps.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/app/settings"
+            className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 text-center transition"
+          >
+            Configure Google Review Link
+          </Link>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-200">

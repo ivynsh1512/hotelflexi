@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient, formatINR } from '@/lib/api';
-import { Receipt, Search, Printer, CheckCircle2, Loader2, AlertCircle, X, Calendar, Filter, RotateCcw } from 'lucide-react';
+import { Receipt, Search, Printer, CheckCircle2, Loader2, AlertCircle, X, Calendar, Filter, RotateCcw, Mail, Ban, Download } from 'lucide-react';
 
 export default function BillingInvoicesPage() {
   const { currentTenant } = useAuth();
@@ -11,6 +11,9 @@ export default function BillingInvoicesPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [invoiceDetailsLoading, setInvoiceDetailsLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showVoidConfirm, setShowVoidConfirm] = useState(false);
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,6 +83,7 @@ export default function BillingInvoicesPage() {
 
   const handleViewInvoice = async (invoiceId: string) => {
     setInvoiceDetailsLoading(true);
+    setActionFeedback(null);
     try {
       const data = await apiClient(`/billing/invoices/${invoiceId}`);
       setSelectedInvoice(data);
@@ -87,6 +91,40 @@ export default function BillingInvoicesPage() {
       alert(e.message || 'Failed to load invoice details');
     } finally {
       setInvoiceDetailsLoading(false);
+    }
+  };
+
+  const handleSendInvoiceEmail = async (invoiceId: string) => {
+    setActionLoading(true);
+    setActionFeedback(null);
+    try {
+      const res: any = await apiClient(`/billing/invoices/${invoiceId}/send-email`, {
+        method: 'POST',
+      });
+      setActionFeedback({ type: 'success', message: res.message || 'Invoice sent to guest email successfully!' });
+    } catch (e: any) {
+      setActionFeedback({ type: 'error', message: e.message || 'Failed to send invoice email' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleVoidInvoice = async (invoiceId: string) => {
+    if (!confirm('Are you sure you want to void this invoice? This will cancel the tax invoice and set outstanding balance to ₹0 while maintaining an audit trail.')) {
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await apiClient(`/billing/invoices/${invoiceId}/void`, {
+        method: 'POST',
+      });
+      alert('Invoice has been safely voided and marked as cancelled.');
+      setSelectedInvoice(null);
+      loadInvoices();
+    } catch (e: any) {
+      alert(e.message || 'Failed to void invoice');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -255,12 +293,25 @@ export default function BillingInvoicesPage() {
                       </span>
                     </td>
                     <td className="p-3.5 text-right">
-                      <button
-                        onClick={() => handleViewInvoice(inv.id)}
-                        className="px-2.5 py-1 rounded bg-blue-50 text-brand-blue font-semibold text-[11px] hover:bg-blue-100 transition"
-                      >
-                        View &amp; Print
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleViewInvoice(inv.id)}
+                          className="px-2.5 py-1 rounded-lg bg-blue-50 text-brand-blue font-bold text-[11px] hover:bg-blue-100 transition inline-flex items-center gap-1"
+                        >
+                          <Printer className="w-3 h-3" />
+                          <span>View &amp; Print</span>
+                        </button>
+                        {inv.guest_email && (
+                          <button
+                            type="button"
+                            onClick={() => handleSendInvoiceEmail(inv.id)}
+                            title={`Send invoice to ${inv.guest_email}`}
+                            className="p-1.5 rounded-lg border border-border-light text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition"
+                          >
+                            <Mail className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -361,6 +412,33 @@ export default function BillingInvoicesPage() {
               </div>
             </div>
 
+            {/* Feedback Alert */}
+            {actionFeedback && (
+              <div
+                className={`p-3 rounded-xl mb-4 text-xs flex items-center justify-between print:hidden ${
+                  actionFeedback.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-red-50 text-red-800 border border-red-200'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {actionFeedback.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  )}
+                  <span>{actionFeedback.message}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActionFeedback(null)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
             {/* Line Items */}
             <div className="py-4">
               <table className="w-full text-left text-xs">
@@ -374,12 +452,31 @@ export default function BillingInvoicesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y border-border-light">
-                  {selectedInvoice.items?.map((item: any) => (
+                  {((selectedInvoice.items && selectedInvoice.items.length > 0)
+                    ? selectedInvoice.items
+                    : [
+                        {
+                          id: 'synth_room',
+                          description: `Room Accommodation (${selectedInvoice.invoice.issue_date || 'Standard Stay'})`,
+                          hsn_code: '996311',
+                          unit_price_paise: selectedInvoice.invoice.subtotal_paise,
+                          tax_amount_paise:
+                            selectedInvoice.invoice.total_tax_paise ||
+                            (selectedInvoice.invoice.cgst_paise + selectedInvoice.invoice.sgst_paise) ||
+                            0,
+                          amount_paise: selectedInvoice.invoice.subtotal_paise,
+                        },
+                      ]
+                  ).map((item: any) => (
                     <tr key={item.id}>
                       <td className="py-2.5 font-medium">{item.description}</td>
-                      <td className="py-2.5 text-center font-mono text-[11px] text-slate-500">{item.hsn_code || '996311'}</td>
+                      <td className="py-2.5 text-center font-mono text-[11px] text-slate-500">
+                        {item.hsn_code || '996311'}
+                      </td>
                       <td className="py-2.5 text-right">{formatINR(item.unit_price_paise)}</td>
-                      <td className="py-2.5 text-right text-content-secondary-light">{formatINR(item.tax_amount_paise)}</td>
+                      <td className="py-2.5 text-right text-content-secondary-light">
+                        {formatINR(item.tax_amount_paise)}
+                      </td>
                       <td className="py-2.5 text-right font-bold">{formatINR(item.amount_paise)}</td>
                     </tr>
                   ))}
@@ -387,37 +484,109 @@ export default function BillingInvoicesPage() {
               </table>
             </div>
 
-            {/* Totals */}
-            <div className="pt-4 border-t border-border-light text-xs space-y-1.5 max-w-xs ml-auto">
-              <div className="flex justify-between text-content-secondary-light">
-                <span>Subtotal:</span>
-                <span className="font-medium text-content-primary-light">{formatINR(selectedInvoice.invoice.subtotal_paise)}</span>
-              </div>
-              <div className="flex justify-between text-content-secondary-light">
-                <span>CGST (Central):</span>
-                <span>{formatINR(selectedInvoice.invoice.cgst_paise)}</span>
-              </div>
-              <div className="flex justify-between text-content-secondary-light">
-                <span>SGST (State):</span>
-                <span>{formatINR(selectedInvoice.invoice.sgst_paise)}</span>
-              </div>
-              <div className="flex justify-between font-extrabold text-base text-content-primary-light pt-2 border-t border-border-light">
-                <span>Total:</span>
-                <span className="text-brand-blue">{formatINR(selectedInvoice.invoice.total_amount_paise)}</span>
-              </div>
+            {/* Totals Breakdown */}
+            {(() => {
+              const cgst =
+                Number(selectedInvoice.invoice.cgst_paise) > 0
+                  ? selectedInvoice.invoice.cgst_paise
+                  : Math.round((Number(selectedInvoice.invoice.total_tax_paise) || 0) / 2);
+              const sgst =
+                Number(selectedInvoice.invoice.sgst_paise) > 0
+                  ? selectedInvoice.invoice.sgst_paise
+                  : (Number(selectedInvoice.invoice.total_tax_paise) || 0) - cgst;
+
+              return (
+                <div className="pt-4 border-t border-border-light text-xs space-y-1.5 max-w-xs ml-auto">
+                  <div className="flex justify-between text-content-secondary-light">
+                    <span>Subtotal:</span>
+                    <span className="font-medium text-content-primary-light">
+                      {formatINR(selectedInvoice.invoice.subtotal_paise)}
+                    </span>
+                  </div>
+
+                  {Number(selectedInvoice.invoice.discount_paise) > 0 && (
+                    <div className="flex justify-between text-amber-700 font-semibold">
+                      <span>Discount / Coupon:</span>
+                      <span>-{formatINR(selectedInvoice.invoice.discount_paise)}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-content-secondary-light">
+                    <span>CGST (Central):</span>
+                    <span>{formatINR(cgst)}</span>
+                  </div>
+                  <div className="flex justify-between text-content-secondary-light">
+                    <span>SGST (State):</span>
+                    <span>{formatINR(sgst)}</span>
+                  </div>
+
+                  <div className="flex justify-between font-extrabold text-base text-content-primary-light pt-2 border-t border-border-light">
+                    <span>Total Amount:</span>
+                    <span className="text-brand-blue">
+                      {formatINR(selectedInvoice.invoice.total_amount_paise)}
+                    </span>
+                  </div>
+
+                  {Number(selectedInvoice.invoice.paid_amount_paise) > 0 && (
+                    <div className="flex justify-between text-emerald-700 font-semibold pt-1">
+                      <span>Paid Amount:</span>
+                      <span>{formatINR(selectedInvoice.invoice.paid_amount_paise)}</span>
+                    </div>
+                  )}
+
+                  {Number(selectedInvoice.invoice.balance_amount_paise) > 0 && (
+                    <div className="flex justify-between text-amber-800 font-bold pt-1 border-t border-dashed border-border-light">
+                      <span>Balance Due:</span>
+                      <span>{formatINR(selectedInvoice.invoice.balance_amount_paise)}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Print Footer Watermark */}
+            <div className="mt-8 pt-4 border-t border-slate-100 text-[10px] text-slate-400 text-center">
+              Powered by HotelFlexi &bull; Property Management &amp; Direct Booking Platform
             </div>
 
-            {/* Actions */}
-            <div className="mt-8 pt-4 border-t border-border-light flex gap-3 print:hidden">
+            {/* Admin Actions */}
+            <div className="mt-6 pt-4 border-t border-border-light flex flex-wrap gap-2.5 print:hidden">
               <button
                 onClick={() => window.print()}
-                className="flex-1 py-2.5 rounded-lg bg-brand-blue text-white font-semibold text-xs hover:bg-brand-blue-hover transition flex items-center justify-center gap-2"
+                className="flex-1 min-w-[130px] py-2.5 px-3 rounded-xl bg-brand-blue text-white font-bold text-xs hover:bg-brand-blue-hover transition flex items-center justify-center gap-1.5 shadow-sm"
               >
                 <Printer className="w-4 h-4" /> Print Tax Folio
               </button>
+
               <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => handleSendInvoiceEmail(selectedInvoice.invoice.id)}
+                className="py-2.5 px-4 rounded-xl border border-blue-200 bg-blue-50 text-blue-800 font-bold text-xs hover:bg-blue-100 transition flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {actionLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Mail className="w-3.5 h-3.5" />
+                )}
+                <span>Email to Guest</span>
+              </button>
+
+              {selectedInvoice.invoice.status !== 'cancelled' && (
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => handleVoidInvoice(selectedInvoice.invoice.id)}
+                  className="py-2.5 px-3 rounded-xl border border-red-200 text-red-700 font-bold text-xs hover:bg-red-50 transition flex items-center gap-1.5"
+                >
+                  <Ban className="w-3.5 h-3.5" /> Void
+                </button>
+              )}
+
+              <button
+                type="button"
                 onClick={() => setSelectedInvoice(null)}
-                className="px-6 py-2.5 rounded-lg border border-border-light font-semibold text-xs hover:bg-surface-light"
+                className="px-5 py-2.5 rounded-xl border border-border-light font-bold text-xs text-slate-600 hover:bg-surface-light transition"
               >
                 Close
               </button>

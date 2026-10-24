@@ -222,9 +222,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       ],
     },
     {
-      title: 'Distribution & Channels',
+      title: 'Direct Bookings & Add-ons',
       items: [
-        { label: 'Channel Manager', href: '/app/channels', icon: Layers },
         { label: 'Booking Engine', href: '/app/booking-engine', icon: Globe },
         { label: 'Add-ons & Activities', href: '/app/addons', icon: Compass, badge: 'New' },
         { label: 'Dine-Out & Restaurant', href: '/app/dining', icon: UtensilsCrossed, badge: 'New' },
@@ -235,7 +234,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       title: 'Operations',
       items: [
         { label: 'Housekeeping', href: '/app/housekeeping', icon: ClipboardList },
-        { label: 'Linen & Laundry', href: '/app/laundry', icon: Package },
+        { label: 'Laundry & Room Supplies', href: '/app/laundry', icon: Package },
         { label: 'Food & Pantry (Rasan)', href: '/app/food', icon: UtensilsCrossed },
         { label: 'Maintenance', href: '/app/maintenance', icon: Wrench },
         { label: 'Complaints', href: '/app/complaints', icon: AlertTriangle },
@@ -248,7 +247,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { label: 'Payments', href: '/app/payments', icon: CreditCard },
         { label: 'Expenses', href: '/app/expenses', icon: PieChart },
         { label: 'Accounting P&L', href: '/app/accounting', icon: FileText },
-        { label: 'TallyPrime Sync', href: '/app/tally', icon: FileText, badge: 'Tally' },
         { label: 'Taxes & GST', href: '/app/taxes', icon: Percent },
         { label: 'Reports', href: '/app/reports', icon: BarChart3 },
       ],

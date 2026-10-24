@@ -208,7 +208,7 @@ function LoginForm() {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Authenticating...</span>
+              <span>Signing in...</span>
             </>
           ) : (
             <>

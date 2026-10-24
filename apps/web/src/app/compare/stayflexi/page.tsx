@@ -20,7 +20,7 @@ import {
 export const metadata: Metadata = {
   title: 'HotelFlexi vs StayFlexi (2026) — Best Modern Alternative with AI & ₹499/mo Pricing',
   description:
-    'Compare HotelFlexi vs StayFlexi. Discover why Indian hoteliers choose HotelFlexi over StayFlexi for its ₹499/mo transparent pricing, autonomous bilingual AI agent, room readiness SLAs, linen par tracking, and TallyPrime XML export.',
+    'Compare HotelFlexi vs StayFlexi. Discover why Indian hoteliers choose HotelFlexi over StayFlexi for its ₹499/mo transparent pricing, autonomous bilingual AI agent, room readiness SLAs, supply tracking, and built-in GST accounting.',
   keywords: [
     'hotelflexi vs stayflexi',
     'stayflexi alternative india',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'HotelFlexi vs StayFlexi — In-Depth Feature & Price Comparison',
     description:
-      'Why pay high USD pricing for StayFlexi when you can get autonomous AI, room readiness SLAs, TallyPrime export, and direct booking engine for ₹499/mo in India?',
+      'Why pay high USD pricing for StayFlexi when you can get autonomous AI, room readiness SLAs, GST accounting, and direct booking engine for ₹499/mo in India?',
     url: 'https://hotelflexi.com/compare/stayflexi',
   },
 };
@@ -65,8 +65,8 @@ export default function StayFlexiComparePage() {
       stayflexi: 'Requires external restaurant ERP software',
     },
     {
-      feature: 'TallyPrime Accounting Direct XML Export',
-      hotelflexi: 'Generates balanced double-entry vouchers.xml with GST splits for one-click Tally import',
+      feature: 'Built-in SAC 9963 GST Invoicing & P&L',
+      hotelflexi: 'Generates balanced double-entry folios with GST splits and live Profit & Loss ledger',
       stayflexi: 'Manual bookkeeping or standard CSV re-entry',
     },
     {

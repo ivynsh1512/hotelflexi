@@ -701,7 +701,7 @@ export default function CalendarPage() {
 
             <form onSubmit={handleBulkRateSubmit} className="space-y-4 text-xs">
               <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-[11px] leading-relaxed">
-                Update room rates in bulk across custom date windows. These override base prices and immediately sync to the booking engine and OTA channel manager.
+                Update room rates in bulk across custom date windows. These override base prices and immediately apply to your direct booking engine and guest reservations.
               </div>
 
               <div>

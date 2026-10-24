@@ -12,7 +12,7 @@ propertyRoutes.get('/', async (c) => {
   const tenantId = c.get('tenantId')!;
   const rows = await c.env.DB.prepare(
     `SELECT p.*, ps.gst_number, ps.gst_rate_standard, ps.invoice_prefix, ps.enable_online_booking,
-            ps.razorpay_key_id, ps.razorpay_enabled, ps.upi_id,
+            ps.razorpay_key_id, ps.razorpay_enabled, ps.upi_id, ps.google_review_url,
             ps.advance_payment_policy, ps.advance_payment_percent, ps.advance_payment_fixed_paise, ps.booking_engine_terms,
             (SELECT COUNT(*) FROM rooms r WHERE r.property_id = p.id AND r.is_active = 1) as total_rooms
      FROM properties p
@@ -53,7 +53,7 @@ propertyRoutes.get('/:id', async (c) => {
     property = await c.env.DB.prepare(
       `SELECT p.*, ps.gst_number, ps.gst_rate_standard, ps.gst_rate_luxury, ps.invoice_prefix,
               ps.next_invoice_number, ps.enable_online_booking, ps.payment_terms, ps.upi_id,
-              ps.razorpay_key_id, ps.razorpay_enabled,
+              ps.razorpay_key_id, ps.razorpay_enabled, ps.google_review_url,
               ps.advance_payment_policy, ps.advance_payment_percent, ps.advance_payment_fixed_paise, ps.booking_engine_terms,
               COALESCE(ps.auto_release_on_checkout, 1) as auto_release_on_checkout,
               CASE WHEN ps.razorpay_key_secret IS NOT NULL AND LENGTH(ps.razorpay_key_secret) > 0 THEN 1 ELSE 0 END as has_razorpay_secret
@@ -68,7 +68,7 @@ propertyRoutes.get('/:id', async (c) => {
     property = await c.env.DB.prepare(
       `SELECT p.*, ps.gst_number, ps.gst_rate_standard, ps.gst_rate_luxury, ps.invoice_prefix,
               ps.next_invoice_number, ps.enable_online_booking, ps.payment_terms, ps.upi_id,
-              ps.razorpay_key_id, ps.razorpay_enabled,
+              ps.razorpay_key_id, ps.razorpay_enabled, ps.google_review_url,
               ps.advance_payment_policy, ps.advance_payment_percent, ps.advance_payment_fixed_paise, ps.booking_engine_terms,
               1 as auto_release_on_checkout,
               CASE WHEN ps.razorpay_key_secret IS NOT NULL AND LENGTH(ps.razorpay_key_secret) > 0 THEN 1 ELSE 0 END as has_razorpay_secret
@@ -210,6 +210,7 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
     body.razorpay_key_id !== undefined ||
     body.razorpay_key_secret !== undefined ||
     body.razorpay_enabled !== undefined ||
+    body.google_review_url !== undefined ||
     body.advance_payment_policy !== undefined ||
     body.advance_payment_percent !== undefined ||
     body.advance_payment_fixed_paise !== undefined ||
@@ -226,6 +227,7 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
            razorpay_key_id = COALESCE(?, razorpay_key_id),
            razorpay_key_secret = COALESCE(?, razorpay_key_secret),
            razorpay_enabled = COALESCE(?, razorpay_enabled),
+           google_review_url = COALESCE(?, google_review_url),
            advance_payment_policy = COALESCE(?, advance_payment_policy),
            advance_payment_percent = COALESCE(?, advance_payment_percent),
            advance_payment_fixed_paise = COALESCE(?, advance_payment_fixed_paise),
@@ -242,6 +244,7 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
           body.razorpay_key_id ?? null,
           body.razorpay_key_secret ?? null,
           body.razorpay_enabled !== undefined ? (body.razorpay_enabled ? 1 : 0) : null,
+          body.google_review_url !== undefined ? String(body.google_review_url).trim() : null,
           body.advance_payment_policy ?? null,
           body.advance_payment_percent !== undefined ? Number(body.advance_payment_percent) : null,
           body.advance_payment_fixed_paise !== undefined ? Number(body.advance_payment_fixed_paise) : null,
@@ -253,7 +256,7 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
         )
         .run();
     } catch {
-      // Fallback if column auto_release_on_checkout is pending in DB
+      // Fallback
       await c.env.DB.prepare(
         `UPDATE property_settings SET
            gst_number = COALESCE(?, gst_number),
@@ -263,6 +266,7 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
            razorpay_key_id = COALESCE(?, razorpay_key_id),
            razorpay_key_secret = COALESCE(?, razorpay_key_secret),
            razorpay_enabled = COALESCE(?, razorpay_enabled),
+           google_review_url = COALESCE(?, google_review_url),
            advance_payment_policy = COALESCE(?, advance_payment_policy),
            advance_payment_percent = COALESCE(?, advance_payment_percent),
            advance_payment_fixed_paise = COALESCE(?, advance_payment_fixed_paise),
@@ -278,6 +282,7 @@ propertyRoutes.patch('/:id/settings', requireRole(['owner', 'manager']), async (
           body.razorpay_key_id ?? null,
           body.razorpay_key_secret ?? null,
           body.razorpay_enabled !== undefined ? (body.razorpay_enabled ? 1 : 0) : null,
+          body.google_review_url !== undefined ? String(body.google_review_url).trim() : null,
           body.advance_payment_policy ?? null,
           body.advance_payment_percent !== undefined ? Number(body.advance_payment_percent) : null,
           body.advance_payment_fixed_paise !== undefined ? Number(body.advance_payment_fixed_paise) : null,

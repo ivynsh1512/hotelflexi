@@ -97,8 +97,8 @@ function ScrollProgress() {
 ───────────────────────────────────────────── */
 const HERO_TABS = [
   { id: 'pms',     label: 'Front Desk PMS' },
-  { id: 'channel', label: 'Channel Manager' },
   { id: 'booking', label: 'Booking Engine' },
+  { id: 'billing', label: 'GST & Accounting' },
   { id: 'wedding', label: 'Wedding Engine' },
   { id: 'ai',      label: 'FlexiAI Agent' },
 ];
@@ -113,22 +113,22 @@ const TAB_CONTENT: Record<string, { title: string; desc: string; metrics: { labe
       { label: 'Rooms Managed', val: '∞', color: 'text-indigo-600' },
     ],
   },
-  channel: {
-    title: '2-Way OTA Sync — Zero Double Bookings',
-    desc: 'Live 2-way inventory & rate sync with MakeMyTrip, Goibibo, Booking.com, Agoda, Airbnb, and Expedia in under 1 second.',
-    metrics: [
-      { label: 'Sync Latency', val: '< 1s', color: 'text-blue-600' },
-      { label: 'OTA Portals', val: '6+', color: 'text-emerald-600' },
-      { label: 'Double Bookings', val: '0', color: 'text-red-500' },
-    ],
-  },
   booking: {
     title: 'Commission-Free Direct Bookings',
     desc: 'Publish your branded booking page at /book/[slug] with Razorpay checkout. Guests pay directly into your account — 0% commission.',
     metrics: [
       { label: 'Commission', val: '0%', color: 'text-emerald-600' },
       { label: 'Payment Gateway', val: 'Razorpay', color: 'text-blue-600' },
-      { label: 'Settlement', val: 'Instant', color: 'text-indigo-600' },
+      { label: 'Guest Folios', val: 'Instant', color: 'text-indigo-600' },
+    ],
+  },
+  billing: {
+    title: '100% SAC 9963 GST Billing & Live P&L',
+    desc: 'Automate 12% & 18% GST tax invoices, track expense categories, and monitor real-time gross operating income and net profit.',
+    metrics: [
+      { label: 'GST Compliance', val: '100%', color: 'text-emerald-600' },
+      { label: 'Invoice Delivery', val: 'Automated', color: 'text-blue-600' },
+      { label: 'P&L Ledger', val: 'Real-time', color: 'text-indigo-600' },
     ],
   },
   wedding: {
@@ -155,16 +155,15 @@ const TAB_CONTENT: Record<string, { title: string; desc: string; metrics: { labe
    MARQUEE ITEMS
 ───────────────────────────────────────────── */
 const MARQUEE_ITEMS = [
-  '⚡ Channel Manager',
-  '🏨 Cloud PMS',
   '🎯 Direct Booking Engine',
+  '🏨 Cloud PMS',
   '💍 Wedding Engine',
   '🤖 FlexiAI Concierge',
-  '🧾 GST Billing',
+  '🧾 GST Billing & P&L',
   '🧹 Room Readiness & Housekeeping',
   '📲 FlexiLink Check-In',
   '📊 Revenue Analytics',
-  '🌐 OTA Sync',
+  '🧺 Laundry & Supplies',
   '📸 Photo Management',
   '🛎️ Guest Portal',
 ];
@@ -175,9 +174,9 @@ const MARQUEE_ITEMS = [
 const BENTO_FEATURES = [
   {
     num: '01', icon: <Globe className="w-5 h-5" />, color: 'text-blue-600', bg: 'bg-blue-50',
-    title: '2-Way OTA Channel Manager',
-    desc: 'Sub-second ARI sync to MMT, Goibibo, Booking.com, Agoda, Airbnb & Expedia. Channel-specific markup rules.',
-    tag: 'Pro & Enterprise',
+    title: 'Commission-Free Booking Engine',
+    desc: 'Branded direct booking website with Razorpay UPI/card checkout. Guests book directly with instant confirmation and 0% commission.',
+    tag: 'All Plans',
   },
   {
     num: '02', icon: <BedDouble className="w-5 h-5" />, color: 'text-indigo-600', bg: 'bg-indigo-50',
@@ -254,7 +253,7 @@ const plans = [
     desc: 'Fast-growing resorts, boutique hotel groups & destination wedding properties.',
     features: [
       'Up to 75 Rooms & 3 Properties',
-      '2-Way Live OTA Channel Manager (MMT, Agoda, Booking.com, Airbnb, Expedia)',
+      'Commission-Free Direct Booking Engine & Razorpay Checkout',
       'Interactive Destination Wedding Engine & Quotation Builder',
       'Custom Hotel Website with Free Domain & Hosting',
       'Google Hotel Center & GMB "Official Site" Free Booking Links',
@@ -291,8 +290,8 @@ const plans = [
 ───────────────────────────────────────────── */
 const faqs = [
   {
-    q: 'How does the 2-Way Channel Manager prevent double-bookings?',
-    a: 'HotelFlexi connects directly to MakeMyTrip, Goibibo, Booking.com, Agoda, Airbnb, and Expedia. The moment a room is booked anywhere, availability is updated across all channels within seconds, automatically placing stop-sells on booked rooms.',
+    q: 'How does the direct booking engine eliminate commissions?',
+    a: 'HotelFlexi creates an official booking engine at /book/[slug] with instant Razorpay UPI, card, and QR payments. All booking revenues settle directly into your bank account with zero middleman or OTA commission cuts.',
   },
   {
     q: 'Do you charge commissions on direct bookings?',
@@ -320,7 +319,7 @@ const faqs = [
    COMPARISON DATA
 ───────────────────────────────────────────── */
 const comparisonData = [
-  { feature: '2-Way OTA Channel Manager (MMT, Agoda, Booking.com)', hotelflexi: 'Yes (Live 2-Way)', stayflexi: 'Yes', cloudbeds: 'Yes', axisrooms: 'Yes', ezee: 'Yes' },
+  { feature: 'Built-in SAC 9963 GST Invoicing & P&L', hotelflexi: 'Yes (Native & Real-time)', stayflexi: 'Partial', cloudbeds: 'Requires Plugin', axisrooms: 'No', ezee: 'Native' },
   { feature: 'Direct Booking Engine with Zero Commission', hotelflexi: 'Yes (0% Fee)', stayflexi: 'Yes', cloudbeds: 'Yes', axisrooms: 'Extra Add-on', ezee: 'Extra Fee' },
   { feature: 'Automated Housekeeping Turnover & Inspection Gates', hotelflexi: 'Yes (Strict Par & Inspection)', stayflexi: 'Partial', cloudbeds: 'Basic', axisrooms: 'No', ezee: 'Basic' },
   { feature: 'Contactless Guest Portal (FlexiLink) with ID Upload', hotelflexi: 'Included Free', stayflexi: 'Yes (Magic Link)', cloudbeds: 'Add-on ($)', axisrooms: 'No', ezee: 'Add-on ($)' },
@@ -674,22 +673,22 @@ export default function HomePage() {
       <section className="py-24 bg-white border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-28">
 
-          {/* Pillar 1: Channel Manager */}
+          {/* Pillar 1: Direct Bookings */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center hf-reveal">
             <div className="space-y-5">
-              <span className="text-[11px] font-black uppercase text-blue-600 tracking-widest">PILLAR 01 · DISTRIBUTION</span>
+              <span className="text-[11px] font-black uppercase text-blue-600 tracking-widest">PILLAR 01 · DIRECT BOOKINGS</span>
               <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight">
-                2-Way OTA Sync Across{' '}
-                <span className="hf-serif-accent text-blue-600">100+ Portals</span>
+                Commission-Free Direct{' '}
+                <span className="hf-serif-accent text-blue-600">Booking Engine</span>
               </h2>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Connect your live inventory to MakeMyTrip, Goibibo, Booking.com, Agoda, Airbnb, and Expedia. When a room is booked anywhere, all OTAs are updated in under a second.
+                Turn your website visitors, Google searchers, and social media traffic into confirmed hotel bookings. Guests pay through UPI, Google Pay, cards, or pay-at-hotel straight into your account with 0% OTA commission.
               </p>
               <div className="space-y-2.5 text-xs text-slate-700 font-medium">
                 {[
-                  'Sub-second 2-way Availability, Rates & Inventory (ARI) push',
-                  'Channel-specific rate markups (+15% OTA price multiplier)',
-                  'Scheduled daily reconciliation to audit rate parity',
+                  '100% Commission-free direct guest reservations at /book/[slug]',
+                  'Instant Razorpay UPI, QR code & net banking advance collection',
+                  'Automated SAC 9963 GST tax folio and email confirmation',
                 ].map((t) => (
                   <div key={t} className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -697,20 +696,20 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-              <Link href="/channel-manager" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:underline">
-                Explore Channel Manager <ArrowRight className="w-4 h-4" />
+              <Link href="/booking-engine" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:underline">
+                Explore Direct Booking Engine <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
 
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl space-y-3 hf-scale-in">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 text-xs font-bold text-slate-900">
-                <span>Active OTA Rate Multiplier</span>
-                <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px]">All Synced ✓</span>
+                <span>Direct Revenue vs High OTA Cuts</span>
+                <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px]">100% Direct ✓</span>
               </div>
               {[
-                { name: 'Direct Booking Engine', sub: 'Your Official Website', price: '₹3,500', badge: '0% Commission', badgeColor: 'text-emerald-600' },
-                { name: 'MakeMyTrip / Goibibo', sub: '+15% Markup Applied', price: '₹4,025', badge: 'Covers OTA Cut', badgeColor: 'text-slate-500' },
-                { name: 'Booking.com', sub: '+18% Markup Applied', price: '₹4,130', badge: 'Covers OTA Cut', badgeColor: 'text-slate-500' },
+                { name: 'HotelFlexi Direct Engine', sub: 'Your Official Domain', price: '₹3,500', badge: 'Keep ₹3,500 (0% Cut)', badgeColor: 'text-emerald-600' },
+                { name: 'High Commission OTAs', sub: 'Typical 18% to 22% Cut', price: '₹3,500', badge: 'Lose ₹630 to ₹770', badgeColor: 'text-red-500' },
+                { name: 'Annual Savings (100 Bookings)', sub: 'Kept in Hotelier Pocket', price: '₹70,000+', badge: 'Profit Boost', badgeColor: 'text-emerald-700 font-extrabold' },
               ].map((row) => (
                 <div key={row.name} className="p-3 bg-slate-50 rounded-xl flex justify-between items-center text-xs">
                   <div>

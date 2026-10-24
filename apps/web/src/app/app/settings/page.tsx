@@ -43,6 +43,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Star,
+  ExternalLink,
   AlertTriangle,
   X,
 } from 'lucide-react';
@@ -117,6 +118,7 @@ export default function HotelSettingsPage() {
   const [razorpayKeyId, setRazorpayKeyId] = useState('');
   const [razorpayKeySecret, setRazorpayKeySecret] = useState('');
   const [razorpayEnabled, setRazorpayEnabled] = useState(false);
+  const [googleReviewUrl, setGoogleReviewUrl] = useState('');
 
   // Developer setup states
   const [devSetupLoading, setDevSetupLoading] = useState(false);
@@ -289,6 +291,7 @@ export default function HotelSettingsPage() {
           setLogoUrl(activeProp.logo_url || '');
           setRazorpayKeyId(activeProp.razorpay_key_id || '');
           setRazorpayEnabled(Boolean(activeProp.razorpay_enabled));
+          setGoogleReviewUrl(activeProp.google_review_url || '');
           setAdvancePaymentPolicy(activeProp.advance_payment_policy || 'full');
           setAdvancePaymentPercent(String(activeProp.advance_payment_percent ?? 100));
           setAdvancePaymentFixed(String(activeProp.advance_payment_fixed_paise ? activeProp.advance_payment_fixed_paise / 100 : 1000));
@@ -503,6 +506,7 @@ export default function HotelSettingsPage() {
           razorpay_key_id: razorpayKeyId || null,
           razorpay_key_secret: razorpayKeySecret || undefined,
           razorpay_enabled: razorpayEnabled,
+          google_review_url: googleReviewUrl || null,
         }),
       });
 
@@ -718,7 +722,7 @@ export default function HotelSettingsPage() {
 
             <div>
               <label className="block font-semibold mb-1 text-content-primary-light">
-                Property Overview &amp; Description (Displayed on Booking Engine, OTA feeds &amp; Guest Vouchers)
+                Property Overview &amp; Description (Displayed on Direct Booking Engine &amp; Guest Vouchers)
               </label>
               <textarea
                 rows={3}
@@ -803,7 +807,7 @@ export default function HotelSettingsPage() {
             </div>
 
             <div className="space-y-2 pt-2 border-t border-border-light">
-              <label className="block font-semibold text-content-primary-light">Property Gallery Photos (Shown on Booking Engine &amp; OTA Feeds)</label>
+              <label className="block font-semibold text-content-primary-light">Property Gallery Photos (Shown on Direct Booking Engine &amp; Guest Folios)</label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="url"
@@ -909,7 +913,7 @@ export default function HotelSettingsPage() {
               </h3>
             </div>
             <p className="text-content-secondary-light">
-              Select all amenities available at your property. These will be highlighted on your public booking engine and OTA channel feeds.
+              Select all amenities available at your property. These will be highlighted on your direct booking engine and guest invoices.
             </p>
 
             <div className="flex flex-wrap gap-2">
@@ -1227,6 +1231,65 @@ export default function HotelSettingsPage() {
                   className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Google Business Profile Review Link */}
+          <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b border-border-light pb-2">
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                <h3 className="font-bold text-sm text-content-primary-light">
+                  Google Business Profile Review Link
+                </h3>
+              </div>
+              {googleReviewUrl && googleReviewUrl.trim().length > 5 ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Configured
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                  <AlertCircle className="w-3 h-3 text-amber-600" /> Not Configured
+                </span>
+              )}
+            </div>
+
+            <p className="text-content-secondary-light leading-relaxed">
+              Route happy guests directly to your official Google Maps listing to leave 5-star reviews upon checkout. When a guest leaves high ratings on their digital checkout folios, HotelFlexi prompts them to post their review directly on Google Maps.
+            </p>
+
+            <div className="space-y-2">
+              <label className="block font-semibold text-content-primary-light">
+                Google Review URL (e.g. Google Maps Place Link or Short Review Link)
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="url"
+                  value={googleReviewUrl}
+                  onChange={(e) => setGoogleReviewUrl(e.target.value)}
+                  placeholder="https://g.page/r/your-hotel/review or https://maps.app.goo.gl/..."
+                  className="flex-1 px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono text-xs"
+                />
+                {googleReviewUrl && googleReviewUrl.trim().length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        const url = new URL(googleReviewUrl.trim());
+                        window.open(url.href, '_blank', 'noopener,noreferrer');
+                      } catch {
+                        alert('Please enter a valid URL starting with https://');
+                      }
+                    }}
+                    className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold transition flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    Test Link <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-content-secondary-light">
+                Tip: In your Google Business Profile manager, click <strong>Ask for reviews</strong> and copy your short URL to paste here.
+              </p>
             </div>
           </div>
 

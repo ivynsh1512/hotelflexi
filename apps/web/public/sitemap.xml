@@ -23,12 +23,6 @@
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://hotelflexi.com/channel-manager</loc>
-    <lastmod>2026-10-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
     <loc>https://hotelflexi.com/booking-engine</loc>
     <lastmod>2026-10-20</lastmod>
     <changefreq>weekly</changefreq>
@@ -97,12 +91,6 @@
     <lastmod>2026-10-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://hotelflexi.com/blog/best-hotel-channel-manager-india</loc>
-    <lastmod>2026-10-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
   </url>
   <url>
     <loc>https://hotelflexi.com/blog/contactless-guest-portal-self-check-in-flexilink</loc>

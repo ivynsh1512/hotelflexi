@@ -243,56 +243,6 @@ export default function SubscriptionPage() {
   const entitlements = subData?.entitlements;
   const activePlanId = currentPlan?.current_plan_id || 'essential';
 
-  const comparisonRows = [
-    { name: 'Monthly Tariff (INR)', essential: '₹499 / mo', pro: '₹999 / mo', enterprise: '₹1,999 / mo' },
-    // Hotel Management
-    { name: '— HOTEL MANAGEMENT —', essential: '', pro: '', enterprise: '' },
-    { name: 'Room Inventory', essential: 'Up to 10 Rooms', pro: 'Up to 50 Rooms', enterprise: 'Unlimited Rooms' },
-    { name: 'Staff Accounts', essential: 'Up to 2', pro: 'Up to 10', enterprise: 'Unlimited' },
-    { name: 'Properties Managed', essential: '1 Property', pro: '1 Property', enterprise: 'Multi-Property' },
-    { name: 'Front Desk & Reservation Calendar', essential: true, pro: true, enterprise: true },
-    { name: 'Room Status Management', essential: true, pro: true, enterprise: true },
-    { name: 'Basic Housekeeping Tracking', essential: true, pro: true, enterprise: true },
-    { name: 'Smart Automated Housekeeping Workflows', essential: false, pro: true, enterprise: true },
-    { name: 'Guest Profiles & Reservation Management', essential: true, pro: true, enterprise: true },
-    { name: 'Check-in & Check-out Management', essential: true, pro: true, enterprise: true },
-    { name: 'Role-Based Access & Permissions', essential: false, pro: false, enterprise: true },
-    { name: 'Multi-Property Management', essential: false, pro: false, enterprise: true },
-    // Bookings & Billing
-    { name: '— BOOKINGS & BILLING —', essential: '', pro: '', enterprise: '' },
-    { name: 'Direct Booking Engine (0% Commission)', essential: true, pro: true, enterprise: true },
-    { name: 'Booking Confirmation Emails', essential: true, pro: true, enterprise: true },
-    { name: 'Basic Billing & Invoices (GST)', essential: true, pro: true, enterprise: true },
-    { name: 'Payment Recording', essential: true, pro: true, enterprise: true },
-    { name: 'Basic Occupancy & Revenue Reports', essential: true, pro: true, enterprise: true },
-    { name: 'Advanced Financial Reports & Accounting', essential: false, pro: true, enterprise: true },
-    { name: 'Automated Email Reports & Business Summaries', essential: false, pro: true, enterprise: true },
-    { name: 'Advanced Billing & Accounting Tools', essential: false, pro: true, enterprise: true },
-    { name: 'Destination Wedding Booking Engine', essential: false, pro: true, enterprise: true },
-    { name: 'Coupons & Promotional Offers', essential: false, pro: true, enterprise: true },
-    { name: 'Payment Gateway Integrations', essential: false, pro: false, enterprise: true },
-    { name: 'Data Export & Audit History', essential: false, pro: false, enterprise: true },
-    { name: 'API & Integration Access', essential: false, pro: false, enterprise: true },
-    // AI & Team
-    { name: '— AI AGENT & TEAM —', essential: '', pro: '', enterprise: '' },
-    { name: 'AI Business Agent Monthly Quota', essential: '50 chats / mo', pro: '200 tasks / mo', enterprise: 'Expanded (fair-use)' },
-    { name: 'AI-Assisted Business Insights', essential: false, pro: true, enterprise: true },
-    { name: 'Advanced Analytics & Performance Dashboards', essential: false, pro: false, enterprise: true },
-    // Guest Experience (FlexiLink)
-    { name: '— GUEST EXPERIENCE —', essential: '', pro: '', enterprise: '' },
-    { name: 'FlexiLink Guest Portal', essential: false, pro: true, enterprise: true },
-    { name: 'Digital Self Check-In', essential: false, pro: true, enterprise: true },
-    { name: 'Guest ID Upload', essential: false, pro: true, enterprise: true },
-    { name: 'Online Payment Options for Guests', essential: false, pro: true, enterprise: true },
-    { name: 'Hotel Restaurant Food Ordering', essential: false, pro: true, enterprise: true },
-    { name: 'Guest Service Requests & Hotel Facilities', essential: false, pro: true, enterprise: true },
-    { name: 'Custom Branding Options', essential: false, pro: false, enterprise: true },
-    // Support
-    { name: '— SUPPORT —', essential: '', pro: '', enterprise: '' },
-    { name: 'Support Level', essential: 'Standard Support', pro: 'Priority Support', enterprise: 'Priority Onboarding & Support' },
-    { name: 'Custom Branding & White-Label', essential: false, pro: false, enterprise: true },
-  ];
-
   const planTierOrder: Record<string, number> = {
     essential: 1,
     pro: 2,
@@ -598,64 +548,45 @@ export default function SubscriptionPage() {
             )}
           </div>
 
-          {/* Full Side-by-Side Feature Comparison Table */}
-          <div className="bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-border-light font-bold text-sm text-content-primary-light flex items-center gap-2">
-              <Zap className="w-4 h-4 text-brand-blue" />
-              <span>Full Tier Feature Comparison Matrix</span>
+          {/* Plan Comparison Summary & Full Pricing Directory */}
+          <div className="bg-gradient-to-r from-blue-50/70 via-white to-indigo-50/70 rounded-2xl border border-blue-200 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2 max-w-xl">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-brand-blue">
+                <Zap className="w-3.5 h-3.5" />
+                <span>Transparent Tier Pricing</span>
+              </div>
+              <h3 className="text-lg font-extrabold text-content-primary-light">
+                Looking for the Complete Feature &amp; Limits Breakdown?
+              </h3>
+              <p className="text-xs text-content-secondary-light leading-relaxed">
+                Explore our full feature matrix online — comparing room capacity, automated housekeeping, GST SAC 9963 invoicing, bilingual AI assistant quotas, and dedicated hospitality support side by side.
+              </p>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-surface-light border-b border-border-light font-bold text-content-primary-light uppercase text-[10px]">
-                  <tr>
-                    <th className="p-3.5">Feature / Capability</th>
-                    <th className="p-3.5 text-center">Essential (₹499)</th>
-                    <th className="p-3.5 text-center text-brand-blue bg-blue-50/50">Pro (₹999)</th>
-                    <th className="p-3.5 text-center">Enterprise (₹1,999)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border-light">
-                  {comparisonRows.map((row) => {
-                    const isHeaderRow = row.name.startsWith('—');
-                    if (isHeaderRow) {
-                      return (
-                        <tr key={row.name} className="bg-slate-100/80">
-                          <td colSpan={4} className="p-2.5 px-4 font-black text-slate-800 text-[10px] tracking-widest uppercase">
-                            {row.name.replace(/—/g, '').trim()}
-                          </td>
-                        </tr>
-                      );
-                    }
-
-                    const renderVal = (v: any) => {
-                      if (v === true) return <Check className="w-4 h-4 text-emerald-600 mx-auto" />;
-                      if (v === false) return <X className="w-4 h-4 text-gray-300 mx-auto" />;
-                      return <span className="font-semibold text-content-primary-light">{v}</span>;
-                    };
-
-                    return (
-                      <tr key={row.name} className="hover:bg-surface-light/40">
-                        <td className="p-3.5 font-medium text-content-primary-light">{row.name}</td>
-                        <td className="p-3.5 text-center">{renderVal(row.essential)}</td>
-                        <td className="p-3.5 text-center bg-blue-50/20">{renderVal(row.pro)}</td>
-                        <td className="p-3.5 text-center">{renderVal(row.enterprise)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
+              <a
+                href="https://hotelflexi.com/pricing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-5 py-3 rounded-xl bg-brand-blue hover:bg-brand-blue-hover text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition"
+              >
+                <span>View Plans &amp; Compare Features</span>
+                <ExternalLink className="w-4 h-4" />
+              </a>
+              <span className="text-[10px] text-content-secondary-light text-center font-medium">
+                No hidden costs • GST invoices provided
+              </span>
             </div>
           </div>
 
-          {/* White-Glove Onboarding & Complete OTA Listing Assistance */}
+          {/* White-Glove Onboarding & Dedicated Hospitality Engineering Assistance */}
           <div className="space-y-4 pt-2">
             <div>
               <h3 className="text-base font-extrabold text-content-primary-light">
-                White-Glove Onboarding &amp; OTA Listing Packages
+                White-Glove Onboarding &amp; Property Setup Packages
               </h3>
               <p className="text-xs text-content-secondary-light">
-                Let our dedicated hospitality engineering team set up your hotel, map your inventory, and get you live on all OTAs.
+                Let our dedicated hospitality engineering team set up your hotel, map your inventory, configure GST rules, and get your booking engine live.
               </p>
             </div>
 
@@ -699,22 +630,22 @@ export default function SubscriptionPage() {
                 </button>
               </div>
 
-              {/* Package 2: Complete OTA Listing & HotelFlexi 2-Way Setup (Rs. 4,999) */}
+              {/* Package 2: Complete Property Onboarding & Direct Booking Engine Setup (Rs. 4,999) */}
               <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-900 to-indigo-950 text-white shadow-lg flex flex-col justify-between space-y-4 border border-blue-400/30">
                 <div className="space-y-2">
                   <div className="flex justify-between items-start">
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
                       <Globe className="w-3 h-3 text-amber-300" />
-                      Complete OTA Launch
+                      Complete Hotel Launch
                     </div>
                     <div className="text-right">
                       <div className="text-xl font-black text-amber-300">₹4,999</div>
                       <span className="text-[9px] text-blue-200">One-Time All-Inclusive</span>
                     </div>
                   </div>
-                  <h4 className="text-sm font-bold text-white">Complete OTA Listing &amp; 2-Way Setup</h4>
+                  <h4 className="text-sm font-bold text-white">Full Property Onboarding &amp; Direct Engine Setup</h4>
                   <p className="text-[11px] text-blue-100 leading-relaxed">
-                    Full hotel listing &amp; verification on Expedia, Booking.com, MakeMyTrip, Goibibo, Agoda + 2-way HotelFlexi channel sync &amp; staff onboarding.
+                    Complete hotel onboarding: high-res room photos, direct booking engine with 0% commission, Google Review link, GST folio setup &amp; full staff training.
                   </p>
                 </div>
 
@@ -732,7 +663,7 @@ export default function SubscriptionPage() {
                   ) : (
                     <>
                       <CreditCard className="w-3.5 h-3.5 text-slate-900" />
-                      <span>Pay &amp; Get Complete OTA Listing (₹4,999) &rarr;</span>
+                      <span>Pay &amp; Get Complete Property Setup (₹4,999) &rarr;</span>
                     </>
                   )}
                 </button>

@@ -46,12 +46,6 @@ export const Navbar: React.FC = () => {
               Cloud PMS
             </Link>
             <Link
-              href="/channel-manager"
-              className="hover:text-brand-blue transition-colors"
-            >
-              2-Way Channels
-            </Link>
-            <Link
               href="/booking-engine"
               className="hover:text-brand-blue transition-colors"
             >
@@ -148,13 +142,6 @@ export const Navbar: React.FC = () => {
               className="block py-2 text-sm font-semibold text-slate-800"
             >
               Cloud PMS &amp; Calendar
-            </Link>
-            <Link
-              href="/channel-manager"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 text-sm font-semibold text-slate-800"
-            >
-              2-Way OTA Channel Manager
             </Link>
             <Link
               href="/booking-engine"

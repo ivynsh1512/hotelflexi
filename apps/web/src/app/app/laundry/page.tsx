@@ -17,6 +17,7 @@ import {
 interface LinenItem {
   id: string;
   item_name: string;
+  category?: string;
   total_stock: number;
   in_rooms: number;
   clean_stock: number;
@@ -65,7 +66,19 @@ export default function LaundryPage() {
         apiClient(`/laundry/inventory?property_id=${activeProp.id}`),
         apiClient(`/laundry/transactions?property_id=${activeProp.id}&limit=50`),
       ]);
-      setInventory(inv?.items || []);
+      const rawItems = inv?.items || [];
+      const normalizedItems: LinenItem[] = rawItems.map((it: any) => ({
+        id: it.id,
+        item_name: it.item_name,
+        category: it.category || 'bedding',
+        total_stock: Number(it.total_stock) || 0,
+        in_rooms: Number(it.in_rooms) || 0,
+        clean_stock: Number(it.in_stock_clean ?? it.clean_stock) || 0,
+        at_laundry: Number(it.in_laundry ?? it.at_laundry) || 0,
+        damaged: Number(it.discarded ?? it.damaged) || 0,
+        unit: it.unit || 'pcs',
+      }));
+      setInventory(normalizedItems);
       setTransactions(txns?.transactions || []);
     } catch (e) {
       console.error(e);
@@ -90,9 +103,17 @@ export default function LaundryPage() {
 
   const saveEdit = async (item: LinenItem) => {
     try {
+      const payload = {
+        property_id: propertyId,
+        totalStock: editValues.total_stock !== undefined ? editValues.total_stock : item.total_stock,
+        inRooms: editValues.in_rooms !== undefined ? editValues.in_rooms : item.in_rooms,
+        inStockClean: editValues.clean_stock !== undefined ? editValues.clean_stock : item.clean_stock,
+        inLaundry: editValues.at_laundry !== undefined ? editValues.at_laundry : item.at_laundry,
+        discarded: editValues.damaged !== undefined ? editValues.damaged : item.damaged,
+      };
       await apiClient(`/laundry/inventory/${item.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ ...editValues, property_id: propertyId }),
+        body: JSON.stringify(payload),
       });
       setEditingId(null);
       loadData();
@@ -147,10 +168,10 @@ export default function LaundryPage() {
     }
   };
 
-  const totalStock = inventory.reduce((s, i) => s + i.total_stock, 0);
-  const inRooms = inventory.reduce((s, i) => s + i.in_rooms, 0);
-  const cleanStock = inventory.reduce((s, i) => s + i.clean_stock, 0);
-  const atLaundry = inventory.reduce((s, i) => s + i.at_laundry, 0);
+  const totalStock = inventory.reduce((s, i) => s + (Number(i.total_stock) || 0), 0);
+  const inRooms = inventory.reduce((s, i) => s + (Number(i.in_rooms) || 0), 0);
+  const cleanStock = inventory.reduce((s, i) => s + (Number(i.clean_stock) || 0), 0);
+  const atLaundry = inventory.reduce((s, i) => s + (Number(i.at_laundry) || 0), 0);
 
   const txTypeLabel: Record<string, string> = {
     checkout_laundry: '🧺 Checkout → Laundry',
@@ -184,9 +205,11 @@ export default function LaundryPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border-light">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-content-primary-light flex items-center gap-2">
-            <Package className="w-6 h-6 text-brand-blue" /> Linen &amp; Laundry
+            <Package className="w-6 h-6 text-brand-blue" /> Laundry &amp; Room Supplies
           </h1>
-          <p className="text-xs text-content-secondary-light mt-0.5">Track linen inventory, laundry cycles, and stock levels</p>
+          <p className="text-xs text-content-secondary-light mt-0.5">
+            Track bed sheets, towels, bedding inventory, laundry cycles, and clean stock levels
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={openSendModal} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition">
@@ -269,12 +292,12 @@ export default function LaundryPage() {
                         </>
                       ) : (
                         <>
-                          <td className="px-4 py-3 font-bold text-content-primary-light">{item.total_stock}</td>
-                          <td className="px-4 py-3 text-blue-600 font-semibold">{item.in_rooms}</td>
-                          <td className="px-4 py-3 text-emerald-600 font-semibold">{item.clean_stock}</td>
-                          <td className="px-4 py-3 text-amber-600 font-semibold">{item.at_laundry}</td>
-                          <td className="px-4 py-3 text-red-500 font-semibold">{item.damaged}</td>
-                          <td className="px-4 py-3 text-content-secondary-light">{item.unit}</td>
+                          <td className="px-4 py-3 font-bold text-content-primary-light">{item.total_stock ?? 0}</td>
+                          <td className="px-4 py-3 text-blue-600 font-semibold">{item.in_rooms ?? 0}</td>
+                          <td className="px-4 py-3 text-emerald-600 font-semibold">{item.clean_stock ?? 0}</td>
+                          <td className="px-4 py-3 text-amber-600 font-semibold">{item.at_laundry ?? 0}</td>
+                          <td className="px-4 py-3 text-red-500 font-semibold">{item.damaged ?? 0}</td>
+                          <td className="px-4 py-3 text-content-secondary-light">{item.unit || 'pcs'}</td>
                           <td className="px-4 py-3">
                             <button
                               onClick={() => { setEditingId(item.id); setEditValues({}); }}

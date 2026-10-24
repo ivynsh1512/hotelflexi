@@ -19,18 +19,17 @@ import {
 export const metadata: Metadata = {
   title: 'HotelFlexi vs AxisRooms (2026) — Complete Hotel PMS vs Distribution-Only Tool',
   description:
-    'Compare HotelFlexi vs AxisRooms. Why buy fragmented channel management software when HotelFlexi provides complete PMS, front desk, housekeeping SLAs, linen tracking, and TallyPrime export for ₹499/mo?',
+    'Compare HotelFlexi vs AxisRooms. Why buy fragmented software when HotelFlexi provides complete PMS, front desk, housekeeping SLAs, supply tracking, and built-in GST accounting for ₹499/mo?',
   keywords: [
     'hotelflexi vs axisrooms',
     'axisrooms alternative',
-    'axisrooms channel manager review',
     'best hotel pms india',
     'hotel management software india',
   ],
   openGraph: {
     title: 'HotelFlexi vs AxisRooms — Complete PMS vs Standalone Distribution',
     description:
-      'HotelFlexi combines complete front desk operations, housekeeping SLAs, food procurement, and TallyPrime sync with direct booking engine for ₹499/mo.',
+      'HotelFlexi combines complete front desk operations, housekeeping SLAs, food procurement, and real-time GST P&L with direct booking engine for ₹499/mo.',
     url: 'https://hotelflexi.com/compare/axisrooms',
   },
 };
@@ -63,9 +62,9 @@ export default function AxisRoomsComparePage() {
       axisrooms: 'Not available',
     },
     {
-      feature: 'TallyPrime Accounting Direct XML Export',
-      hotelflexi: 'One-click vouchers.xml export with balanced double-entry accounting for Tally',
-      axisrooms: 'No accounting voucher export',
+      feature: 'Built-in SAC 9963 GST Invoicing & P&L',
+      hotelflexi: 'Automated 12% & 18% GST folios with CGST/SGST splits and live P&L ledger',
+      axisrooms: 'No built-in GST tax folios or P&L',
     },
     {
       feature: 'Autonomous Groq AI Front Desk',
@@ -93,7 +92,7 @@ export default function AxisRoomsComparePage() {
             HotelFlexi vs AxisRooms
           </h1>
           <p className="mt-4 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto">
-            Why pay separately for standalone distribution when HotelFlexi provides complete property operations, housekeeping SLAs, and TallyPrime sync for ₹499/mo.
+            Why pay separately for standalone distribution when HotelFlexi provides complete property operations, housekeeping SLAs, and GST accounting for ₹499/mo.
           </p>
         </div>
       </section>

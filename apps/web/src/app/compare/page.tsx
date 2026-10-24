@@ -24,7 +24,7 @@ import {
 export const metadata: Metadata = {
   title: 'HotelFlexi Competitor Comparisons — StayFlexi, Yojna Cloud, eZee & Cloudbeds',
   description:
-    'Compare HotelFlexi with StayFlexi, Yojna Cloud Solution, eZee Absolute, Cloudbeds, and AxisRooms. Discover why Indian hoteliers choose HotelFlexi for ₹499/mo with autonomous Groq AI, room readiness SLAs, linen par tracking, and TallyPrime XML sync.',
+    'Compare HotelFlexi with StayFlexi, Yojna Cloud Solution, eZee Absolute, Cloudbeds, and AxisRooms. Discover why Indian hoteliers choose HotelFlexi for ₹499/mo with autonomous Groq AI, room readiness SLAs, room supply par tracking, and real-time GST P&L reporting.',
   keywords: [
     'hotelflexi vs stayflexi',
     'hotelflexi vs yojna cloud solution',
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'HotelFlexi Competitor Comparisons — Modern Indian Hotel PMS & Management System',
     description:
-      'Compare features, pricing, autonomous AI, room readiness, TallyPrime export, and direct booking engine between HotelFlexi and other hotel management systems.',
+      'Compare features, pricing, autonomous AI, room readiness, GST accounting, and direct booking engine between HotelFlexi and other hotel management systems.',
     url: 'https://hotelflexi.com/compare',
   },
 };
@@ -50,12 +50,12 @@ export default function CompareHubPage() {
       competitor: 'StayFlexi',
       tagline: 'Modern Autonomous AI vs Expensive USD Pricing',
       summary:
-        'StayFlexi charges high monthly USD rates ($30–$100+/mo) with expensive room-tier add-ons. HotelFlexi delivers a transparent ₹499/mo Indian INR plan with room readiness SLAs, Indian GST compliance, TallyPrime XML export, and autonomous AI front desk.',
+        'StayFlexi charges high monthly USD rates ($30–$100+/mo) with expensive room-tier add-ons. HotelFlexi delivers a transparent ₹499/mo Indian INR plan with room readiness SLAs, Indian GST compliance, real-time P&L reporting, and autonomous AI front desk.',
       keyAdvantages: [
         '₹499/mo INR pricing vs steep USD subscription fees',
         'Direct Booking Engine with 0% commission included',
-        'Housekeeping 4-stage room readiness & linen par tracking',
-        '100% SAC 9963 Indian GST tax invoice automation & TallyPrime sync',
+        'Housekeeping 4-stage room readiness & laundry supply par tracking',
+        '100% SAC 9963 Indian GST tax invoice automation & real-time P&L',
       ],
       badge: 'Most Popular Alternative',
     },
@@ -92,11 +92,11 @@ export default function CompareHubPage() {
       competitor: 'Cloudbeds',
       tagline: 'India-First Value & GST Accounting vs Global Enterprise Cost',
       summary:
-        'Cloudbeds is designed for large international hotel chains with enterprise pricing starting in hundreds of dollars. HotelFlexi offers the essential power, GST 12%/18% invoices, TallyPrime export, and food procurement at a fraction of the cost.',
+        'Cloudbeds is designed for large international hotel chains with enterprise pricing starting in hundreds of dollars. HotelFlexi offers the essential power, GST 12%/18% invoices, real-time P&L reporting, and food procurement at a fraction of the cost.',
       keyAdvantages: [
         '₹499/mo vs $150+/mo global pricing',
         'Native Indian GST (SAC 9963) with automated CGST/SGST splits',
-        'TallyPrime XML accounting export out-of-the-box',
+        'Built-in Profit & Loss accounting out-of-the-box',
         'Kitchen food procurement & 7-day cover forecasting',
       ],
       badge: 'Best Value vs International',
@@ -140,7 +140,7 @@ export default function CompareHubPage() {
     { feature: 'Housekeeping Room Readiness & Inspection SLA', hotelflexi: 'Yes (4-Stage: Dirty → Cleaning → Inspected → Ready)', others: 'No (Manual register / phone calls only)' },
     { feature: 'Linen & Laundry Par Level Tracking', hotelflexi: 'Yes (Bedsheet/pillowcase par health & vendor counts)', others: 'Separate manual registers' },
     { feature: 'Food & Pantry Procurement (Rasan Forecasting)', hotelflexi: 'Yes (Recipe norms & 7-day cover shortage alerts)', others: 'No / Expensive standalone F&B software' },
-    { feature: 'TallyPrime Accounting Direct XML Export', hotelflexi: 'Yes (Direct vouchers.xml download & live bridge)', others: 'Manual bookkeeping / CSV re-entry' },
+    { feature: 'Built-in SAC 9963 GST Accounting & P&L', hotelflexi: 'Yes (Native Double-Entry, GST breakdown & P&L ledger)', others: 'Manual bookkeeping / CSV re-entry' },
     { feature: 'Post-Stay Google Review Compliance', hotelflexi: 'Yes (Unconditional Google link + AI review polisher)', others: 'None / Policy-violating review gating' },
     { feature: 'Indian GST 12% & 18% Compliance (SAC 9963)', hotelflexi: 'Automated Tiered Folios with CGST/SGST splits', others: 'Manual calculations' },
     { feature: 'Setup & Onboarding Time', hotelflexi: '5 Minutes Self-Service', others: '1 – 3 Weeks with Paid Training' },
@@ -155,7 +155,7 @@ export default function CompareHubPage() {
         name: 'Why should I choose HotelFlexi over StayFlexi, Yojna Cloud, or Cloudbeds?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'HotelFlexi is purpose-built for Indian hospitality operators with a transparent ₹499/mo starter plan that includes a direct booking engine, autonomous Groq AI assistant, Indian GST SAC 9963 compliance, TallyPrime XML export, room readiness SLAs, and food procurement forecasting.',
+          text: 'HotelFlexi is purpose-built for Indian hospitality operators with a transparent ₹499/mo starter plan that includes a direct booking engine, autonomous Groq AI assistant, Indian GST SAC 9963 compliance, real-time P&L reporting, room readiness SLAs, and food procurement forecasting.',
         },
       },
       {
@@ -168,10 +168,10 @@ export default function CompareHubPage() {
       },
       {
         '@type': 'Question',
-        name: 'Can I export my accounting data to TallyPrime?',
+        name: 'Does HotelFlexi include native GST accounting?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Yes. HotelFlexi generates fully balanced multi-line double-entry accounting XML with separate GST tax heads that imports directly into TallyPrime without manual data entry.',
+          text: 'Yes. HotelFlexi generates fully compliant SAC 9963 GST tax invoices with automatic CGST and SGST breakdowns, expense tracking, and real-time Profit & Loss reports.',
         },
       },
     ],
@@ -344,7 +344,7 @@ export default function CompareHubPage() {
             <div className="p-8 bg-gradient-to-br from-brand-blue to-blue-800 text-white rounded-3xl shadow-xl space-y-4">
               <h3 className="text-2xl font-black">Ready to modernize your property operations?</h3>
               <p className="text-xs sm:text-sm text-blue-100 max-w-xl mx-auto">
-                Join hoteliers across India saving ₹50,000+ per year while automating room readiness, TallyPrime sync, and direct bookings.
+                Join hoteliers across India saving ₹50,000+ per year while automating room readiness, GST billing, and direct bookings.
               </p>
               <div className="pt-2">
                 <Link

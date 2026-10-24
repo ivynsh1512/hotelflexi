@@ -255,7 +255,7 @@ onboardingRoutes.get('/checklist', authMiddleware, async (c) => {
 
   // 1. Fetch Property details
   const prop: any = await c.env.DB.prepare(
-    `SELECT p.*, ps.gst_number, ps.razorpay_enabled, ps.razorpay_key_id
+    `SELECT p.*, ps.gst_number, ps.razorpay_enabled, ps.razorpay_key_id, ps.google_review_url
      FROM properties p
      LEFT JOIN property_settings ps ON ps.property_id = p.id
      WHERE p.id = ?`
@@ -287,6 +287,7 @@ onboardingRoutes.get('/checklist', authMiddleware, async (c) => {
   const hasRates = ratesCount > 0;
   const hasTaxes = Boolean(prop.gst_number || customTaxesCount > 0);
   const hasRazorpay = Boolean(prop.razorpay_enabled === 1 && prop.razorpay_key_id && prop.razorpay_key_id.length > 5);
+  const hasGoogleReview = Boolean(prop.google_review_url && String(prop.google_review_url).trim().length > 5);
 
   const checklistItems = [
     {
@@ -333,6 +334,15 @@ onboardingRoutes.get('/checklist', authMiddleware, async (c) => {
       actionUrl: '/app/taxes',
       actionLabel: 'Set Up Taxes',
       category: 'compliance',
+    },
+    {
+      id: 'google_review_url',
+      title: 'Google Business Profile Review Link',
+      description: 'Add your Google review link to boost 5-star ratings on Google Maps after guest checkout.',
+      isCompleted: hasGoogleReview,
+      actionUrl: '/app/settings',
+      actionLabel: 'Add Review Link',
+      category: 'marketing',
     },
     {
       id: 'razorpay_payments',

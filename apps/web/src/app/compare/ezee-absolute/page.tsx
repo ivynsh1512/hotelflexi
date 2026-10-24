@@ -20,7 +20,7 @@ import {
 export const metadata: Metadata = {
   title: 'HotelFlexi vs eZee Absolute — Why Indian Hoteliers Are Switching',
   description:
-    'Compare HotelFlexi vs eZee Absolute (Yanolja Cloud). Discover why hoteliers prefer HotelFlexi for ₹499/mo with zero training curve, autonomous AI agent, room readiness SLAs, linen par tracking, and TallyPrime XML export.',
+    'Compare HotelFlexi vs eZee Absolute (Yanolja Cloud). Discover why hoteliers prefer HotelFlexi for ₹499/mo with zero training curve, autonomous AI agent, room readiness SLAs, laundry par tracking, and built-in GST accounting.',
   keywords: [
     'hotelflexi vs ezee absolute',
     'ezee absolute alternative',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'HotelFlexi vs eZee Absolute — Modern Hospitality Software Comparison',
     description:
-      'Skip the steep training curve. Switch to HotelFlexi with autonomous AI, room readiness SLAs, and TallyPrime export starting at ₹499/mo.',
+      'Skip the steep training curve. Switch to HotelFlexi with autonomous AI, room readiness SLAs, and native GST accounting starting at ₹499/mo.',
     url: 'https://hotelflexi.com/compare/ezee-absolute',
   },
 };
@@ -55,8 +55,8 @@ export default function EzeeAbsoluteComparePage() {
       ezee: 'Standard housekeeping status dropdowns without structured inspection stages',
     },
     {
-      feature: 'TallyPrime Accounting Direct XML Export',
-      hotelflexi: 'Instant vouchers.xml export with balanced double-entry accounting & GST heads',
+      feature: 'Built-in SAC 9963 GST Invoicing & P&L',
+      hotelflexi: 'Automated 12% & 18% GST folios with CGST/SGST splits and live P&L ledger',
       ezee: 'Manual CSV formatting or expensive third-party bridge licenses',
     },
     {

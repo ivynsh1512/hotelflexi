@@ -19,19 +19,19 @@ import {
 export const metadata: Metadata = {
   title: 'HotelFlexi vs Cloudbeds (2026) — Best Affordable Alternative for Indian Hoteliers',
   description:
-    'Compare HotelFlexi vs Cloudbeds. Discover why Indian hoteliers choose HotelFlexi over Cloudbeds for ₹499/mo transparent INR pricing, native Indian GST (SAC 9963) compliance, TallyPrime XML export, and autonomous Groq AI.',
+    'Compare HotelFlexi vs Cloudbeds. Discover why Indian hoteliers choose HotelFlexi over Cloudbeds for ₹499/mo transparent INR pricing, native Indian GST (SAC 9963) compliance, real-time GST P&L reporting, and autonomous Groq AI.',
   keywords: [
     'hotelflexi vs cloudbeds',
     'cloudbeds alternative india',
     'cloudbeds pricing review',
     'best hotel pms india',
     'affordable cloudbeds competitor',
-    'hotel software india gst tally',
+    'hotel software india gst pms',
   ],
   openGraph: {
     title: 'HotelFlexi vs Cloudbeds — In-Depth Feature & Price Comparison',
     description:
-      'Why pay $150+/month USD for Cloudbeds when HotelFlexi provides autonomous Groq AI, Indian GST folios, TallyPrime export, and room readiness SLAs for ₹499/mo?',
+      'Why pay $150+/month USD for Cloudbeds when HotelFlexi provides autonomous Groq AI, Indian GST folios, and room readiness SLAs for ₹499/mo?',
     url: 'https://hotelflexi.com/compare/cloudbeds',
   },
 };
@@ -49,8 +49,8 @@ export default function CloudbedsComparePage() {
       cloudbeds: 'Generic global tax system requiring complex manual setup for Indian GST',
     },
     {
-      feature: 'TallyPrime Accounting Direct XML Export',
-      hotelflexi: 'One-click vouchers.xml export with balanced double-entry accounting for Tally',
+      feature: 'Built-in SAC 9963 GST Invoicing & P&L',
+      hotelflexi: 'Automated 12% & 18% GST folios with CGST/SGST splits and live P&L ledger',
       cloudbeds: 'Requires third-party middleware or manual accounting exports',
     },
     {
@@ -94,15 +94,15 @@ export default function CloudbedsComparePage() {
         name: 'Why is HotelFlexi a better choice for Indian hotels than Cloudbeds?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Cloudbeds is designed for large international hotel chains with enterprise pricing in US Dollars. HotelFlexi is tailor-made for Indian hotels and resorts with native GST SAC 9963 compliance, TallyPrime XML export, UPI payments, and an autonomous AI front desk for just ₹499/month.',
+          text: 'Cloudbeds is designed for large international hotel chains with enterprise pricing in US Dollars. HotelFlexi is tailor-made for Indian hotels and resorts with native GST SAC 9963 compliance, real-time P&L reporting, UPI payments, and an autonomous AI front desk for just ₹499/month.',
         },
       },
       {
         '@type': 'Question',
-        name: 'Does HotelFlexi support Tally accounting?',
+        name: 'Does HotelFlexi support Indian GST accounting?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Yes. HotelFlexi generates fully compliant XML vouchers that import directly into TallyPrime without manual journal re-entry.',
+          text: 'Yes. HotelFlexi generates fully compliant SAC 9963 GST tax invoices, automates CGST/SGST splits, and maintains a real-time Profit & Loss ledger without manual bookkeeping.',
         },
       },
     ],
