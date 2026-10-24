@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { Env, AppVariables } from '../types';
 import { authMiddleware, tenantMiddleware } from '../auth/middleware';
-import { executeAiTool, ToolExecutionContext } from '../services/aiTools';
+import { executeAiTool, ToolExecutionContext, GROQ_TOOL_DEFINITIONS } from '../services/aiTools';
+import { isGroqConfigured, callGroqChat, GroqMessage } from '../services/groqClient';
+import { buildPropertyLiveContext, buildGroqSystemPrompt } from '../services/aiContext';
 
 export const aiAgentRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -610,27 +612,116 @@ aiAgentRoutes.post('/chat', async (c) => {
     .run();
 
   const lang = detectLanguage(message);
-  const toolCall = parseNaturalLanguageIntent(message, intentContext);
-
   let assistantReply = '';
-  let toolResult = null;
+  let executedToolCall: any = null;
+  let toolResult: any = null;
+  let groqModelUsed = 'local_fallback';
 
-  if (toolCall) {
-    const ctx: ToolExecutionContext = {
-      env: c.env,
-      tenantId,
-      userId: effectiveUserId,
-      role: membership.role,
-      propertyId: property?.id,
-      language: lang,
-    };
+  const ctx: ToolExecutionContext = {
+    env: c.env,
+    tenantId,
+    userId: effectiveUserId,
+    role: membership.role,
+    propertyId: property?.id,
+    language: lang,
+  };
 
-    const execution = await executeAiTool(toolCall.toolName, toolCall.params, ctx);
-    assistantReply = execution.humanMessage;
-    toolResult = execution;
-  } else {
-    // Conversational, helpful response tailored to query
-    assistantReply = generateConversationalReply(message, lang, intentContext);
+  // 1. Try Groq AI Central Intelligence inference if configured
+  if (isGroqConfigured(c.env)) {
+    try {
+      const liveContext = await buildPropertyLiveContext(c.env.DB, tenantId, property?.id);
+      const systemPrompt = buildGroqSystemPrompt(liveContext);
+
+      // Fetch recent conversation history
+      const historyRows: any = await c.env.DB.prepare(
+        `SELECT role, content FROM ai_messages
+         WHERE conversation_id = ? AND tenant_id = ? AND id != ?
+         ORDER BY created_at DESC LIMIT 6`
+      )
+        .bind(conversationId, tenantId, userMsgId)
+        .all()
+        .catch(() => ({ results: [] }));
+
+      const historyMessages = ((historyRows.results || []) as any[])
+        .reverse()
+        .map((m) => ({
+          role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
+          content: m.content || '',
+        }));
+
+      const groqMessages: GroqMessage[] = [
+        { role: 'system', content: systemPrompt },
+        ...historyMessages,
+        { role: 'user', content: message },
+      ];
+
+      const groqRes = await callGroqChat(c.env, groqMessages, {
+        taskType: 'reasoning',
+        tools: GROQ_TOOL_DEFINITIONS,
+      });
+
+      if (groqRes.success) {
+        groqModelUsed = groqRes.modelUsed;
+
+        if (groqRes.toolCalls && groqRes.toolCalls.length > 0) {
+          const firstCall = groqRes.toolCalls[0];
+          executedToolCall = { toolName: firstCall.name, params: firstCall.arguments };
+          const execution = await executeAiTool(firstCall.name, firstCall.arguments, ctx);
+          toolResult = execution;
+
+          // Call Groq again with tool execution result for a natural, comprehensive response
+          const followupMessages: GroqMessage[] = [
+            ...groqMessages,
+            {
+              role: 'assistant',
+              content: groqRes.content || '',
+              tool_calls: [
+                {
+                  id: firstCall.id,
+                  type: 'function',
+                  function: {
+                    name: firstCall.name,
+                    arguments: JSON.stringify(firstCall.arguments),
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              tool_call_id: firstCall.id,
+              name: firstCall.name,
+              content: JSON.stringify(execution.result || { message: execution.humanMessage }),
+            },
+          ];
+
+          const synthesisRes = await callGroqChat(c.env, followupMessages, {
+            taskType: 'reasoning',
+          });
+
+          assistantReply = synthesisRes.success && synthesisRes.content
+            ? synthesisRes.content
+            : execution.humanMessage;
+        } else if (groqRes.content) {
+          assistantReply = groqRes.content;
+        }
+      }
+    } catch (groqErr) {
+      console.warn('Groq AI inference error, falling back to local engine:', groqErr);
+    }
+  }
+
+  // 2. Fallback to natural language intent matcher if Groq was not used or failed
+  if (!assistantReply) {
+    const localToolCall = parseNaturalLanguageIntent(message, intentContext);
+
+    if (localToolCall) {
+      executedToolCall = localToolCall;
+      const execution = await executeAiTool(localToolCall.toolName, localToolCall.params, ctx);
+      assistantReply = execution.humanMessage;
+      toolResult = execution;
+    } else {
+      assistantReply = generateConversationalReply(message, lang, intentContext);
+    }
   }
 
   // Record assistant response
@@ -644,7 +735,7 @@ aiAgentRoutes.post('/chat', async (c) => {
       conversationId,
       tenantId,
       assistantReply,
-      toolCall ? JSON.stringify(toolCall) : null,
+      executedToolCall ? JSON.stringify(executedToolCall) : null,
       toolResult ? JSON.stringify(toolResult) : null,
       now
     )
@@ -653,8 +744,9 @@ aiAgentRoutes.post('/chat', async (c) => {
   return c.json({
     conversationId,
     reply: assistantReply,
-    toolExecuted: Boolean(toolCall),
+    toolExecuted: Boolean(executedToolCall),
     toolResult,
+    modelUsed: groqModelUsed,
   });
 });
 

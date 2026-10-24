@@ -161,7 +161,7 @@ const MARQUEE_ITEMS = [
   '💍 Wedding Engine',
   '🤖 FlexiAI Concierge',
   '🧾 GST Billing',
-  '🔔 Housekeeping Siren',
+  '🧹 Room Readiness & Housekeeping',
   '📲 FlexiLink Check-In',
   '📊 Revenue Analytics',
   '🌐 OTA Sync',
@@ -204,9 +204,9 @@ const BENTO_FEATURES = [
     tag: 'All Plans',
   },
   {
-    num: '06', icon: <Volume2 className="w-5 h-5" />, color: 'text-red-600', bg: 'bg-red-50',
-    title: 'Housekeeping Urgency Siren',
-    desc: '880Hz audible siren + hardware vibration on staff phones until silenced. 7-minute SLA tracking.',
+    num: '06', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-teal-600', bg: 'bg-teal-50',
+    title: 'Housekeeping & Room Readiness SLA',
+    desc: 'Turnover checklists, linen inspection gates, and instant staff task dispatch with 7-minute SLA tracking.',
     tag: 'All Plans',
   },
   {
@@ -238,7 +238,7 @@ const plans = [
       'Room Calendar & Fast Walk-in Bookings',
       'Direct Booking Engine (/book/slug) — 0% Commission',
       'FlexiLink Contactless Self Check-In',
-      'Housekeeping Urgency Siren System',
+      'Housekeeping Turnover & Linen Par Tracking',
       'Tiered 12% & 18% GST SAC 9963 Billing',
       'Dine-Out Table Bookings with Pure Veg Badge',
       '14-Day Free Trial Included',
@@ -299,8 +299,8 @@ const faqs = [
     a: 'No! HotelFlexi charges 0% commission on direct bookings. Payments go directly into your own Razorpay account with your preferred advance policy — full advance, partial %, or pay at hotel.',
   },
   {
-    q: 'What is the Housekeeping Urgency Siren and how does it work?',
-    a: 'When a guest raises a complaint via FlexiLink, staff smartphones sound a dual-tone siren (880Hz/660Hz) with continuous vibration until a staff member picks it. The admin panel shows "Taken by [Staff Name]".',
+    q: 'How does the Housekeeping & Room Readiness workflow operate?',
+    a: 'Upon guest checkout or request via FlexiLink, an automated turnover task is dispatched directly to assigned floor staff smartphones. The room remains in "Dirty" or "Cleaning" status and cannot be sold until supervisor inspection and fresh linen replenishment are recorded.',
   },
   {
     q: 'How does Indian GST (12%/18%) billing work?',
@@ -312,7 +312,7 @@ const faqs = [
   },
   {
     q: 'Is there an installable mobile app for floor staff?',
-    a: 'Yes — installable Android APK and Play Store bundle. Full-screen, no URL bar, persistent login, and native OS notifications for real-time siren alerts.',
+    a: 'Yes — installable Android APK and responsive web app. Full-screen, persistent login, and real-time task notifications for front desk and housekeeping teams.',
   },
 ];
 
@@ -322,7 +322,7 @@ const faqs = [
 const comparisonData = [
   { feature: '2-Way OTA Channel Manager (MMT, Agoda, Booking.com)', hotelflexi: 'Yes (Live 2-Way)', stayflexi: 'Yes', cloudbeds: 'Yes', axisrooms: 'Yes', ezee: 'Yes' },
   { feature: 'Direct Booking Engine with Zero Commission', hotelflexi: 'Yes (0% Fee)', stayflexi: 'Yes', cloudbeds: 'Yes', axisrooms: 'Extra Add-on', ezee: 'Extra Fee' },
-  { feature: 'Emergency Housekeeping Siren & Vibration Alert', hotelflexi: 'Yes (Patented Alert)', stayflexi: 'No', cloudbeds: 'No', axisrooms: 'No', ezee: 'No' },
+  { feature: 'Automated Housekeeping Turnover & Inspection Gates', hotelflexi: 'Yes (Strict Par & Inspection)', stayflexi: 'Partial', cloudbeds: 'Basic', axisrooms: 'No', ezee: 'Basic' },
   { feature: 'Contactless Guest Portal (FlexiLink) with ID Upload', hotelflexi: 'Included Free', stayflexi: 'Yes (Magic Link)', cloudbeds: 'Add-on ($)', axisrooms: 'No', ezee: 'Add-on ($)' },
   { feature: 'Bilingual AI Agent (Hindi & English Voice)', hotelflexi: 'Yes (Autonomous PMS)', stayflexi: 'English Only', cloudbeds: 'No', axisrooms: 'No', ezee: 'No' },
   { feature: 'Indian GST (12%/18% SAC 9963) Compliant Invoicing', hotelflexi: 'Native Integer-Paise', stayflexi: 'Partial', cloudbeds: 'Requires Plugin', axisrooms: 'Partial', ezee: 'Native' },
@@ -333,7 +333,7 @@ const comparisonData = [
    STATS
 ───────────────────────────────────────────── */
 const STATS = [
-  { val: '500+', label: 'Hotels Live on Platform', icon: <Building className="w-5 h-5" /> },
+  { val: '100%', label: 'Cloud Availability & Security', icon: <Building className="w-5 h-5" /> },
   { val: '₹0', label: 'Commission on Direct Bookings', icon: <Receipt className="w-5 h-5" /> },
   { val: '6+', label: 'OTA Portals Synced', icon: <Globe className="w-5 h-5" /> },
   { val: '< 1s', label: 'OTA Sync Latency', icon: <Zap className="w-5 h-5" /> },
@@ -396,7 +396,7 @@ export default function HomePage() {
 
           {/* Subtitle */}
           <p className="mt-4 text-sm sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed hf-fade-slide hf-delay-150">
-            Replace 6 fragmented softwares with HotelFlexi — 2-way OTA Channel Manager (MakeMyTrip, Agoda, Booking.com), Zero-Commission Direct Engine, Contactless FlexiLink Check-In, and Hardware Siren Alerts on staff phones.
+            Manage bookings, guests, housekeeping, staff, payments, and hotel performance in one connected platform. Direct booking engine with 0% commission, contactless check-in, and automated room readiness workflows.
           </p>
 
           {/* CTA buttons */}
@@ -429,8 +429,8 @@ export default function HomePage() {
             {[
               '0% Commission on Direct Bookings',
               '12% & 18% Indian GST Ready',
-              'MakeMyTrip · Agoda · Booking.com',
-              'Hardware Siren on Staff Phones',
+              'Automated Room Readiness & Linen SLA',
+              'Fast Mobile Check-In',
               'No Credit Card Required',
             ].map((t) => (
               <span key={t} className="flex items-center gap-1.5">
@@ -628,7 +628,7 @@ export default function HomePage() {
                 color: 'text-purple-600', bg: 'bg-purple-100',
                 title: 'Holiday & Leisure Resorts',
                 desc: 'Empower guests to order food from their cottage via FlexiLinks with instant room charge posting. 7-minute housekeeping SLA.',
-                checks: ['In-stay dining & cottage ordering', '7-minute housekeeping siren', 'Poolside & restaurant POS'],
+                checks: ['In-stay dining & cottage ordering', '7-minute housekeeping SLA', 'Poolside & restaurant POS'],
               },
               {
                 icon: <HeartHandshake className="w-6 h-6" />,
@@ -775,22 +775,22 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Pillar 3: Housekeeping Siren */}
+          {/* Pillar 3: Housekeeping & Room Readiness SLA */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center hf-reveal">
             <div className="space-y-5">
-              <span className="text-[11px] font-black uppercase text-red-600 tracking-widest">PILLAR 03 · STAFF SPEED</span>
+              <span className="text-[11px] font-black uppercase text-emerald-600 tracking-widest">PILLAR 03 · STAFF SPEED &amp; HYGIENE</span>
               <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight">
-                Patented Housekeeping Urgency{' '}
-                <span className="hf-serif-accent text-red-600">Siren on Staff Phones</span>
+                Automated Housekeeping Turnover &amp;{' '}
+                <span className="hf-serif-accent text-emerald-600">Inspection Gates</span>
               </h2>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Guest complaints dispatched as a high-priority audible siren and continuous hardware vibration directly to floor staff smartphones. No more lost WhatsApp messages.
+                Guest checkout immediately triggers room cleaning tasks with linen par level deduction and supervisor verification gates. No more unready rooms or delayed check-ins.
               </p>
               <div className="space-y-2.5 text-xs text-slate-700 font-medium">
                 {[
-                  'Dual-tone European siren (880Hz / 660Hz) cuts through noisy resort environments',
-                  'Continuous vibration pulse loops until staff taps "Pick & Silence Siren"',
-                  'Admin dashboard monitors: "Taken by Suresh (Housekeeping)"',
+                  'Strict stage lifecycle: Dirty → Cleaning → Inspected → Ready for Sale',
+                  'Configurable linen par levels alert supervisors before clean stock drops below 1 set',
+                  'Admin dashboard monitors real-time staff pickup and 7-minute SLA resolution',
                 ].map((t) => (
                   <div key={t} className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -803,24 +803,24 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <div className="bg-red-600 text-white p-6 rounded-2xl shadow-2xl space-y-4 hf-scale-in">
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-2xl space-y-4 border border-slate-700 hf-scale-in">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-white text-red-600 flex items-center justify-center font-black text-2xl animate-bounce shrink-0">
-                  🚨
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-2xl shrink-0 border border-emerald-500/30">
+                  <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-black uppercase bg-white/20 px-2 py-0.5 rounded">
-                    7-Minute SLA Timer
+                  <span className="text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+                    7-Minute SLA Monitored
                   </span>
-                  <h3 className="font-extrabold text-base mt-1">Room 302: Emergency Linen Sanitation</h3>
+                  <h3 className="font-extrabold text-base mt-1 text-white">Room 302: Checkout Linen Turnover</h3>
                 </div>
               </div>
-              <p className="text-xs text-red-100">
-                Dispatched by Guest via FlexiLink. Audible siren sounding on 4 active staff devices across Floor 3.
+              <p className="text-xs text-slate-300">
+                Automated turnover task dispatched upon checkout. Fresh bedsheet deducted from clean inventory; inspection stamp required before front desk re-allocation.
               </p>
-              <div className="p-3 bg-red-700/80 rounded-xl flex items-center justify-between text-xs font-bold">
-                <span>Staff Pickup Status:</span>
-                <span className="bg-white text-red-700 px-3 py-1 rounded-xl">Taken by Ramesh (Housekeeping)</span>
+              <div className="p-3 bg-slate-800 rounded-xl flex items-center justify-between text-xs font-bold border border-slate-700">
+                <span className="text-slate-400">Status:</span>
+                <span className="bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-xl border border-emerald-500/30">Inspected by Supervisor</span>
               </div>
             </div>
           </div>

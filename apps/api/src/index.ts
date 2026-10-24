@@ -34,6 +34,10 @@ import { laundryRoutes } from './routes/laundry';
 import { connectivityRoutes } from './routes/connectivity';
 import { connectivityDocsRoutes } from './routes/connectivityDocs';
 import { channelIcalRoutes } from './routes/channelIcal';
+import { foodProcurementRoutes } from './routes/foodProcurement';
+import { tallyConnectorRoutes } from './routes/tallyConnector';
+import { guestReviewsRoutes } from './routes/guestReviews';
+import { marketingRoutes } from './routes/marketing';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -93,6 +97,10 @@ app.route('/api/v1/addons', addonsRoutes);
 app.route('/api/v1/salary', hrExpensesRoutes);
 app.route('/api/v1/expenses', hrExpensesRoutes);
 app.route('/api/v1/laundry', laundryRoutes);
+app.route('/api/v1/food', foodProcurementRoutes);
+app.route('/api/v1/tally', tallyConnectorRoutes);
+app.route('/api/v1/reviews', guestReviewsRoutes);
+app.route('/api/v1/marketing', marketingRoutes);
 app.route('/api/v1/account', accountDeletionRoutes);
 app.route('/api/v1/coupons', couponRoutes);
 app.route('/api/v1/rooms/daily-rates', dailyRatesRoutes);

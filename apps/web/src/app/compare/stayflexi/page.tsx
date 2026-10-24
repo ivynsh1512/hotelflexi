@@ -20,19 +20,19 @@ import {
 export const metadata: Metadata = {
   title: 'HotelFlexi vs StayFlexi (2026) — Best Modern Alternative with AI & ₹499/mo Pricing',
   description:
-    'Compare HotelFlexi vs StayFlexi. Discover why Indian hoteliers choose HotelFlexi over StayFlexi for its ₹499/mo transparent pricing, autonomous bilingual AI agent, 2-way OTA channel manager, and housekeeping urgency siren.',
+    'Compare HotelFlexi vs StayFlexi. Discover why Indian hoteliers choose HotelFlexi over StayFlexi for its ₹499/mo transparent pricing, autonomous bilingual AI agent, room readiness SLAs, linen par tracking, and TallyPrime XML export.',
   keywords: [
     'hotelflexi vs stayflexi',
     'stayflexi alternative india',
     'stayflexi pricing review',
     'best hotel pms india',
-    'affordable hotel channel manager',
+    'affordable hotel management software',
     'stayflexi vs hotelflexi cost comparison',
   ],
   openGraph: {
     title: 'HotelFlexi vs StayFlexi — In-Depth Feature & Price Comparison',
     description:
-      'Why pay high USD pricing for StayFlexi when you can get autonomous AI, 2-way OTA sync, and urgency siren for ₹499/mo in India?',
+      'Why pay high USD pricing for StayFlexi when you can get autonomous AI, room readiness SLAs, TallyPrime export, and direct booking engine for ₹499/mo in India?',
     url: 'https://hotelflexi.com/compare/stayflexi',
   },
 };
@@ -41,52 +41,62 @@ export default function StayFlexiComparePage() {
   const comparisonData = [
     {
       feature: 'Pricing Model',
-      hotelflexi: '₹499 / month flat INR (No hidden USD conversion)',
+      hotelflexi: '₹499 / month flat INR (No hidden USD conversion or lock-ins)',
       stayflexi: 'Starting at $30 – $100+ USD / month (plus per-room surcharges)',
     },
     {
-      feature: '2-Way Live OTA Channel Manager',
-      hotelflexi: 'Included in ₹499 Starter plan (MakeMyTrip, Goibibo, Agoda, Booking.com, Airbnb)',
-      stayflexi: 'Higher tier plans required for live OTA distribution',
-    },
-    {
-      feature: 'Autonomous AI Concierge & Front Desk',
-      hotelflexi: 'Bilingual AI Agent (English & Hindi) automating guest inquiries and bookings 24/7',
+      feature: 'Autonomous Groq AI Concierge & Front Desk',
+      hotelflexi: 'Bilingual AI Agent (English & Hindi) automating guest inquiries and operational metrics 24/7',
       stayflexi: 'Standard automated emails without autonomous conversational agent',
     },
     {
-      feature: 'Housekeeping Urgency Siren System',
-      hotelflexi: 'Audio-visual siren alarm across staff mobile devices for dirty linen & leaks (<7m resolution)',
-      stayflexi: 'Basic task lists without real-time staff siren escalation',
+      feature: 'Housekeeping Room Readiness & Inspection SLA',
+      hotelflexi: '4-Stage room cycle (Dirty → Cleaning → Inspected → Ready) with inspector tracking',
+      stayflexi: 'Basic task lists without structured inspection stages',
+    },
+    {
+      feature: 'Linen & Laundry Par Level Tracking',
+      hotelflexi: 'Built-in tracking of clean linen, in-room stock, at-laundry par levels & vendor transactions',
+      stayflexi: 'No dedicated linen inventory par tracking',
+    },
+    {
+      feature: 'Food Procurement & Kitchen Covers (Rasan)',
+      hotelflexi: 'Recipe consumption norms & 7-day cover shortage forecasting to prevent mandi waste',
+      stayflexi: 'Requires external restaurant ERP software',
+    },
+    {
+      feature: 'TallyPrime Accounting Direct XML Export',
+      hotelflexi: 'Generates balanced double-entry vouchers.xml with GST splits for one-click Tally import',
+      stayflexi: 'Manual bookkeeping or standard CSV re-entry',
     },
     {
       feature: 'FlexiLink Contactless Guest Experience',
-      hotelflexi: 'Automated guest portal link via WhatsApp & Email: Digital self check-in, Govt ID & child birth proof upload, in-stay food orders, 7-day auto-purge with archived ledger',
+      hotelflexi: 'Automated guest portal link: Digital self check-in, Govt ID & child birth proof upload, in-stay food orders, 7-day auto-purge',
       stayflexi: 'Generic web portal without native food ordering or automated proof expiration workflow',
     },
     {
       feature: 'Dine-Out Table Bookings (Non-Guest Public Link)',
-      hotelflexi: 'Public discovery portal (/dine-out) & 5-digit hotel code: Outside resort guests & tourists can reserve tables, pre-order dishes (100% Pure Veg badge), and pay online or at counter',
+      hotelflexi: 'Public discovery portal (/dine-out) & 5-digit hotel code: Outside resort guests & tourists can reserve tables, pre-order dishes, and pay online or at counter',
       stayflexi: 'Limited to registered room guests; no public non-resident resort dining portal',
     },
     {
-      feature: 'Mobile App & Push Notifications',
-      hotelflexi: 'Native Google Play Store App + Offline PWA with Firebase Cloud Messaging (FCM) push siren alerts',
-      stayflexi: 'Standard mobile browser view with basic push notifications',
+      feature: 'Post-Stay Google Review Compliance',
+      hotelflexi: 'Unconditional Google Review link for all guests + AI review polisher for guest words',
+      stayflexi: 'Standard email feedback form',
     },
     {
       feature: 'Direct Booking Engine Commission',
-      hotelflexi: '0% commission on direct bookings via FlexiLink',
+      hotelflexi: '0% commission on direct bookings via FlexiLink and booking engine',
       stayflexi: 'Often subject to percentage fees or tiered engine charges',
     },
     {
       feature: 'Indian GST Taxation Compliance',
-      hotelflexi: 'Automated 12% & 18% GST brackets with SAC 9963 compliant tax folios',
+      hotelflexi: 'Automated 12% & 18% GST brackets with SAC 9963 compliant tax folios & CGST/SGST splits',
       stayflexi: 'Global tax configurations requiring manual adjustment for Indian GST',
     },
     {
       feature: 'Local Payment Gateways',
-      hotelflexi: 'Direct Razorpay, UPI QR, Netbanking & Credit Card payouts',
+      hotelflexi: 'Direct Razorpay, UPI QR, Netbanking & Credit Card payouts with auto-split',
       stayflexi: 'Stripe primary, localized Indian UPI setup requires custom workarounds',
     },
   ];

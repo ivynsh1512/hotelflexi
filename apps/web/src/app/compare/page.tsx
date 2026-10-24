@@ -13,28 +13,32 @@ import {
   TrendingUp,
   Clock,
   Layers,
-  Bell,
   Building,
   HelpCircle,
+  Package,
+  FileText,
+  Star,
+  UtensilsCrossed,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'HotelFlexi Competitor Comparisons — StayFlexi, Yojna Cloud, eZee & Djubo',
+  title: 'HotelFlexi Competitor Comparisons — StayFlexi, Yojna Cloud, eZee & Cloudbeds',
   description:
-    'Compare HotelFlexi with StayFlexi, Yojna Cloud Solution, eZee Absolute, and Djubo. Discover why Indian hoteliers choose HotelFlexi for ₹499/mo with autonomous AI, live channel manager, and housekeeping urgency siren.',
+    'Compare HotelFlexi with StayFlexi, Yojna Cloud Solution, eZee Absolute, Cloudbeds, and AxisRooms. Discover why Indian hoteliers choose HotelFlexi for ₹499/mo with autonomous Groq AI, room readiness SLAs, linen par tracking, and TallyPrime XML sync.',
   keywords: [
     'hotelflexi vs stayflexi',
     'hotelflexi vs yojna cloud solution',
     'hotelflexi vs ezee absolute',
-    'hotelflexi vs djubo',
+    'hotelflexi vs cloudbeds',
+    'hotelflexi vs axisrooms',
     'best hotel pms india comparison',
-    'affordable hotel channel manager india',
+    'affordable hotel management software india',
     'hotel software alternative india',
   ],
   openGraph: {
-    title: 'HotelFlexi Competitor Comparisons — Modern Indian Hotel PMS & Channel Manager',
+    title: 'HotelFlexi Competitor Comparisons — Modern Indian Hotel PMS & Management System',
     description:
-      'Compare features, pricing, autonomous AI, and 2-way OTA synchronization between HotelFlexi and other hotel management systems.',
+      'Compare features, pricing, autonomous AI, room readiness, TallyPrime export, and direct booking engine between HotelFlexi and other hotel management systems.',
     url: 'https://hotelflexi.com/compare',
   },
 };
@@ -46,26 +50,26 @@ export default function CompareHubPage() {
       competitor: 'StayFlexi',
       tagline: 'Modern Autonomous AI vs Expensive USD Pricing',
       summary:
-        'StayFlexi charges high monthly USD rates ($30–$100+/mo) with expensive room-tier add-ons. HotelFlexi delivers a transparent ₹499/mo Indian INR plan with built-in channel manager, Indian GST compliance, and autonomous AI front desk.',
+        'StayFlexi charges high monthly USD rates ($30–$100+/mo) with expensive room-tier add-ons. HotelFlexi delivers a transparent ₹499/mo Indian INR plan with room readiness SLAs, Indian GST compliance, TallyPrime XML export, and autonomous AI front desk.',
       keyAdvantages: [
         '₹499/mo INR pricing vs steep USD subscription fees',
-        '2-Way live IngoMMT / Goibibo / Agoda sync included in Starter plan',
-        'Built-in Housekeeping Urgency Siren alert system',
-        '100% SAC 9963 Indian GST tax invoice automation',
+        'Direct Booking Engine with 0% commission included',
+        'Housekeeping 4-stage room readiness & linen par tracking',
+        '100% SAC 9963 Indian GST tax invoice automation & TallyPrime sync',
       ],
       badge: 'Most Popular Alternative',
     },
     {
       slug: 'yojna-cloud',
       competitor: 'Yojna Cloud Solution (YCS PMS)',
-      tagline: 'Modern Cloud PWA & Urgency Siren vs Legacy AMC Setup',
+      tagline: 'Modern Cloud PWA & Real-Time Sync vs Legacy AMC Setup',
       summary:
         'Yojna Cloud Solution and traditional Indian desktop software lock hoteliers into expensive annual maintenance contracts (AMC), complex training, and clunky interfaces. HotelFlexi offers a zero-install mobile PWA with instant setup.',
       keyAdvantages: [
         'Zero Annual Maintenance Contracts (AMC) or hidden hardware lock-ins',
         'Installable Progressive Web App (PWA) with Google Play Store support',
-        'Urgency siren alarm on staff mobile devices for quick guest resolution',
-        'Autonomous AI business concierge that handles reservations 24/7',
+        'Real-time staff mobile dispatch for fast guest resolution',
+        'Autonomous AI business concierge that handles inquiries 24/7 in Hindi & English',
       ],
       badge: 'Best Legacy Upgrade',
     },
@@ -74,7 +78,7 @@ export default function CompareHubPage() {
       competitor: 'eZee Absolute (Yanolja Cloud)',
       tagline: 'Intuitive Zero-Training PMS vs Steep Learning Curve',
       summary:
-        'eZee Absolute requires extensive staff training, complex menu structures, and fragmented add-on billing for channel distribution. HotelFlexi is designed for instant 5-minute onboarding with direct FlexiLink self check-ins.',
+        'eZee Absolute requires extensive staff training, complex menu structures, and fragmented add-on billing. HotelFlexi is designed for instant 5-minute onboarding with direct FlexiLink self check-ins.',
       keyAdvantages: [
         '5-minute self-onboarding without days of staff training',
         'FlexiLink digital guest self check-in via WhatsApp & Email',
@@ -84,33 +88,62 @@ export default function CompareHubPage() {
       badge: 'Easiest to Use',
     },
     {
+      slug: 'cloudbeds',
+      competitor: 'Cloudbeds',
+      tagline: 'India-First Value & GST Accounting vs Global Enterprise Cost',
+      summary:
+        'Cloudbeds is designed for large international hotel chains with enterprise pricing starting in hundreds of dollars. HotelFlexi offers the essential power, GST 12%/18% invoices, TallyPrime export, and food procurement at a fraction of the cost.',
+      keyAdvantages: [
+        '₹499/mo vs $150+/mo global pricing',
+        'Native Indian GST (SAC 9963) with automated CGST/SGST splits',
+        'TallyPrime XML accounting export out-of-the-box',
+        'Kitchen food procurement & 7-day cover forecasting',
+      ],
+      badge: 'Best Value vs International',
+    },
+    {
       slug: 'djubo',
       competitor: 'Djubo',
       tagline: 'Unified All-in-One Suite vs Fragmented Add-on Fees',
       summary:
-        'Djubo separates channel management, booking engine, and front desk operations into distinct paid modules with transaction cut. HotelFlexi combines PMS, Channel Manager, and Direct Booking Engine under one single dashboard.',
+        'Djubo separates channel management, booking engine, and front desk operations into distinct paid modules with transaction cuts. HotelFlexi combines PMS, linen inventory, and Direct Booking Engine under one single dashboard.',
       keyAdvantages: [
         'All-in-one unified architecture without separate module invoices',
         'Direct UPI & Razorpay payments without transaction commissions',
         'Autonomous AI agent capable of answering booking queries in Hindi & English',
-        'Real-time oversell prevention across all connected OTAs',
+        'Built-in kitchen food procurement & rasan par levels',
       ],
       badge: 'Best Value Suite',
+    },
+    {
+      slug: 'axisrooms',
+      competitor: 'AxisRooms',
+      tagline: 'Complete PMS & Operations vs Distribution-Only Tool',
+      summary:
+        'AxisRooms primarily focuses on distribution and channel management, requiring hoteliers to purchase separate software for front desk, housekeeping, and accounting. HotelFlexi delivers a complete property management ecosystem.',
+      keyAdvantages: [
+        'Full front desk, guest ledger, and folio management included',
+        'Housekeeping readiness tracking (Dirty → Cleaning → Inspected → Ready)',
+        'Direct FlexiLink guest portal for paperless mobile check-in',
+        'Zero commission booking engine with instant UPI payments',
+      ],
+      badge: 'Complete PMS Alternative',
     },
   ];
 
   const featureMatrix = [
-    { feature: 'Starting Monthly Price (INR)', hotelflexi: '₹499 / month flat', others: '₹3,000 – ₹10,000 / mo or $50+' },
-    { feature: 'Channel Manager Included in Starter', hotelflexi: 'Yes (2 Live OTAs)', others: 'Extra Paid Add-on or Manual' },
+    { feature: 'Starting Monthly Price (INR)', hotelflexi: '₹499 / month flat', others: '₹3,000 – ₹15,000 / mo or $100+' },
+    { feature: 'Direct Booking Engine Commission', hotelflexi: '0% Commission Included', others: '2% - 5% Commission or Paid Engine' },
     { feature: 'FlexiLink Contactless Guest Portal', hotelflexi: 'Yes (Self Check-in, Govt ID & Child proof, In-Stay Food Orders, 7-Day Auto-Purge)', others: 'Paper forms or Expensive 3rd-party app' },
     { feature: 'Dine-Out Table Bookings (Public Link for Non-Guests)', hotelflexi: 'Yes (5-Digit Code / Public URL, 100% Pure Veg Badge, In-App or Counter Pay)', others: 'No (In-house only, loses outside restaurant revenue)' },
-    { feature: 'Autonomous AI Concierge & Front Desk', hotelflexi: 'Yes (Bilingual Voice & Text 24/7)', others: 'No or Limited Chatbot' },
-    { feature: 'Housekeeping Urgency Siren System', hotelflexi: 'Yes (Instant Audio-Visual Siren Alert on all staff devices)', others: 'No (Manual register / phone calls only)' },
-    { feature: 'Real-Time FCM Push Notifications', hotelflexi: 'Yes (Instant booking & staff dispatch alerts)', others: 'Delayed SMS / Email only' },
-    { feature: 'Native Android App & Installable PWA', hotelflexi: 'Yes (Google Play Store + Offline PWA)', others: 'Desktop browser only or slow wrappers' },
-    { feature: 'Direct Booking Engine Commission', hotelflexi: '0% Commission Included', others: '2% - 5% Commission or Paid Engine' },
-    { feature: 'Indian GST 12% & 18% Compliance (SAC 9963)', hotelflexi: 'Automated Tiered Folios', others: 'Manual Tally Export' },
-    { feature: 'Setup & Onboarding Time', hotelflexi: '5 Minutes', others: '1 – 3 Weeks with Paid Training' },
+    { feature: 'Autonomous Groq AI Front Desk & Business Agent', hotelflexi: 'Yes (Bilingual Llama 3.3 70B & DeepSeek R1 24/7)', others: 'No or Limited Chatbot' },
+    { feature: 'Housekeeping Room Readiness & Inspection SLA', hotelflexi: 'Yes (4-Stage: Dirty → Cleaning → Inspected → Ready)', others: 'No (Manual register / phone calls only)' },
+    { feature: 'Linen & Laundry Par Level Tracking', hotelflexi: 'Yes (Bedsheet/pillowcase par health & vendor counts)', others: 'Separate manual registers' },
+    { feature: 'Food & Pantry Procurement (Rasan Forecasting)', hotelflexi: 'Yes (Recipe norms & 7-day cover shortage alerts)', others: 'No / Expensive standalone F&B software' },
+    { feature: 'TallyPrime Accounting Direct XML Export', hotelflexi: 'Yes (Direct vouchers.xml download & live bridge)', others: 'Manual bookkeeping / CSV re-entry' },
+    { feature: 'Post-Stay Google Review Compliance', hotelflexi: 'Yes (Unconditional Google link + AI review polisher)', others: 'None / Policy-violating review gating' },
+    { feature: 'Indian GST 12% & 18% Compliance (SAC 9963)', hotelflexi: 'Automated Tiered Folios with CGST/SGST splits', others: 'Manual calculations' },
+    { feature: 'Setup & Onboarding Time', hotelflexi: '5 Minutes Self-Service', others: '1 – 3 Weeks with Paid Training' },
   ];
 
   const jsonLd = {
@@ -119,10 +152,10 @@ export default function CompareHubPage() {
     mainEntity: [
       {
         '@type': 'Question',
-        name: 'Why should I choose HotelFlexi over StayFlexi or Yojna Cloud?',
+        name: 'Why should I choose HotelFlexi over StayFlexi, Yojna Cloud, or Cloudbeds?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'HotelFlexi is purpose-built for Indian hospitality operators with a transparent ₹499/mo starter plan that includes a 2-way OTA channel manager, autonomous AI assistant, Indian GST compliance, and an urgency siren alert system for housekeeping that resolves guest grievances in under 7 minutes.',
+          text: 'HotelFlexi is purpose-built for Indian hospitality operators with a transparent ₹499/mo starter plan that includes a direct booking engine, autonomous Groq AI assistant, Indian GST SAC 9963 compliance, TallyPrime XML export, room readiness SLAs, and food procurement forecasting.',
         },
       },
       {
@@ -131,6 +164,14 @@ export default function CompareHubPage() {
         acceptedAnswer: {
           '@type': 'Answer',
           text: 'No. HotelFlexi charges 0% commission on direct bookings made through your hotel booking engine or FlexiLink guest portal.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Can I export my accounting data to TallyPrime?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes. HotelFlexi generates fully balanced multi-line double-entry accounting XML with separate GST tax heads that imports directly into TallyPrime without manual data entry.',
         },
       },
     ],
@@ -164,59 +205,58 @@ export default function CompareHubPage() {
       </section>
 
       {/* Competitor Cards Grid */}
-      <section className="py-16 bg-surface-light border-b border-border-light">
+      <section className="py-16 bg-slate-50 border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-2xl sm:text-3xl font-black text-content-primary-light tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               Detailed Platform Comparisons
             </h2>
-            <p className="text-xs sm:text-sm text-content-secondary-light mt-2">
+            <p className="text-xs sm:text-sm text-slate-500 mt-2">
               Select a competitor below for an in-depth breakdown of features, architecture, pricing, and migration guides.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {comparisons.map((c) => (
               <div
                 key={c.slug}
-                className="bg-white rounded-3xl border border-border-light shadow-sm p-6 sm:p-8 flex flex-col justify-between hover:shadow-lg hover:border-brand-blue/40 transition"
+                className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-brand-blue border border-blue-200">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-brand-blue border border-blue-200">
                       {c.badge}
                     </span>
-                    <span className="text-xs font-bold text-slate-400">Head-to-Head</span>
+                    <span className="text-xs font-semibold text-slate-400">vs HotelFlexi</span>
                   </div>
 
-                  <h3 className="text-xl font-black text-content-primary-light">
-                    HotelFlexi <span className="text-slate-400 font-normal">vs</span> {c.competitor}
-                  </h3>
-                  <p className="text-xs font-bold text-brand-blue mt-1">{c.tagline}</p>
-                  <p className="text-xs text-content-secondary-light mt-3 leading-relaxed">
-                    {c.summary}
-                  </p>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">HotelFlexi vs {c.competitor}</h3>
+                    <p className="text-xs font-semibold text-brand-blue mt-0.5">{c.tagline}</p>
+                  </div>
 
-                  <div className="mt-5 space-y-2 pt-4 border-t border-border-light">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-900 block">
-                      Why Hoteliers Choose HotelFlexi:
+                  <p className="text-xs text-slate-600 leading-relaxed">{c.summary}</p>
+
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">
+                      Key Differences:
                     </span>
                     {c.keyAdvantages.map((adv, idx) => (
                       <div key={idx} className="flex items-start gap-2 text-xs text-slate-700">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                         <span>{adv}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-border-light">
+                <div className="pt-6 mt-6 border-t border-slate-100">
                   <Link
                     href={`/compare/${c.slug}`}
-                    className="inline-flex items-center justify-between w-full px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-sm"
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-brand-blue hover:text-white text-slate-800 font-bold text-xs flex items-center justify-center gap-2 transition group"
                   >
-                    <span>Read Full HotelFlexi vs {c.competitor} Analysis</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <span>Read Full {c.competitor} Analysis</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </div>
               </div>
@@ -225,66 +265,97 @@ export default function CompareHubPage() {
         </div>
       </section>
 
-      {/* Comprehensive Feature Comparison Matrix */}
-      <section className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-blue">Feature Breakdown</span>
-            <h2 className="text-2xl sm:text-4xl font-black text-content-primary-light tracking-tight mt-1">
-              HotelFlexi vs Typical Indian Hotel PMS
+      {/* Feature Comparison Matrix Table */}
+      <section className="py-16 bg-white border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Feature-by-Feature Matrix
             </h2>
-            <p className="text-xs sm:text-sm text-content-secondary-light mt-2">
-              See how HotelFlexi compares on modern hospitality automation, pricing transparency, and guest satisfaction.
+            <p className="text-xs sm:text-sm text-slate-500 mt-2">
+              See how HotelFlexi compares directly with legacy Indian PMSs and expensive international software.
             </p>
           </div>
 
-          <div className="bg-white rounded-3xl border border-border-light shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-900 text-white font-bold">
-                    <th className="py-4 px-6 text-sm">Capability / Feature</th>
-                    <th className="py-4 px-6 text-sm bg-blue-600 font-black">HotelFlexi</th>
-                    <th className="py-4 px-6 text-sm text-slate-300">Typical Alternatives</th>
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-900 text-white">
+                  <th className="py-4 px-5 font-bold uppercase tracking-wider text-[11px]">Feature / Capability</th>
+                  <th className="py-4 px-5 font-black uppercase tracking-wider text-[11px] bg-brand-blue text-white">
+                    HotelFlexi (by NovaX AI)
+                  </th>
+                  <th className="py-4 px-5 font-bold uppercase tracking-wider text-[11px] text-slate-300">
+                    Legacy / Other PMS Providers
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {featureMatrix.map((row, idx) => (
+                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                    <td className="py-3.5 px-5 font-bold text-slate-900">{row.feature}</td>
+                    <td className="py-3.5 px-5 font-bold text-brand-blue bg-blue-50/30">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>{row.hotelflexi}</span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-5 text-slate-600">
+                      <div className="flex items-center gap-1.5">
+                        <XCircle className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>{row.others}</span>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-border-light">
-                  {featureMatrix.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 transition">
-                      <td className="py-4 px-6 font-bold text-content-primary-light">{row.feature}</td>
-                      <td className="py-4 px-6 font-extrabold text-brand-blue bg-blue-50/40">{row.hotelflexi}</td>
-                      <td className="py-4 px-6 text-content-secondary-light">{row.others}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      {/* CTA Banner */}
-      <section className="py-16 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
-            Ready to Upgrade Your Hotel to Autonomous AI?
-          </h2>
-          <p className="text-sm sm:text-base text-blue-200 max-w-xl mx-auto leading-relaxed">
-            Join hoteliers who have cut operational overhead, automated 2-way OTA distribution, and solved housekeeping issues with real-time sirens.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Link
-              href="/signup"
-              className="px-6 py-3 rounded-xl bg-white text-brand-blue font-black text-sm hover:bg-blue-50 transition shadow-lg"
-            >
-              Start 14-Day Free Trial
-            </Link>
-            <Link
-              href="/pricing"
-              className="px-6 py-3 rounded-xl bg-blue-800/60 hover:bg-blue-800 text-white font-bold text-sm border border-blue-400/30 transition"
-            >
-              View All ₹499/mo Plans
-            </Link>
+      {/* FAQ Section */}
+      <section className="py-16 bg-slate-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-2">
+              Common questions about migrating to HotelFlexi.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {jsonLd.mainEntity.map((item, idx) => (
+              <div key={idx} className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-brand-blue shrink-0" />
+                  {item.name}
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed pl-6">
+                  {item.acceptedAnswer.text}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <div className="p-8 bg-gradient-to-br from-brand-blue to-blue-800 text-white rounded-3xl shadow-xl space-y-4">
+              <h3 className="text-2xl font-black">Ready to modernize your property operations?</h3>
+              <p className="text-xs sm:text-sm text-blue-100 max-w-xl mx-auto">
+                Join hoteliers across India saving ₹50,000+ per year while automating room readiness, TallyPrime sync, and direct bookings.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-brand-blue font-extrabold text-xs sm:text-sm rounded-xl shadow-lg hover:bg-slate-100 transition"
+                >
+                  Start Your 14-Day Free Trial (₹499/mo thereafter)
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>

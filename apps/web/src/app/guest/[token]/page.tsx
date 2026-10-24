@@ -28,6 +28,10 @@ import {
   Sparkles,
   Download,
   Info,
+  Star,
+  ExternalLink,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://hotelflexi.divyansh-shukla.workers.dev/api/v1';
@@ -59,8 +63,21 @@ export default function GuestPortalPage() {
   const [error, setError] = useState<string | null>(null);
   const [isExpired, setIsExpired] = useState(false);
 
-  // Active Tab: 'overview' | 'checkin' | 'dining' | 'assistance'
-  const [activeTab, setActiveTab] = useState<'overview' | 'checkin' | 'dining' | 'assistance'>('overview');
+  // Active Tab: 'overview' | 'checkin' | 'dining' | 'assistance' | 'feedback'
+  const [activeTab, setActiveTab] = useState<'overview' | 'checkin' | 'dining' | 'assistance' | 'feedback'>('overview');
+
+  // Neutral Guest Review states (No preselected stars per Google Policy)
+  const [overallRating, setOverallRating] = useState<number>(0);
+  const [cleanlinessRating, setCleanlinessRating] = useState<number>(0);
+  const [staffRating, setStaffRating] = useState<number>(0);
+  const [foodRating, setFoodRating] = useState<number>(0);
+  const [comfortRating, setComfortRating] = useState<number>(0);
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [aiPolishedDraft, setAiPolishedDraft] = useState('');
+  const [polishingReview, setPolishingReview] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSuccessMsg, setReviewSuccessMsg] = useState('');
+  const [copiedReview, setCopiedReview] = useState(false);
 
   // Self check-in form states
   const [idType, setIdType] = useState('Aadhaar Card');
@@ -363,6 +380,111 @@ export default function GuestPortalPage() {
     }
   };
 
+  const handlePolishReview = async () => {
+    if (!reviewNotes.trim() && overallRating === 0) {
+      alert('Please rate your stay or write a short note first.');
+      return;
+    }
+    setPolishingReview(true);
+    try {
+      const res = await fetch(`${API_BASE}/reviews/public/polish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          guestNotes: reviewNotes,
+          ratings: {
+            overall: overallRating,
+            cleanliness: cleanlinessRating,
+            staff: staffRating,
+            food: foodRating,
+            comfort: comfortRating,
+          },
+          hotelName: property?.name || 'the hotel',
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to polish review');
+      setAiPolishedDraft(json.polishedDraft);
+    } catch (err: any) {
+      alert(err.message || 'Could not polish review');
+    } finally {
+      setPolishingReview(false);
+    }
+  };
+
+  const handleCopyDraft = async () => {
+    const textToCopy = aiPolishedDraft || reviewNotes;
+    if (!textToCopy) return;
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setCopiedReview(true);
+      setTimeout(() => setCopiedReview(false), 2500);
+    } catch (e) {
+      alert('Review text copied!');
+    }
+  };
+
+  const handleOpenGoogleReview = async () => {
+    if (property?.id) {
+      fetch(`${API_BASE}/reviews/public/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          propertyId: property.id,
+          reservationId: reservation.id,
+          guestName: guest.fullName,
+          overallRating: overallRating || 5,
+          cleanlinessRating: cleanlinessRating || null,
+          staffRating: staffRating || null,
+          foodRating: foodRating || null,
+          comfortRating: comfortRating || null,
+          feedbackText: reviewNotes,
+          aiPolishedDraft,
+          isPrivateFeedback: false,
+          googleReviewClicked: true,
+        }),
+      }).catch(() => {});
+    }
+
+    const googleUrl = (property as any)?.googleReviewUrl ||
+      `https://www.google.com/search?q=${encodeURIComponent(`${property?.name || 'hotel'} ${property?.address || ''} review`)}`;
+    window.open(googleUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleSubmitPrivateFeedback = async () => {
+    if (overallRating === 0 && !reviewNotes.trim()) {
+      alert('Please provide a rating or brief feedback for the management.');
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      const res = await fetch(`${API_BASE}/reviews/public/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          propertyId: property?.id,
+          reservationId: reservation.id,
+          guestName: guest.fullName,
+          overallRating: overallRating || 5,
+          cleanlinessRating: cleanlinessRating || null,
+          staffRating: staffRating || null,
+          foodRating: foodRating || null,
+          comfortRating: comfortRating || null,
+          feedbackText: reviewNotes,
+          aiPolishedDraft,
+          isPrivateFeedback: true,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to submit feedback');
+      setReviewSuccessMsg(json.message || 'Thank you! Your feedback has been sent directly to hotel management.');
+    } catch (err: any) {
+      alert(err.message || 'Could not submit feedback');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
@@ -520,7 +642,7 @@ export default function GuestPortalPage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1.5 bg-slate-200/70 rounded-2xl">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 bg-slate-200/70 rounded-2xl">
           <button
             onClick={() => setActiveTab('overview')}
             className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
@@ -530,7 +652,7 @@ export default function GuestPortalPage() {
             }`}
           >
             <Hotel className="w-3.5 h-3.5 text-brand-blue" />
-            Stay & Folio
+            Stay &amp; Folio
           </button>
 
           <button
@@ -566,7 +688,19 @@ export default function GuestPortalPage() {
             }`}
           >
             <AlertCircle className="w-3.5 h-3.5 text-brand-blue" />
-            Raise Complaint
+            Assistance
+          </button>
+
+          <button
+            onClick={() => setActiveTab('feedback')}
+            className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              activeTab === 'feedback'
+                ? 'bg-white text-amber-600 shadow-sm'
+                : 'text-slate-600 hover:text-amber-600'
+            }`}
+          >
+            <Star className="w-3.5 h-3.5 text-amber-500" />
+            Feedback
           </button>
         </div>
 
@@ -1120,6 +1254,196 @@ export default function GuestPortalPage() {
                 )}
               </button>
             </form>
+          </div>
+        )}
+
+        {/* TAB 5: GUEST REVIEWS & FEEDBACK */}
+        {activeTab === 'feedback' && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-5">
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm sm:text-base text-slate-900">Your Stay Experience &amp; Review</h3>
+                <p className="text-[11px] text-slate-500">
+                  Direct, authentic reviews help us improve. Google Review is always accessible to all guests.
+                </p>
+              </div>
+            </div>
+
+            {reviewSuccessMsg && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl space-y-1">
+                <div className="flex items-center gap-2 font-bold text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Feedback Received!</span>
+                </div>
+                <p className="text-[11px] text-emerald-700 leading-relaxed">
+                  {reviewSuccessMsg}
+                </p>
+              </div>
+            )}
+
+            {/* Star Ratings Grid (Zero preselected stars) */}
+            <div className="space-y-4">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <label className="text-xs font-bold text-slate-800">
+                    Overall Experience <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[11px] font-semibold text-amber-600">
+                    {overallRating === 5 && '🌟 Excellent'}
+                    {overallRating === 4 && '👍 Very Good'}
+                    {overallRating === 3 && '👌 Good / Average'}
+                    {overallRating === 2 && '👎 Needs Improvement'}
+                    {overallRating === 1 && '⚠️ Poor'}
+                    {overallRating === 0 && 'Tap to rate'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setOverallRating(star)}
+                      className="p-1 text-2xl transition hover:scale-110 focus:outline-none"
+                    >
+                      <Star
+                        className={`w-7 h-7 ${
+                          star <= overallRating
+                            ? 'text-amber-400 fill-amber-400'
+                            : 'text-slate-300 hover:text-amber-200'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sub-ratings */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {[
+                  { label: 'Cleanliness & Linen Hygiene', val: cleanlinessRating, set: setCleanlinessRating },
+                  { label: 'Staff Hospitality & Promptness', val: staffRating, set: setStaffRating },
+                  { label: 'Food Quality & Taste', val: foodRating, set: setFoodRating },
+                  { label: 'Room Comfort & AC', val: comfortRating, set: setComfortRating },
+                ].map((item, idx) => (
+                  <div key={idx} className="p-3 bg-slate-50/70 rounded-xl border border-slate-100 flex items-center justify-between">
+                    <span className="text-slate-700 font-medium">{item.label}</span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => item.set(star)}
+                          className="p-0.5 hover:scale-110 transition"
+                        >
+                          <Star
+                            className={`w-4 h-4 ${
+                              star <= item.val
+                                ? 'text-amber-400 fill-amber-400'
+                                : 'text-slate-300'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Written Remarks */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-800">
+                Your Comments &amp; Highlights (In your own words)
+              </label>
+              <textarea
+                rows={3}
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+                placeholder="What did you like the most? Any suggestion for room service, breakfast, or check-in?"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue"
+              />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handlePolishReview}
+                  disabled={polishingReview || (!reviewNotes.trim() && overallRating === 0)}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition disabled:opacity-50"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  {polishingReview ? 'Polishing your draft...' : 'Polish My Words with AI'}
+                </button>
+              </div>
+            </div>
+
+            {/* AI Polished Draft Container */}
+            {aiPolishedDraft && (
+              <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-indigo-900 font-bold text-xs">
+                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                    <span>AI Polished Review (Ready to copy)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyDraft}
+                    className="px-2.5 py-1 rounded-md bg-white border border-indigo-200 text-indigo-700 text-[11px] font-bold flex items-center gap-1 hover:bg-indigo-50 transition"
+                  >
+                    {copiedReview ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-600" /> Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" /> Copy Text
+                      </>
+                    )}
+                  </button>
+                </div>
+                <textarea
+                  rows={3}
+                  value={aiPolishedDraft}
+                  onChange={(e) => setAiPolishedDraft(e.target.value)}
+                  className="w-full p-2.5 bg-white rounded-lg border border-indigo-200 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+                <p className="text-[10px] text-indigo-700">
+                  💡 You can edit any sentence above before copying or submitting.
+                </p>
+              </div>
+            )}
+
+            {/* Direct External Review & Private Feedback Actions */}
+            <div className="pt-2 border-t border-slate-100 space-y-2.5">
+              <button
+                type="button"
+                onClick={handleOpenGoogleReview}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md hover:shadow transition"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Post Review on Google (Always Open to All Guests)
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSubmitPrivateFeedback}
+                disabled={submittingReview}
+                className="w-full py-2.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition"
+              >
+                {submittingReview ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Submitting...
+                  </>
+                ) : (
+                  'Send as Confidential Feedback to Hotel General Manager'
+                )}
+              </button>
+
+              <p className="text-[10px] text-center text-slate-400">
+                🔒 Google Review Policy Compliant: No review gating, no incentives, no forced ratings.
+              </p>
+            </div>
           </div>
         )}
 

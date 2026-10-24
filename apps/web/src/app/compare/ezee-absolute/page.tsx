@@ -20,7 +20,7 @@ import {
 export const metadata: Metadata = {
   title: 'HotelFlexi vs eZee Absolute — Why Indian Hoteliers Are Switching',
   description:
-    'Compare HotelFlexi vs eZee Absolute (Yanolja Cloud). Discover why hoteliers prefer HotelFlexi for ₹499/mo with zero training curve, autonomous AI agent, 2-way live OTA channel manager, and housekeeping urgency siren.',
+    'Compare HotelFlexi vs eZee Absolute (Yanolja Cloud). Discover why hoteliers prefer HotelFlexi for ₹499/mo with zero training curve, autonomous AI agent, room readiness SLAs, linen par tracking, and TallyPrime XML export.',
   keywords: [
     'hotelflexi vs ezee absolute',
     'ezee absolute alternative',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'HotelFlexi vs eZee Absolute — Modern Hospitality Software Comparison',
     description:
-      'Skip the steep training curve. Switch to HotelFlexi with autonomous AI, real-time OTA sync, and urgency siren starting at ₹499/mo.',
+      'Skip the steep training curve. Switch to HotelFlexi with autonomous AI, room readiness SLAs, and TallyPrime export starting at ₹499/mo.',
     url: 'https://hotelflexi.com/compare/ezee-absolute',
   },
 };
@@ -46,22 +46,27 @@ export default function EzeeAbsoluteComparePage() {
     },
     {
       feature: 'Starting Price (INR)',
-      hotelflexi: '₹499 / month flat with Channel Manager included',
+      hotelflexi: '₹499 / month flat with Direct Booking Engine included',
       ezee: 'Significantly higher base pricing (₹2,500 – ₹8,000+ per month)',
     },
     {
-      feature: 'Channel Manager Integration',
-      hotelflexi: 'Built-in 2-way live ARI synchronization with IngoMMT, Agoda, Booking.com, Airbnb & Expedia',
-      ezee: 'eZee Centrix add-on required with separate pricing and configuration layers',
+      feature: 'Housekeeping Room Readiness & Inspection SLA',
+      hotelflexi: '4-Stage room readiness (Dirty → Cleaning → Inspected → Ready) with linen par health',
+      ezee: 'Standard housekeeping status dropdowns without structured inspection stages',
     },
     {
-      feature: 'Housekeeping Urgency Siren System',
-      hotelflexi: 'Audio-visual siren alarm sounding on staff mobile devices for quick linen & leak resolution',
-      ezee: 'Standard housekeeping status dropdowns without real-time staff emergency siren',
+      feature: 'TallyPrime Accounting Direct XML Export',
+      hotelflexi: 'Instant vouchers.xml export with balanced double-entry accounting & GST heads',
+      ezee: 'Manual CSV formatting or expensive third-party bridge licenses',
+    },
+    {
+      feature: 'Food Procurement & Kitchen Covers (Rasan)',
+      hotelflexi: 'Recipe consumption norms & 7-day cover shortage forecasting to prevent food waste',
+      ezee: 'Requires standalone eZee Optimus POS license with separate billing',
     },
     {
       feature: 'Autonomous AI Concierge',
-      hotelflexi: 'Bilingual AI agent that automatically resolves booking queries and allocates rooms',
+      hotelflexi: 'Bilingual Groq AI agent that automatically resolves booking queries and front-desk metrics',
       ezee: 'No autonomous conversational AI; relies on manual front-desk staff input',
     },
     {

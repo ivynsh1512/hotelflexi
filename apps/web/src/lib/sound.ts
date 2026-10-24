@@ -1,5 +1,8 @@
-// HotelFlexi Sound & Siren Audio Engine
-// Uses Web Audio API with auto-unlocking on first user interaction and visibility sync
+// HotelFlexi Sound & Audio Engine
+// Strict compliance:
+// 1. Routine cleaning, linen replacement, and ordinary staff tasks NEVER play alarms.
+// 2. Audible alerts are strictly opt-in, permission-aware, rate-limited (minimum 60s cooldown), and easy to silence.
+// 3. Audio NEVER auto-starts on load and NEVER loops indefinitely.
 
 let audioCtx: AudioContext | null = null;
 let isAudioUnlocked = false;
@@ -9,8 +12,38 @@ let activeFilter: BiquadFilterNode | null = null;
 let sirenInterval: NodeJS.Timeout | null = null;
 let vibrationInterval: NodeJS.Timeout | null = null;
 let isSirenPlaying = false;
+let lastSirenPlayTime = 0;
+const SIREN_COOLDOWN_MS = 60000; // Minimum 60-second cooldown between audible alarms
 
-// 1. Initialize or get AudioContext
+/**
+ * Check if the user has explicitly opted into audible emergency alerts.
+ * Defaults to false (visual notifications only) until enabled in settings.
+ */
+export function isAudibleAlertOptedIn(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem('hotelflexi_audible_alerts_enabled') === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Set user preference for audible alerts.
+ */
+export function setAudibleAlertsOptIn(enabled: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('hotelflexi_audible_alerts_enabled', enabled ? 'true' : 'false');
+    if (!enabled && isSirenPlaying) {
+      stopSiren();
+    }
+  } catch {}
+}
+
+/**
+ * Initialize or get AudioContext
+ */
 export function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   if (!audioCtx) {
@@ -26,7 +59,9 @@ export function getAudioContext(): AudioContext | null {
   return audioCtx;
 }
 
-// 2. Global Unlock: Listen for any user gesture (click/tap/keydown) to resume AudioContext
+/**
+ * Global Unlock: Listen for user gesture (click/tap/keydown) to resume AudioContext
+ */
 export function setupAudioUnlock(): void {
   if (typeof window === 'undefined' || isAudioUnlocked) return;
 
@@ -42,7 +77,6 @@ export function setupAudioUnlock(): void {
       }
     }
 
-    // Clean up event listeners once unlocked
     window.removeEventListener('click', unlock);
     window.removeEventListener('touchstart', unlock);
     window.removeEventListener('keydown', unlock);
@@ -51,51 +85,49 @@ export function setupAudioUnlock(): void {
   window.addEventListener('click', unlock, { passive: true });
   window.addEventListener('touchstart', unlock, { passive: true });
   window.addEventListener('keydown', unlock, { passive: true });
-
-  // Handle visibility change: resume audio if siren was active
-  if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && isSirenPlaying && audioCtx) {
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume().catch(() => {});
-        }
-      }
-    });
-  }
 }
 
-// 3. Play Urgent Siren (Smooth European Two-Tone 880Hz / 660Hz with Anti-Crack Filtering and Looping Vibration)
-export function playSiren(): void {
+/**
+ * Play Urgent Siren for critical guest emergencies ONLY.
+ * Enforces opt-in verification and minimum 60-second rate-limiting cooldown.
+ * Automatically shuts off after 6 seconds to prevent runaway noise.
+ */
+export function playSiren(forceOverride: boolean = false): void {
   if (typeof window === 'undefined') return;
   if (isSirenPlaying) return;
+
+  // Rate-limiting check
+  const nowMs = Date.now();
+  if (!forceOverride && nowMs - lastSirenPlayTime < SIREN_COOLDOWN_MS) {
+    return; // Rate limited
+  }
+
+  // Opt-in check
+  if (!forceOverride && !isAudibleAlertOptedIn()) {
+    return; // Opted out - silent visual alert only
+  }
 
   const ctx = getAudioContext();
   if (!ctx) return;
 
   const startSoundGraph = () => {
     if (isSirenPlaying) return;
-
-    // Stop any stale components
     stopSiren();
 
     try {
+      lastSirenPlayTime = Date.now();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       const filter = ctx.createBiquadFilter();
 
-      // Use triangle wave with a lowpass filter to remove any high-frequency digital crackle
       osc.type = 'triangle';
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(1600, ctx.currentTime);
-
-      // Initial frequency: 880Hz (A5)
       osc.frequency.setValueAtTime(880, ctx.currentTime);
 
-      // Smooth soft-attack gain ramp to prevent initial click
       gain.gain.setValueAtTime(0.01, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 0.06);
+      gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.08);
 
-      // Connect audio chain: osc -> filter -> gain -> destination
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(ctx.destination);
@@ -106,50 +138,52 @@ export function playSiren(): void {
       activeFilter = filter;
       isSirenPlaying = true;
 
-      // Smooth European Hi-Lo siren modulation (880Hz high <-> 660Hz low alternating every 420ms)
+      // Smooth modulation (880Hz <-> 660Hz alternating every 450ms)
       let isHigh = false;
       sirenInterval = setInterval(() => {
         if (!activeOscillator || !audioCtx) return;
-        const now = audioCtx.currentTime;
+        const curTime = audioCtx.currentTime;
         const targetFreq = isHigh ? 880 : 660;
-        activeOscillator.frequency.cancelScheduledValues(now);
-        activeOscillator.frequency.linearRampToValueAtTime(targetFreq, now + 0.12);
+        activeOscillator.frequency.cancelScheduledValues(curTime);
+        activeOscillator.frequency.linearRampToValueAtTime(targetFreq, curTime + 0.15);
         isHigh = !isHigh;
-      }, 420);
+      }, 450);
 
-      // Persistent Hardware Vibration on Mobile Devices — strong rhythmic pulse until siren stops
+      // Hardware vibration
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try {
-          // Emergency pulse: strong-strong-strong pattern
-          navigator.vibrate([800, 200, 800, 200, 800, 400]);
+          navigator.vibrate([400, 200, 400]);
         } catch {}
 
         if (vibrationInterval) clearInterval(vibrationInterval);
         vibrationInterval = setInterval(() => {
           try {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-              navigator.vibrate([800, 200, 800, 200, 800, 400]);
+              navigator.vibrate([400, 200, 400]);
             }
           } catch {}
-        }, 2200); // Repeat every 2.2s (pattern ~2800ms to ensure no overlap)
+        }, 3000);
       }
+
+      // Safety automatic shutoff after 6 seconds to prevent continuous buzzing
+      setTimeout(() => {
+        stopSiren();
+      }, 6000);
     } catch (err) {
-      console.warn('Could not start siren audio graph:', err);
+      console.warn('Could not start emergency audio graph:', err);
     }
   };
 
   if (ctx.state === 'suspended') {
-    ctx.resume().then(() => {
-      startSoundGraph();
-    }).catch(() => {
-      startSoundGraph();
-    });
+    ctx.resume().then(startSoundGraph).catch(startSoundGraph);
   } else {
     startSoundGraph();
   }
 }
 
-// 4. Stop Urgent Siren & Cancel Vibrations
+/**
+ * Stop Urgent Siren & Cancel Vibrations immediately
+ */
 export function stopSiren(): void {
   if (sirenInterval) {
     clearInterval(sirenInterval);
@@ -196,7 +230,19 @@ export function isSirenActive(): boolean {
   return isSirenPlaying;
 }
 
-// 5. Play Standard Notification Chime (Clean 2-tone chime for non-emergency alerts)
+/**
+ * Test siren for user preview / settings (plays a brief 2.5-second test beep safely)
+ */
+export async function testSiren(): Promise<void> {
+  playSiren(true);
+  setTimeout(() => {
+    stopSiren();
+  }, 2500);
+}
+
+/**
+ * Play clean 2-tone notification chime (short, pleasant, non-emergency)
+ */
 export function playNotificationChime(): void {
   if (typeof window === 'undefined') return;
   const ctx = getAudioContext();
@@ -209,11 +255,10 @@ export function playNotificationChime(): void {
       const gain = ctx.createGain();
 
       osc.type = 'sine';
-      // Two-tone rising chime (880Hz -> 1320Hz)
       osc.frequency.setValueAtTime(880, now);
       osc.frequency.setValueAtTime(1320, now + 0.12);
 
-      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.setValueAtTime(0.15, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
 
       osc.connect(gain);
@@ -223,7 +268,7 @@ export function playNotificationChime(): void {
       osc.stop(now + 0.45);
 
       if ('vibrate' in navigator) {
-        navigator.vibrate([150]);
+        navigator.vibrate([100]);
       }
     } catch (err) {
       console.warn('Could not play chime:', err);
@@ -235,24 +280,4 @@ export function playNotificationChime(): void {
   } else {
     startChime();
   }
-}
-
-// 6. Test Siren (Runs for 3.5 seconds then automatically stops)
-export function testSiren(): Promise<void> {
-  return new Promise((resolve) => {
-    const ctx = getAudioContext();
-    if (ctx && ctx.state === 'suspended') {
-      ctx.resume().then(() => {
-        playSiren();
-      }).catch(() => {
-        playSiren();
-      });
-    } else {
-      playSiren();
-    }
-    setTimeout(() => {
-      stopSiren();
-      resolve();
-    }, 3500);
-  });
 }

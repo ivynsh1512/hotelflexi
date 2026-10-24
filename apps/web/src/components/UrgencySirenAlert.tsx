@@ -233,7 +233,7 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
                     📡 STAFF DISPATCH ACTIVE
                   </span>
                   <span className="text-xs font-medium text-slate-300">
-                    Siren alarm sounding on staff mobile devices ({pendingUrgentTickets.length} pending)
+                    Priority dispatch active on staff devices ({pendingUrgentTickets.length} pending)
                   </span>
                 </div>
                 <h3 className="font-bold text-base sm:text-lg mt-1 tracking-tight text-white">
@@ -241,11 +241,11 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
                 </h3>
                 {isOperatingStaff ? (
                   <p className="text-xs text-slate-300 mt-0.5">
-                    Tap <strong>Pick Request</strong> below to take ownership and stop the siren.
+                    Tap <strong>Pick Request</strong> below to take ownership and resolve the request.
                   </p>
                 ) : (
                   <p className="text-xs text-slate-300 mt-0.5">
-                    Siren is active on staff devices. Awaiting staff pickup.
+                    Request dispatched to floor staff. Awaiting staff pickup.
                   </p>
                 )}
               </div>
@@ -500,7 +500,7 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
                   className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5"
                 >
                   {reporting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Sound Urgent Siren Now
+                  Dispatch Urgent Request Now
                 </button>
               </div>
             </form>

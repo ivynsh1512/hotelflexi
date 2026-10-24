@@ -148,6 +148,7 @@ guestPortalRoutes.get('/:token', async (c) => {
       expiresAt: res.guest_portal_expires_at,
     },
     property: {
+      id: res.property_id,
       name: res.property_name,
       slug: res.property_slug,
       address: [res.property_address, res.property_city, res.property_state, res.property_country].filter(Boolean).join(', '),

@@ -20,7 +20,7 @@ import {
 export const metadata: Metadata = {
   title: 'HotelFlexi vs Yojna Cloud Solution (YCS PMS) — Why Hoteliers Are Switching',
   description:
-    'Compare HotelFlexi with Yojna Cloud Solution (YCS PMS). Discover why modern hoteliers prefer HotelFlexi for ₹499/mo with zero AMC, installable mobile PWA, autonomous AI front desk, and housekeeping urgency siren.',
+    'Compare HotelFlexi with Yojna Cloud Solution (YCS PMS). Discover why modern hoteliers prefer HotelFlexi for ₹499/mo with zero AMC, installable mobile PWA, autonomous AI front desk, room readiness SLAs, and TallyPrime XML export.',
   keywords: [
     'hotelflexi vs yojna cloud solution',
     'yojna cloud pms alternative',
@@ -55,19 +55,24 @@ export default function YojnaCloudComparePage() {
       yojna: 'Primarily desktop-dependent; limited or clunky mobile companion access',
     },
     {
-      feature: 'Housekeeping Urgency Siren System',
-      hotelflexi: 'Automated audio-visual siren sounding on staff mobile devices for quick linen & leak resolution',
-      yojna: 'No urgency siren; staff rely on intercom or manual register logbooks',
+      feature: 'Housekeeping Room Readiness & Inspection SLA',
+      hotelflexi: '4-stage room readiness (Dirty → Cleaning → Inspected → Ready) with linen par health',
+      yojna: 'No inspection tracking; staff rely on intercom or manual paper register logbooks',
+    },
+    {
+      feature: 'Food Procurement & Kitchen Covers (Rasan)',
+      hotelflexi: 'Standard consumption rules (e.g. 250g/guest) and 7-day cover shortage alerts',
+      yojna: 'No raw material forecasting; manual guesswork at local mandi',
+    },
+    {
+      feature: 'TallyPrime Accounting Direct XML Export',
+      hotelflexi: 'One-click vouchers.xml export with balanced double-entry accounting & GST heads',
+      yojna: 'Requires custom proprietary bridges or manual voucher entry',
     },
     {
       feature: 'Autonomous AI Business Agent',
-      hotelflexi: 'Built-in conversational AI assistant handling front-desk inquiries in Hindi & English 24/7',
+      hotelflexi: 'Built-in conversational Groq AI assistant handling front-desk inquiries in Hindi & English 24/7',
       yojna: 'No artificial intelligence capabilities; completely manual data entry',
-    },
-    {
-      feature: '2-Way Live OTA Channel Synchronization',
-      hotelflexi: 'Real-time central single source of truth for MMT, Agoda, Booking.com, Airbnb & Expedia',
-      yojna: 'Often requires third-party channel manager bridges with synchronization delays',
     },
     {
       feature: 'Guest Self Check-In & Room Service (FlexiLink)',

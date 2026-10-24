@@ -6,7 +6,6 @@ import {
   Globe,
   Layers,
   Sparkles,
-  Volume2,
   CheckCircle2,
   Clock,
   ArrowRight,
@@ -18,24 +17,31 @@ import {
   AlertTriangle,
   Play,
   Check,
+  RotateCw,
 } from 'lucide-react';
-import { testSiren } from '@/lib/sound';
 
 export function InteractiveProductShowcase() {
-  const [activeTab, setActiveTab] = useState<'pms' | 'channels' | 'engine' | 'siren' | 'ai'>('pms');
-  const [sirenPlaying, setSirenPlaying] = useState(false);
-  const [sirenPicked, setSirenPicked] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pms' | 'channels' | 'engine' | 'operations' | 'ai'>('pms');
+  const [roomReadiness, setRoomReadiness] = useState<Record<string, 'dirty' | 'cleaning' | 'inspected' | 'ready'>>({
+    '201': 'ready',
+    '202': 'inspected',
+    '203': 'cleaning',
+    '204': 'dirty',
+  });
   const [blockedRooms, setBlockedRooms] = useState<string[]>(['104']);
   const [advancePolicy, setAdvancePolicy] = useState<'full' | 'partial' | 'hotel'>('partial');
 
-  const handleTestSiren = async () => {
-    setSirenPlaying(true);
-    setSirenPicked(false);
-    try {
-      await testSiren();
-    } finally {
-      setSirenPlaying(false);
-    }
+  const advanceRoomStatus = (roomNum: string) => {
+    const cycle: Record<string, 'dirty' | 'cleaning' | 'inspected' | 'ready'> = {
+      dirty: 'cleaning',
+      cleaning: 'inspected',
+      inspected: 'ready',
+      ready: 'dirty',
+    };
+    setRoomReadiness(prev => ({
+      ...prev,
+      [roomNum]: cycle[prev[roomNum] || 'ready'],
+    }));
   };
 
   const toggleBlockRoom = (num: string) => {
@@ -91,15 +97,15 @@ export function InteractiveProductShowcase() {
         </button>
 
         <button
-          onClick={() => setActiveTab('siren')}
+          onClick={() => setActiveTab('operations')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
-            activeTab === 'siren'
-              ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 animate-pulse'
+            activeTab === 'operations'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
               : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
-          <Volume2 className="w-3.5 h-3.5" />
-          <span>Hardware Urgency Siren</span>
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>Housekeeping &amp; Linen Par</span>
         </button>
 
         <button
@@ -361,78 +367,76 @@ export function InteractiveProductShowcase() {
           </div>
         )}
 
-        {/* 4. HARDWARE URGENCY SIREN */}
-        {activeTab === 'siren' && (
+        {/* 4. HOUSEKEEPING ROOM READINESS & LINEN PAR */}
+        {activeTab === 'operations' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-red-950/40 p-4 rounded-2xl border border-red-800/80">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-950/40 p-4 rounded-2xl border border-emerald-800/80">
               <div>
-                <span className="text-[10px] font-black uppercase text-red-400 tracking-wider">
-                  Patented 7-Minute Urgency Dispatch
+                <span className="text-[10px] font-black uppercase text-emerald-400 tracking-wider">
+                  Automated Turnover &amp; Readiness Lifecycle
                 </span>
-                <h3 className="text-base font-bold text-white">Emergency Dual-Tone Siren &amp; Vibration Alert</h3>
-                <p className="text-xs text-red-200">
-                  When a guest raises an urgent complaint or bedsheet sanitation request, floor staff phones ring loudly with hardware vibrations.
+                <h3 className="text-base font-bold text-white">Housekeeping Inspection &amp; Linen Par Controls</h3>
+                <p className="text-xs text-emerald-200">
+                  Rooms cycle through verified stages: Checkout &rarr; Dirty &rarr; Cleaning &rarr; Inspected &rarr; Ready. Fresh linen is tracked against configured par levels.
                 </p>
               </div>
-              <button
-                onClick={handleTestSiren}
-                disabled={sirenPlaying}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs shadow-lg transition flex items-center gap-2 self-start sm:self-auto shrink-0"
-              >
-                <Volume2 className={`w-4 h-4 ${sirenPlaying ? 'animate-bounce' : ''}`} />
-                <span>{sirenPlaying ? 'Playing Loud Siren...' : '🔊 Test Live Siren Sound'}</span>
-              </button>
+              <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-xs border border-emerald-500/30 self-start sm:self-auto shrink-0 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>Zero False Alarms</span>
+              </span>
             </div>
 
-            {/* Interactive Alert Banner Simulation */}
-            <div className="bg-red-600 text-white p-4 rounded-2xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white text-red-600 flex items-center justify-center font-black text-xl animate-bounce">
-                  🚨
-                </div>
-                <div>
-                  <div className="font-extrabold text-sm uppercase">
-                    Urgent Room 204: Dirty Bedding Replacement
-                  </div>
-                  <div className="text-xs text-red-100">
-                    Guest reported 2 mins ago • Sounding on all floor staff smartphones
-                  </div>
-                </div>
+            {/* Interactive Room Readiness Grid */}
+            <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between text-xs text-slate-300">
+                <span className="font-bold text-white">Interactive Room Readiness Board</span>
+                <span className="text-[11px] text-slate-400">Click a room to advance its stage</span>
               </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {Object.entries(roomReadiness).map(([num, st]) => {
+                  const colors = {
+                    dirty: 'border-red-500/50 bg-red-950/30 text-red-300',
+                    cleaning: 'border-amber-500/50 bg-amber-950/30 text-amber-300',
+                    inspected: 'border-blue-500/50 bg-blue-950/30 text-blue-300',
+                    ready: 'border-emerald-500/50 bg-emerald-950/30 text-emerald-300',
+                  }[st];
 
-              <div className="flex items-center gap-2 shrink-0">
-                {sirenPicked ? (
-                  <span className="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs flex items-center gap-1.5">
-                    <Check className="w-4 h-4" />
-                    Taken by Suresh (Housekeeping)
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setSirenPicked(true);
-                      setSirenPlaying(false);
-                    }}
-                    className="px-4 py-2 rounded-xl bg-white text-red-700 hover:bg-red-50 font-black text-xs shadow transition flex items-center gap-1.5"
-                  >
-                    <UserCheck className="w-4 h-4" />
-                    <span>Pick &amp; Silence Siren</span>
-                  </button>
-                )}
+                  return (
+                    <button
+                      key={num}
+                      onClick={() => advanceRoomStatus(num)}
+                      className={`p-3 rounded-xl border text-left transition hover:scale-[1.02] flex flex-col justify-between h-24 ${colors}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-sm text-white">Room {num}</span>
+                        <RotateCw className="w-3.5 h-3.5 opacity-60" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider block">
+                          {st.toUpperCase()}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {st === 'ready' ? 'Ready for Check-in' : st === 'inspected' ? 'Supervisor Approved' : st === 'cleaning' ? 'In Progress' : 'Needs Turnover'}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-300">
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
-                <strong className="block text-white mb-1">Dual-Tone Hi-Lo Audio</strong>
-                880Hz / 660Hz filtered frequency audible through loud resort environments.
+                <strong className="block text-white mb-1">Strict Inspection Gate</strong>
+                A room cannot be sold until supervisor inspection is stamped and approved.
               </div>
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
-                <strong className="block text-white mb-1">Hardware Vibration Pulse</strong>
-                Continuous [600ms, 250ms] rhythmic vibration on staff Android phones.
+                <strong className="block text-white mb-1">Linen Par Thresholds</strong>
+                Automatic alerts when clean bedsheets or towels drop below 1 usable set.
               </div>
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
-                <strong className="block text-white mb-1">Owner &amp; Admin Serenity</strong>
-                Alarms sound on operating staff devices; admin monitors silent dispatch status.
+                <strong className="block text-white mb-1">Staff SLA Tracking</strong>
+                Average turnover time tracked with supervisor sign-off timestamps.
               </div>
             </div>
           </div>

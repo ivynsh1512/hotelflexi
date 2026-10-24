@@ -1,5 +1,6 @@
 import { Env, AppVariables } from '../types';
 import { recordAuditLog } from './audit';
+import { GroqToolDefinition } from './groqClient';
 
 export interface ToolExecutionContext {
   env: Env;
@@ -9,6 +10,203 @@ export interface ToolExecutionContext {
   propertyId?: string;
   language?: 'en' | 'hi' | 'hinglish';
 }
+
+export const GROQ_TOOL_DEFINITIONS: GroqToolDefinition[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'get_property_performance',
+      description: 'Get verified revenue, ADR (Average Daily Rate), RevPAR, and occupancy for a requested period.',
+      parameters: {
+        type: 'object',
+        properties: {
+          period: {
+            type: 'string',
+            enum: ['today', 'yesterday', 'this_month', 'last_month'],
+            description: 'Time window for performance analysis',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_occupancy_forecast',
+      description: 'Get forward-looking occupancy forecast and demand pace for upcoming dates.',
+      parameters: {
+        type: 'object',
+        properties: {
+          daysAhead: { type: 'number', description: 'Number of upcoming days to forecast (default 7)' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_payment_reconciliation',
+      description: 'Get payment collections, outstanding balances, unpaid folios, and settlement status.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_room_status',
+      description: 'Get live inventory summary of vacant, occupied, dirty, cleaning, inspected, ready, and maintenance rooms.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_open_guest_complaints',
+      description: 'Get unresolved guest complaints, room numbers, priorities, and SLA timers.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_housekeeping_tasks',
+      description: 'Get list of pending housekeeping turnover tasks, assigned staff, and inspection status.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_laundry_stock',
+      description: 'Get clean linen inventory, in rooms, at external laundry vendor, and stock below par levels.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_food_stock_forecast',
+      description: 'Forecast food & rasan requirements based on confirmed covers, recipe grams, usable stock, and supplier lead times.',
+      parameters: {
+        type: 'object',
+        properties: {
+          daysAhead: { type: 'number', description: 'Forecast window in days (default 7)' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_profit_and_loss',
+      description: 'Calculate operating revenue, expenses (salaries, supplies, utilities), and estimated net operating profit.',
+      parameters: {
+        type: 'object',
+        properties: {
+          period: { type: 'string', enum: ['today', 'this_month', 'last_month'] },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_marketing_performance',
+      description: 'Get marketing campaigns results, inquiries generated, and attributed direct bookings revenue.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_staff_task',
+      description: 'Assign a housekeeping cleaning task or maintenance ticket to hotel staff.',
+      parameters: {
+        type: 'object',
+        required: ['notes'],
+        properties: {
+          taskType: { type: 'string', enum: ['housekeeping', 'maintenance'] },
+          roomNumber: { type: 'string' },
+          notes: { type: 'string' },
+          priority: { type: 'string', enum: ['normal', 'urgent'] },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'draft_marketing_campaign',
+      description: 'Draft a promotional campaign brief for festivals, weekends, or low-demand dates with UTM tracking.',
+      parameters: {
+        type: 'object',
+        required: ['theme'],
+        properties: {
+          theme: { type: 'string', description: 'Campaign theme e.g. Diwali Weekend, Monsoon Retreat' },
+          channel: { type: 'string', enum: ['whatsapp', 'instagram', 'google_business', 'sms'] },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'prepare_rate_recommendation',
+      description: 'Evaluate demand pace and recommend dynamic rate adjustments for low or high demand dates.',
+      parameters: {
+        type: 'object',
+        properties: {
+          targetDate: { type: 'string', description: 'YYYY-MM-DD target date' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'block_room',
+      description: 'Block one or more rooms for maintenance or private hold.',
+      parameters: {
+        type: 'object',
+        required: ['roomNumber', 'startDate', 'endDate'],
+        properties: {
+          roomNumber: { type: 'string' },
+          startDate: { type: 'string' },
+          endDate: { type: 'string' },
+          reason: { type: 'string' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'unblock_room',
+      description: 'Unblock previously blocked rooms to make them available for sale.',
+      parameters: {
+        type: 'object',
+        properties: {
+          all: { type: 'boolean' },
+          roomNumbers: { type: 'array', items: { type: 'string' } },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'mark_room_clean',
+      description: 'Mark a dirty room as clean after housekeeping turnover.',
+      parameters: {
+        type: 'object',
+        required: ['roomNumber'],
+        properties: {
+          roomNumber: { type: 'string' },
+        },
+      },
+    },
+  },
+];
 
 export async function executeAiTool(
   toolName: string,
@@ -757,6 +955,615 @@ export async function executeAiTool(
         humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
           ? `Room ${roomNumber} ko dirty mark kar diya gaya hai.`
           : `Room ${roomNumber} has been marked as dirty.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 18. GET PROPERTY PERFORMANCE (Revenue, ADR, RevPAR, Occupancy)
+      // -----------------------------------------------------------------------
+      case 'get_property_performance': {
+        const period = params.period || 'this_month';
+        const propRow: any = await env.DB.prepare(
+          `SELECT id, name FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+        const todayIso = new Date().toISOString().slice(0, 10);
+        const yesterdayIso = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        const startOfMonth = Math.floor(new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).getTime() / 1000);
+
+        let queryStart = startOfMonth;
+        let queryEnd = Math.floor(Date.now() / 1000);
+        let dateFilterIso = '';
+
+        if (period === 'today') {
+          queryStart = Math.floor(new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate())).getTime() / 1000);
+          dateFilterIso = todayIso;
+        } else if (period === 'yesterday') {
+          queryStart = Math.floor(new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate() - 1)).getTime() / 1000);
+          queryEnd = queryStart + 86400;
+          dateFilterIso = yesterdayIso;
+        }
+
+        const [payRow, totRoomsRow, occRoomsRow]: any = await Promise.all([
+          env.DB.prepare(
+            `SELECT SUM(amount_paise) as sum FROM payments
+             WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''} AND status = 'successful' AND created_at >= ? AND created_at <= ?`
+          ).bind(...(propertyId ? [tenantId, propertyId, queryStart, queryEnd] : [tenantId, queryStart, queryEnd])).first().catch(() => ({ sum: 0 })),
+
+          env.DB.prepare(
+            `SELECT COUNT(*) as count FROM rooms WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''} AND is_active = 1`
+          ).bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).first().catch(() => ({ count: 0 })),
+
+          env.DB.prepare(
+            `SELECT COUNT(*) as count, SUM(total_room_charge_paise) as room_rev FROM reservations
+             WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''}
+               AND status IN ('confirmed', 'checked_in')
+               ${dateFilterIso ? 'AND check_in_date <= ? AND check_out_date > ?' : ''}`
+          ).bind(...(dateFilterIso ? (propertyId ? [tenantId, propertyId, dateFilterIso, dateFilterIso] : [tenantId, dateFilterIso, dateFilterIso]) : (propertyId ? [tenantId, propertyId] : [tenantId]))).first().catch(() => ({ count: 0, room_rev: 0 })),
+        ]);
+
+        const totalRevenuePaise = Number(payRow?.sum || 0);
+        const totalRooms = Number(totRoomsRow?.count || 1);
+        const occupiedRooms = Number(occRoomsRow?.count || 0);
+        const roomRevenuePaise = Number(occRoomsRow?.room_rev || totalRevenuePaise);
+
+        const occupancyPercent = Math.min(100, Math.round((occupiedRooms / totalRooms) * 100));
+        const adrPaise = occupiedRooms > 0 ? Math.round(roomRevenuePaise / occupiedRooms) : 0;
+        const revParPaise = totalRooms > 0 ? Math.round(roomRevenuePaise / totalRooms) : 0;
+
+        success = true;
+        result = {
+          period,
+          totalRevenuePaise,
+          roomRevenuePaise,
+          totalRooms,
+          occupiedRooms,
+          occupancyPercent,
+          adrPaise,
+          revParPaise,
+        };
+
+        const revRs = (totalRevenuePaise / 100).toLocaleString('en-IN');
+        const adrRs = (adrPaise / 100).toLocaleString('en-IN');
+        const revParRs = (revParPaise / 100).toLocaleString('en-IN');
+
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `${period.toUpperCase()} Performance: Total Revenue: ₹${revRs}, Occupancy: ${occupancyPercent}% (${occupiedRooms}/${totalRooms} rooms), ADR: ₹${adrRs}, RevPAR: ₹${revParRs}.`
+          : `${period.toUpperCase()} Performance: Total Revenue: ₹${revRs}, Occupancy: ${occupancyPercent}% (${occupiedRooms}/${totalRooms} rooms), ADR: ₹${adrRs}, RevPAR: ₹${revParRs}.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 19. GET OCCUPANCY FORECAST
+      // -----------------------------------------------------------------------
+      case 'get_occupancy_forecast': {
+        const daysAhead = Math.min(30, Math.max(1, Number(params.daysAhead || 7)));
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+        const totRoomsRow: any = await env.DB.prepare(
+          `SELECT COUNT(*) as count FROM rooms WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''} AND is_active = 1`
+        ).bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).first().catch(() => ({ count: 10 }));
+
+        const totalRooms = Number(totRoomsRow?.count || 10);
+        const forecast: Array<{ date: string; bookedRooms: number; availableRooms: number; occupancyPercent: number }> = [];
+
+        const startDate = new Date();
+        for (let i = 0; i < daysAhead; i++) {
+          const d = new Date(startDate.getTime() + i * 86400000);
+          const dateStr = d.toISOString().slice(0, 10);
+
+          const countRow: any = await env.DB.prepare(
+            `SELECT COUNT(*) as count FROM reservations
+             WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''}
+               AND status IN ('confirmed', 'checked_in', 'guaranteed')
+               AND check_in_date <= ? AND check_out_date > ?`
+          ).bind(...(propertyId ? [tenantId, propertyId, dateStr, dateStr] : [tenantId, dateStr, dateStr])).first().catch(() => ({ count: 0 }));
+
+          const booked = Number(countRow?.count || 0);
+          const available = Math.max(0, totalRooms - booked);
+          const occ = Math.min(100, Math.round((booked / totalRooms) * 100));
+
+          forecast.push({
+            date: dateStr,
+            bookedRooms: booked,
+            availableRooms: available,
+            occupancyPercent: occ,
+          });
+        }
+
+        const avgOcc = Math.round(forecast.reduce((acc, f) => acc + f.occupancyPercent, 0) / forecast.length);
+
+        success = true;
+        result = { totalRooms, daysAhead, averageOccupancyPercent: avgOcc, forecast };
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Agale ${daysAhead} dinon ka average occupancy forecast ${avgOcc}% hai. ${forecast[0].date} ko ${forecast[0].bookedRooms} rooms booked (${forecast[0].availableRooms} available) hain.`
+          : `Upcoming ${daysAhead}-day forecast average occupancy is ${avgOcc}%. On ${forecast[0].date}, ${forecast[0].bookedRooms} rooms are booked with ${forecast[0].availableRooms} rooms available.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 20. GET PAYMENT RECONCILIATION
+      // -----------------------------------------------------------------------
+      case 'get_payment_reconciliation': {
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+        const [payRow, dueRow]: any = await Promise.all([
+          env.DB.prepare(
+            `SELECT COUNT(*) as count, SUM(amount_paise) as sum FROM payments
+             WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''} AND status = 'successful'`
+          ).bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).first().catch(() => ({ count: 0, sum: 0 })),
+
+          env.DB.prepare(
+            `SELECT COUNT(*) as count, SUM(balance_amount_paise) as sum FROM reservations
+             WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''}
+               AND status IN ('confirmed', 'checked_in') AND balance_amount_paise > 0`
+          ).bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).first().catch(() => ({ count: 0, sum: 0 })),
+        ]);
+
+        const totalCollectedPaise = Number(payRow?.sum || 0);
+        const pendingReceivablesPaise = Number(dueRow?.sum || 0);
+        const unpaidFoliosCount = Number(dueRow?.count || 0);
+
+        success = true;
+        result = {
+          totalCollectedPaise,
+          pendingReceivablesPaise,
+          unpaidFoliosCount,
+          reconciliationStatus: pendingReceivablesPaise === 0 ? 'fully_reconciled' : 'action_required',
+        };
+
+        const colRs = (totalCollectedPaise / 100).toLocaleString('en-IN');
+        const dueRs = (pendingReceivablesPaise / 100).toLocaleString('en-IN');
+
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Payment Reconciliation: Total Successful Collections: ₹${colRs}. Pending guest folio balances: ₹${dueRs} (${unpaidFoliosCount} bookings pending settlement).`
+          : `Payment Reconciliation: Total Successful Collections: ₹${colRs}. Pending guest folio receivables: ₹${dueRs} across ${unpaidFoliosCount} unsettled bookings.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 21. GET ROOM STATUS
+      // -----------------------------------------------------------------------
+      case 'get_room_status': {
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+        const rows: any = await env.DB.prepare(
+          `SELECT room_number, status, readiness_status FROM rooms
+           WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''} AND is_active = 1
+           ORDER BY room_number ASC`
+        ).bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).all().catch(() => ({ results: [] }));
+
+        const rooms = (rows.results || []) as any[];
+        const counts = {
+          total: rooms.length,
+          occupied: rooms.filter((r) => r.status === 'occupied').length,
+          vacant: rooms.filter((r) => r.status === 'vacant' || r.status === 'available').length,
+          dirty: rooms.filter((r) => r.readiness_status === 'dirty').length,
+          cleaning: rooms.filter((r) => r.readiness_status === 'cleaning').length,
+          inspected: rooms.filter((r) => r.readiness_status === 'inspected').length,
+          ready: rooms.filter((r) => r.readiness_status === 'ready').length,
+          maintenance: rooms.filter((r) => r.status === 'maintenance' || r.readiness_status === 'maintenance').length,
+        };
+
+        success = true;
+        result = { counts, rooms };
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Room Status Summary: Total ${counts.total} rooms. ${counts.occupied} Occupied, ${counts.vacant} Vacant. Readiness: ${counts.ready} Ready, ${counts.inspected} Inspected, ${counts.cleaning} Cleaning, ${counts.dirty} Dirty, ${counts.maintenance} Maintenance.`
+          : `Room Status Summary: Total ${counts.total} rooms. ${counts.occupied} Occupied, ${counts.vacant} Vacant. Readiness: ${counts.ready} Ready, ${counts.inspected} Inspected, ${counts.cleaning} Cleaning, ${counts.dirty} Dirty, ${counts.maintenance} Maintenance.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 22. GET OPEN GUEST COMPLAINTS
+      // -----------------------------------------------------------------------
+      case 'get_open_guest_complaints': {
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+        const rows: any = await env.DB.prepare(
+          `SELECT id, room_number, guest_name, category, description, priority, status, created_at
+           FROM complaints
+           WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''} AND status != 'resolved'
+           ORDER BY created_at DESC LIMIT 15`
+        ).bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).all().catch(() => ({ results: [] }));
+
+        const complaints = (rows.results || []) as any[];
+        const urgentCount = complaints.filter((c) => c.priority === 'urgent' || c.priority === 'high').length;
+
+        success = true;
+        result = { count: complaints.length, urgentCount, complaints };
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Total ${complaints.length} open complaints hain (${urgentCount} high/urgent priority). ${complaints.length > 0 ? `Latest: Room ${complaints[0].room_number || 'General'} - "${complaints[0].description}"` : 'Koi open complaint nahi hai.'}`
+          : `There are ${complaints.length} open complaints (${urgentCount} high/urgent priority). ${complaints.length > 0 ? `Latest: Room ${complaints[0].room_number || 'General'} - "${complaints[0].description}"` : 'No open complaints.'}`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 23. GET HOUSEKEEPING TASKS
+      // -----------------------------------------------------------------------
+      case 'get_housekeeping_tasks': {
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+        const rows: any = await env.DB.prepare(
+          `SELECT id, room_number, task_type, priority, status, notes, assigned_to_name, created_at
+           FROM housekeeping_tasks
+           WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''} AND status IN ('pending', 'in_progress')
+           ORDER BY priority DESC, created_at ASC`
+        ).bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).all().catch(() => ({ results: [] }));
+
+        const tasks = (rows.results || []) as any[];
+
+        success = true;
+        result = { count: tasks.length, tasks };
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Housekeeping Tasks: ${tasks.length} active tasks hain. ${tasks.length > 0 ? `Room ${tasks[0].room_number || 'General'} status: ${tasks[0].status} (Assigned: ${tasks[0].assigned_to_name || 'Unassigned'}).` : 'Sabhi rooms clean hain.'}`
+          : `Housekeeping Tasks: ${tasks.length} active tasks. ${tasks.length > 0 ? `Room ${tasks[0].room_number || 'General'} status: ${tasks[0].status} (Assigned: ${tasks[0].assigned_to_name || 'Unassigned'}).` : 'All housekeeping tasks completed.'}`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 24. GET LAUNDRY & LINEN STOCK
+      // -----------------------------------------------------------------------
+      case 'get_laundry_stock': {
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+        const rows: any = await env.DB.prepare(
+          `SELECT item_name, category, total_stock, in_rooms, in_stock_clean, in_laundry, par_level, unit
+           FROM linen_inventory
+           WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''}
+           ORDER BY in_stock_clean ASC`
+        ).bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).all().catch(() => ({ results: [] }));
+
+        const items = (rows.results || []) as any[];
+        const belowPar = items.filter((it) => it.in_stock_clean < it.par_level);
+
+        success = true;
+        result = { totalItems: items.length, itemsBelowPar: belowPar.length, items };
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Linen Inventory: ${items.length} items tracked. ${belowPar.length > 0 ? `Warning: ${belowPar.length} items par level se neeche hain (${belowPar.map((b) => `${b.item_name}: ${b.in_stock_clean}/${b.par_level}`).join(', ')}).` : 'Sabhi linen items safe par level par hain.'}`
+          : `Linen Inventory: ${items.length} items tracked. ${belowPar.length > 0 ? `Warning: ${belowPar.length} items below safety par (${belowPar.map((b) => `${b.item_name}: ${b.in_stock_clean}/${b.par_level}`).join(', ')}).` : 'All linen inventory items are above configured par levels.'}`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 25. GET FOOD STOCK & RASAN FORECAST
+      // -----------------------------------------------------------------------
+      case 'get_food_stock_forecast': {
+        const daysAhead = Math.min(14, Math.max(1, Number(params.daysAhead || 7)));
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+
+        // 1. Calculate projected covers
+        const nowIso = new Date().toISOString().slice(0, 10);
+        const endIso = new Date(Date.now() + daysAhead * 86400000).toISOString().slice(0, 10);
+
+        const guestRow: any = await env.DB.prepare(
+          `SELECT SUM(adults + children) as total_guests FROM reservations
+           WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''}
+             AND status IN ('confirmed', 'checked_in')
+             AND check_in_date < ? AND check_out_date > ?`
+        ).bind(...(propertyId ? [tenantId, propertyId, endIso, nowIso] : [tenantId, endIso, nowIso])).first().catch(() => ({ total_guests: 0 }));
+
+        const estimatedGuests = Math.max(10, Number(guestRow?.total_guests || 25));
+
+        // 2. Fetch inventory and recipe assumptions
+        const [invRows, recRows]: any = await Promise.all([
+          env.DB.prepare(
+            `SELECT id, item_name, current_usable_stock, unit, safety_stock, supplier_lead_days, cost_per_unit_paise
+             FROM food_inventory_items WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''}`
+          ).bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).all().catch(() => ({ results: [] })),
+
+          env.DB.prepare(
+            `SELECT item_id, standard_name, grams_per_guest
+             FROM food_recipes_assumptions WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''}`
+          ).bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).all().catch(() => ({ results: [] })),
+        ]);
+
+        const inventory = (invRows.results || []) as any[];
+        const recipes = (recRows.results || []) as any[];
+
+        const recipeMap = new Map<string, number>();
+        for (const r of recipes) {
+          recipeMap.set(r.item_id, Number(r.grams_per_guest || 0));
+        }
+
+        const itemsForecast: any[] = [];
+        let shortagesCount = 0;
+
+        for (const item of inventory) {
+          const gramsPerGuest = recipeMap.get(item.id) || 400; // Default 400g/guest if not explicitly configured
+          const requiredKg = (gramsPerGuest * estimatedGuests * daysAhead) / 1000;
+          const currentStock = Number(item.current_usable_stock || 0);
+          const shortage = Math.max(0, requiredKg - currentStock);
+          const needsReorder = currentStock < item.safety_stock || shortage > 0;
+
+          if (needsReorder) shortagesCount++;
+
+          const reorderDays = Math.max(1, (item.supplier_lead_days || 2));
+          const suggestDate = new Date(Date.now() + Math.max(1, reorderDays - 1) * 86400000).toISOString().slice(0, 10);
+
+          itemsForecast.push({
+            itemName: item.item_name,
+            currentStock: `${currentStock} ${item.unit}`,
+            requiredForecast: `${requiredKg.toFixed(1)} ${item.unit}`,
+            shortage: `${shortage.toFixed(1)} ${item.unit}`,
+            suggestedReorderDate: needsReorder ? suggestDate : 'Stock Adequate',
+            needsReorder,
+          });
+        }
+
+        success = true;
+        result = {
+          daysAhead,
+          estimatedGuests,
+          shortagesCount,
+          itemsForecast,
+        };
+
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Food & Rasan Forecast (${daysAhead} days, est. ${estimatedGuests} guests): ${shortagesCount} items ko reorder ki zaroorat hai. (e.g. Potato/Rice requirements calculated against kitchen consumption standards).`
+          : `Food & Rasan Procurement Forecast (${daysAhead} days, est. ${estimatedGuests} guests): ${shortagesCount} items require reordering based on recipe consumption standards.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 26. GET PROFIT AND LOSS
+      // -----------------------------------------------------------------------
+      case 'get_profit_and_loss': {
+        const period = params.period || 'this_month';
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+        const nowTime = Math.floor(Date.now() / 1000);
+        let startTimestamp = Math.floor(new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).getTime() / 1000);
+
+        if (period === 'today') {
+          startTimestamp = Math.floor(new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate())).getTime() / 1000);
+        }
+
+        const [revRow, expRow, salRow]: any = await Promise.all([
+          env.DB.prepare(
+            `SELECT SUM(amount_paise) as sum FROM payments
+             WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''} AND status = 'successful' AND created_at >= ?`
+          ).bind(...(propertyId ? [tenantId, propertyId, startTimestamp] : [tenantId, startTimestamp])).first().catch(() => ({ sum: 0 })),
+
+          env.DB.prepare(
+            `SELECT SUM(amount_paise) as sum FROM property_expenses
+             WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''} AND expense_date >= ?`
+          ).bind(...(propertyId ? [tenantId, propertyId, new Date(startTimestamp * 1000).toISOString().slice(0, 10)] : [tenantId, new Date(startTimestamp * 1000).toISOString().slice(0, 10)])).first().catch(() => ({ sum: 0 })),
+
+          env.DB.prepare(
+            `SELECT SUM(paid_amount_paise) as sum FROM salary_payments
+             WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''} AND payment_date >= ?`
+          ).bind(...(propertyId ? [tenantId, propertyId, new Date(startTimestamp * 1000).toISOString().slice(0, 10)] : [tenantId, new Date(startTimestamp * 1000).toISOString().slice(0, 10)])).first().catch(() => ({ sum: 0 })),
+        ]);
+
+        const revenuePaise = Number(revRow?.sum || 0);
+        const propertyExpensesPaise = Number(expRow?.sum || 0);
+        const salaryExpensesPaise = Number(salRow?.sum || 0);
+        const totalExpensesPaise = propertyExpensesPaise + salaryExpensesPaise;
+        const netOperatingProfitPaise = revenuePaise - totalExpensesPaise;
+
+        const revRs = (revenuePaise / 100).toLocaleString('en-IN');
+        const expRs = (totalExpensesPaise / 100).toLocaleString('en-IN');
+        const profitRs = (netOperatingProfitPaise / 100).toLocaleString('en-IN');
+
+        success = true;
+        result = {
+          period,
+          revenuePaise,
+          propertyExpensesPaise,
+          salaryExpensesPaise,
+          totalExpensesPaise,
+          netOperatingProfitPaise,
+        };
+
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Profit & Loss (${period.toUpperCase()}): Total Revenue: ₹${revRs}, Operating Expenses: ₹${expRs}, Estimated Net Operating Profit: ₹${profitRs}.`
+          : `Profit & Loss Statement (${period.toUpperCase()}): Operating Revenue: ₹${revRs}, Total Expenses: ₹${expRs}, Estimated Net Operating Profit: ₹${profitRs}.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 27. GET MARKETING PERFORMANCE
+      // -----------------------------------------------------------------------
+      case 'get_marketing_performance': {
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+        const rows: any = await env.DB.prepare(
+          `SELECT title, channel, utm_campaign, status, inquiries_count, bookings_count, revenue_generated_paise
+           FROM marketing_campaigns
+           WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''}
+           ORDER BY created_at DESC LIMIT 10`
+        ).bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).all().catch(() => ({ results: [] }));
+
+        const campaigns = (rows.results || []) as any[];
+        const totalInquiries = campaigns.reduce((acc, c) => acc + Number(c.inquiries_count || 0), 0);
+        const totalBookings = campaigns.reduce((acc, c) => acc + Number(c.bookings_count || 0), 0);
+        const totalRevenuePaise = campaigns.reduce((acc, c) => acc + Number(c.revenue_generated_paise || 0), 0);
+
+        success = true;
+        result = { campaignsCount: campaigns.length, totalInquiries, totalBookings, totalRevenuePaise, campaigns };
+        const revRs = (totalRevenuePaise / 100).toLocaleString('en-IN');
+
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Marketing Performance: ${campaigns.length} campaigns tracked. Generated ${totalInquiries} inquiries, ${totalBookings} confirmed bookings, and ₹${revRs} direct revenue.`
+          : `Marketing Performance: ${campaigns.length} campaigns tracked. Generated ${totalInquiries} inquiries, ${totalBookings} confirmed bookings, and ₹${revRs} direct revenue.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 28. CREATE STAFF TASK
+      // -----------------------------------------------------------------------
+      case 'create_staff_task': {
+        const { taskType = 'housekeeping', roomNumber, notes, priority = 'normal' } = params;
+        if (!notes) {
+          throw new Error('Task notes/instructions are required.');
+        }
+
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id || ctx.propertyId;
+        const taskId = `task_${crypto.randomUUID().slice(0, 8)}`;
+
+        if (taskType === 'housekeeping') {
+          await env.DB.prepare(
+            `INSERT INTO housekeeping_tasks (id, property_id, tenant_id, room_number, task_type, priority, status, notes, created_at, updated_at)
+             VALUES (?, ?, ?, ?, 'turnover_clean', ?, 'pending', ?, ?, ?)`
+          )
+            .bind(taskId, propertyId, tenantId, roomNumber ? String(roomNumber) : null, priority, notes, now, now)
+            .run();
+        } else {
+          await env.DB.prepare(
+            `INSERT INTO maintenance_tickets (id, property_id, tenant_id, room_id, title, description, priority, status, created_at, updated_at)
+             VALUES (?, ?, ?, NULL, ?, ?, ?, 'open', ?, ?)`
+          )
+            .bind(taskId, propertyId, tenantId, roomNumber ? `Room ${roomNumber}` : 'General Maintenance', notes, priority, now, now)
+            .run();
+        }
+
+        success = true;
+        result = { taskId, taskType, roomNumber, notes, priority };
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Staff task (${taskType.toUpperCase()}) successfully create kar diya gaya hai for ${roomNumber ? `Room ${roomNumber}` : 'General'}.`
+          : `Staff task (${taskType.toUpperCase()}) successfully created for ${roomNumber ? `Room ${roomNumber}` : 'General'}.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 29. DRAFT MARKETING CAMPAIGN
+      // -----------------------------------------------------------------------
+      case 'draft_marketing_campaign': {
+        const { theme, channel = 'whatsapp' } = params;
+        if (!theme) {
+          throw new Error('Campaign theme is required.');
+        }
+
+        const propRow: any = await env.DB.prepare(
+          `SELECT id, name FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+        const propertyName = propRow?.name || 'Hotel';
+        const campaignId = `camp_${crypto.randomUUID().slice(0, 8)}`;
+        const utmCode = `hf_${theme.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString().slice(-4)}`;
+
+        const draftContent = `Celebrate ${theme} at ${propertyName}! Enjoy luxurious stays, pure hospitality, and exclusive direct-booking savings. Book directly with zero platform fee: https://hotelflexi.com/book/${propRow?.id}?utm_campaign=${utmCode}`;
+
+        await env.DB.prepare(
+          `INSERT INTO marketing_campaigns (id, tenant_id, property_id, title, channel, content, utm_campaign, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)`
+        )
+          .bind(campaignId, tenantId, propertyId, `${theme} Offer`, channel, draftContent, utmCode, now, now)
+          .run();
+
+        success = true;
+        result = { campaignId, title: `${theme} Offer`, channel, utmCode, draftContent };
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Marketing campaign draft "${theme} Offer" create ho gaya hai (${channel}). UTM code: ${utmCode}.`
+          : `Marketing campaign draft "${theme} Offer" created for ${channel}. Tracked with UTM: ${utmCode}.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 30. PREPARE RATE RECOMMENDATION
+      // -----------------------------------------------------------------------
+      case 'prepare_rate_recommendation': {
+        const targetDate = params.targetDate || new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        const propertyId = propRow?.id;
+        const [totRow, bookedRow]: any = await Promise.all([
+          env.DB.prepare(`SELECT COUNT(*) as count FROM rooms WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''} AND is_active = 1`)
+            .bind(...(propertyId ? [tenantId, propertyId] : [tenantId])).first().catch(() => ({ count: 10 })),
+
+          env.DB.prepare(
+            `SELECT COUNT(*) as count FROM reservations
+             WHERE tenant_id = ? ${propertyId ? 'AND property_id = ?' : ''}
+               AND status IN ('confirmed', 'checked_in')
+               AND check_in_date <= ? AND check_out_date > ?`
+          ).bind(...(propertyId ? [tenantId, propertyId, targetDate, targetDate] : [tenantId, targetDate, targetDate])).first().catch(() => ({ count: 0 })),
+        ]);
+
+        const totalRooms = Number(totRow?.count || 10);
+        const bookedRooms = Number(bookedRow?.count || 0);
+        const occupancy = Math.round((bookedRooms / totalRooms) * 100);
+
+        let recommendation = '';
+        let adjustmentPct = 0;
+
+        if (occupancy >= 80) {
+          recommendation = `High demand detected (${occupancy}% booked). Recommend increasing base tariff by +15% to maximize RevPAR.`;
+          adjustmentPct = 15;
+        } else if (occupancy <= 30) {
+          recommendation = `Low booking pace (${occupancy}% booked). Recommend a temporary -10% early-bird promotion on direct booking engine to stimulate occupancy.`;
+          adjustmentPct = -10;
+        } else {
+          recommendation = `Balanced booking pace (${occupancy}% booked). Current rate plan is performing optimally.`;
+          adjustmentPct = 0;
+        }
+
+        success = true;
+        result = { targetDate, totalRooms, bookedRooms, occupancyPercent: occupancy, adjustmentPct, recommendation };
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Rate Recommendation for ${targetDate}: ${occupancy}% occupancy. ${recommendation}`
+          : `Rate Recommendation for ${targetDate}: ${occupancy}% occupancy. ${recommendation}`;
         break;
       }
 

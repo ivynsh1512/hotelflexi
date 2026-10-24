@@ -108,7 +108,7 @@ export function BookDemoModal({ isOpen, onClose }: BookDemoModalProps) {
               <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-content-secondary-light">
                 <li>Live OTA 2-Way Sync walkthrough (MMT, Agoda, Booking.com)</li>
                 <li>Instant FlexiLink Contactless Check-In on your smartphone</li>
-                <li>7-Minute Urgent Housekeeping Siren Alert test</li>
+                <li>Housekeeping turnover &amp; room inspection workflow</li>
                 <li>Zero-commission direct booking engine setup preview</li>
               </ul>
             </div>

@@ -45,6 +45,7 @@ import {
   MailCheck,
   Package,
   Compass,
+  Star,
 } from 'lucide-react';
 import { isRouteAllowedForRole } from '@/lib/permissions';
 
@@ -205,6 +206,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { label: 'Reservations', href: '/app/reservations', icon: BookOpen },
         { label: 'New Booking', href: '/app/reservations/new', icon: PlusCircle },
         { label: 'Guest Ledger', href: '/app/guests', icon: Users },
+        { label: 'Guest Reviews', href: '/app/reviews', icon: Star },
       ],
     },
     {
@@ -232,6 +234,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       items: [
         { label: 'Housekeeping', href: '/app/housekeeping', icon: ClipboardList },
         { label: 'Linen & Laundry', href: '/app/laundry', icon: Package },
+        { label: 'Food & Pantry (Rasan)', href: '/app/food', icon: UtensilsCrossed },
         { label: 'Maintenance', href: '/app/maintenance', icon: Wrench },
         { label: 'Complaints', href: '/app/complaints', icon: AlertTriangle },
       ],
@@ -243,6 +246,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { label: 'Payments', href: '/app/payments', icon: CreditCard },
         { label: 'Expenses', href: '/app/expenses', icon: PieChart },
         { label: 'Accounting P&L', href: '/app/accounting', icon: FileText },
+        { label: 'TallyPrime Sync', href: '/app/tally', icon: FileText, badge: 'Tally' },
         { label: 'Reports', href: '/app/reports', icon: BarChart3 },
       ],
     },
