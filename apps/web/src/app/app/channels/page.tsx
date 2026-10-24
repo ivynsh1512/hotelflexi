@@ -285,6 +285,20 @@ export default function ChannelManagerAppPage() {
     }
   }, [currentTenant, loadInitialData]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (diagModalOpen) setDiagModalOpen(false);
+        if (connectModalOpen) setConnectModalOpen(false);
+        if (roomMapModalOpen) setRoomMapModalOpen(false);
+        if (rateMapModalOpen) setRateMapModalOpen(false);
+        if (bulkModalOpen) setBulkModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [diagModalOpen, connectModalOpen, roomMapModalOpen, rateMapModalOpen, bulkModalOpen]);
+
   // ---------------------------------------------------------------------------
   // 2. Mappings Load
   // ---------------------------------------------------------------------------
@@ -2063,15 +2077,24 @@ export default function ChannelManagerAppPage() {
       {/* MODAL 1: TEST DIAGNOSTICS MODAL (WITH TOP-RIGHT ✕ CLOSE BUTTON) */}
       {/* ================================================================= */}
       {diagModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-lg w-full p-6 space-y-4">
+        <div
+          onClick={() => setDiagModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="diag-modal-title"
+            className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-lg w-full p-6 space-y-4"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 text-brand-blue flex items-center justify-center font-bold">
                   <Zap className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900">
+                  <h3 id="diag-modal-title" className="font-extrabold text-base text-slate-900">
                     Integration Diagnostics: {diagTargetConn?.provider_name}
                   </h3>
                   <span className="text-xs text-slate-500 font-mono">
@@ -2082,6 +2105,7 @@ export default function ChannelManagerAppPage() {
               <button
                 type="button"
                 onClick={() => setDiagModalOpen(false)}
+                aria-label="Close dialog"
                 className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-900 transition"
               >
                 <X className="w-4 h-4" />
@@ -2155,13 +2179,22 @@ export default function ChannelManagerAppPage() {
       {/* MODAL 2: CONNECT CHANNEL MODAL (WITH TOP-RIGHT ✕ CLOSE BUTTON) */}
       {/* ================================================================= */}
       {connectModalOpen && targetProvider && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-lg w-full p-6 space-y-5">
+        <div
+          onClick={() => setConnectModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="connect-modal-title"
+            className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-lg w-full p-6 space-y-5"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
               <div className="flex items-center gap-3">
                 {React.createElement(LOGO_MAP[targetProvider.code] || BookingComLogo, { className: 'w-10 h-10' })}
                 <div>
-                  <h3 className="font-extrabold text-base text-content-primary-light">
+                  <h3 id="connect-modal-title" className="font-extrabold text-base text-content-primary-light">
                     Connect {targetProvider.display_name}
                   </h3>
                   <span className="text-xs text-content-secondary-light capitalize">
@@ -2172,6 +2205,7 @@ export default function ChannelManagerAppPage() {
               <button
                 type="button"
                 onClick={() => setConnectModalOpen(false)}
+                aria-label="Close dialog"
                 className="w-8 h-8 rounded-full bg-surface-light flex items-center justify-center text-content-secondary-light hover:text-content-primary-light transition"
               >
                 <X className="w-4 h-4" />
@@ -2284,16 +2318,26 @@ export default function ChannelManagerAppPage() {
       {/* MODAL 3: ADD ROOM MAPPING MODAL (WITH TOP-RIGHT ✕ CLOSE BUTTON) */}
       {/* ================================================================= */}
       {roomMapModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4">
+        <div
+          onClick={() => setRoomMapModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="room-map-modal-title"
+            className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
               <div className="flex items-center gap-2">
                 <DoorOpen className="w-5 h-5 text-brand-blue" />
-                <h3 className="font-extrabold text-base text-slate-900">Map Local Room Category</h3>
+                <h3 id="room-map-modal-title" className="font-extrabold text-base text-slate-900">Map Local Room Category</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setRoomMapModalOpen(false)}
+                aria-label="Close dialog"
                 className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-900 transition"
               >
                 <X className="w-4 h-4" />
@@ -2370,16 +2414,26 @@ export default function ChannelManagerAppPage() {
       {/* MODAL 3.5: ADD RATE PLAN MAPPING MODAL (WITH TOP-RIGHT ✕) */}
       {/* ================================================================= */}
       {rateMapModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4">
+        <div
+          onClick={() => setRateMapModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rate-map-modal-title"
+            className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
               <div className="flex items-center gap-2">
                 <Sliders className="w-5 h-5 text-brand-blue" />
-                <h3 className="font-extrabold text-base text-slate-900">Add Rate Plan Mapping</h3>
+                <h3 id="rate-map-modal-title" className="font-extrabold text-base text-slate-900">Add Rate Plan Mapping</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setRateMapModalOpen(false)}
+                aria-label="Close dialog"
                 className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-900 transition"
               >
                 <X className="w-4 h-4" />
@@ -2501,15 +2555,24 @@ export default function ChannelManagerAppPage() {
       {/* MODAL 4: BULK RATE & RESTRICTIONS EDITOR (WITH TOP-RIGHT ✕) */}
       {/* ================================================================= */}
       {bulkModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-xl w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div
+          onClick={() => setBulkModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bulk-rate-modal-title"
+            className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-xl w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 text-brand-blue flex items-center justify-center font-bold">
                   <Sliders className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-content-primary-light">
+                  <h3 id="bulk-rate-modal-title" className="font-extrabold text-base text-content-primary-light">
                     Bulk Rate &amp; Restriction Editor
                   </h3>
                   <p className="text-[11px] text-content-secondary-light">
@@ -2520,6 +2583,7 @@ export default function ChannelManagerAppPage() {
               <button
                 type="button"
                 onClick={() => setBulkModalOpen(false)}
+                aria-label="Close dialog"
                 className="w-8 h-8 rounded-full bg-surface-light flex items-center justify-center text-content-secondary-light hover:text-content-primary-light transition"
               >
                 <X className="w-4 h-4" />

@@ -46,6 +46,16 @@ export default function ComplaintsPage() {
     if (currentTenant) fetchComplaints();
   }, [currentTenant]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && modalOpen) {
+        setModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalOpen]);
+
   const handleAcknowledge = async (id: string) => {
     try {
       await apiClient(`/operations/complaints/${id}/acknowledge`, { method: 'PATCH' });
@@ -233,15 +243,18 @@ export default function ComplaintsPage() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="complaint-modal-title"
             className="relative bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light"
           >
             <div className="flex items-center justify-between pb-3 border-b border-border-light mb-4">
-              <h3 className="text-sm font-bold text-content-primary-light">Log Guest Complaint</h3>
+              <h3 id="complaint-modal-title" className="text-sm font-bold text-content-primary-light">Log Guest Complaint</h3>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
                 className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                aria-label="Close"
+                aria-label="Close dialog"
               >
                 <X className="w-4 h-4" />
               </button>

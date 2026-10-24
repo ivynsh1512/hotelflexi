@@ -77,6 +77,17 @@ export default function LaundryPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (sendModalOpen) setSendModalOpen(false);
+        if (receiveModalOpen) setReceiveModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sendModalOpen, receiveModalOpen]);
+
   const saveEdit = async (item: LinenItem) => {
     try {
       await apiClient(`/laundry/inventory/${item.id}`, {
@@ -325,9 +336,28 @@ export default function LaundryPage() {
 
       {/* Send to Laundry Modal */}
       {sendModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-base font-extrabold text-content-primary-light">📤 Send to Laundry</h2>
+        <div
+          onClick={() => setSendModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="send-laundry-title"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-border-light">
+              <h2 id="send-laundry-title" className="text-base font-extrabold text-content-primary-light">📤 Send to Laundry</h2>
+              <button
+                type="button"
+                onClick={() => setSendModalOpen(false)}
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div>
               <label className="text-[10px] font-bold text-content-secondary-light uppercase tracking-wide">Vendor Name (optional)</label>
               <input value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="e.g. City Laundry Services"
@@ -367,9 +397,28 @@ export default function LaundryPage() {
 
       {/* Receive from Laundry Modal */}
       {receiveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-base font-extrabold text-content-primary-light">📥 Receive Clean Linen</h2>
+        <div
+          onClick={() => setReceiveModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="receive-laundry-title"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-border-light">
+              <h2 id="receive-laundry-title" className="text-base font-extrabold text-content-primary-light">📥 Receive Clean Linen</h2>
+              <button
+                type="button"
+                onClick={() => setReceiveModalOpen(false)}
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div>
               <label className="text-[10px] font-bold text-content-secondary-light uppercase tracking-wide">Vendor Name (optional)</label>
               <input value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="e.g. City Laundry Services"

@@ -2,10 +2,16 @@ import { Hono } from 'hono';
 import { Env, AppVariables } from '../types';
 import { authMiddleware, tenantMiddleware } from '../auth/middleware';
 import { executeAiTool, ToolExecutionContext, GROQ_TOOL_DEFINITIONS } from '../services/aiTools';
-import { isGroqConfigured, callGroqChat, GroqMessage } from '../services/groqClient';
+import { isGroqConfigured, callGroqChat, GroqMessage, runGroqDiagnostic } from '../services/groqClient';
 import { buildPropertyLiveContext, buildGroqSystemPrompt } from '../services/aiContext';
 
 export const aiAgentRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
+
+// Diagnostic endpoint can be accessed to verify AI model connection status
+aiAgentRoutes.get('/diagnostic', async (c) => {
+  const diagnostic = await runGroqDiagnostic(c.env);
+  return c.json(diagnostic);
+});
 
 aiAgentRoutes.use('*', authMiddleware, tenantMiddleware);
 

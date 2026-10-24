@@ -158,6 +158,18 @@ export default function ExpensesPage() {
     }
   }, [currentTenant]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (expenseModalOpen) setExpenseModalOpen(false);
+        if (staffModalOpen) setStaffModalOpen(false);
+        if (payoutModalOpen) setPayoutModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [expenseModalOpen, staffModalOpen, payoutModalOpen]);
+
   // Create Expense Handler
   const handleCreateExpense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -700,17 +712,21 @@ export default function ExpensesPage() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="expense-modal-title"
             className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light space-y-4 text-xs"
           >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
-              <h3 className="text-sm font-bold text-content-primary-light flex items-center gap-2">
+              <h3 id="expense-modal-title" className="text-sm font-bold text-content-primary-light flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-brand-blue" />
                 Record Hotel Expense
               </h3>
               <button
                 type="button"
                 onClick={() => setExpenseModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -852,17 +868,21 @@ export default function ExpensesPage() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="staff-modal-title"
             className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light space-y-4 text-xs"
           >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
-              <h3 className="text-sm font-bold text-content-primary-light flex items-center gap-2">
+              <h3 id="staff-modal-title" className="text-sm font-bold text-content-primary-light flex items-center gap-2">
                 <Users className="w-4 h-4 text-brand-blue" />
                 Add Staff Member
               </h3>
               <button
                 type="button"
                 onClick={() => setStaffModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -977,17 +997,21 @@ export default function ExpensesPage() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="payout-modal-title"
             className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light space-y-4 text-xs"
           >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
-              <h3 className="text-sm font-bold text-content-primary-light flex items-center gap-2">
+              <h3 id="payout-modal-title" className="text-sm font-bold text-content-primary-light flex items-center gap-2">
                 <Wallet className="w-4 h-4 text-brand-blue" />
                 Salary Payout Voucher: {selectedStaff.staff_name}
               </h3>
               <button
                 type="button"
                 onClick={() => setPayoutModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
               >
                 <X className="w-4 h-4" />
               </button>

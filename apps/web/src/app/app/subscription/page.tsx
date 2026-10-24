@@ -67,6 +67,16 @@ export default function SubscriptionPage() {
     }
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && assignedDevModal) {
+        setAssignedDevModal(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [assignedDevModal]);
+
   const handleUpgrade = async (planId: string) => {
     try {
       setUpgradingPlanId(planId);
@@ -738,13 +748,16 @@ export default function SubscriptionPage() {
             >
               <div
                 onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="assigned-dev-title"
                 className="relative bg-white rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-200"
               >
                 <button
                   type="button"
                   onClick={() => setAssignedDevModal(null)}
                   className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                  aria-label="Close"
+                  aria-label="Close dialog"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -754,7 +767,7 @@ export default function SubscriptionPage() {
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Payment Verified!</span>
-                    <h3 className="text-base font-extrabold text-slate-900">Your Developer is Assigned</h3>
+                    <h3 id="assigned-dev-title" className="text-base font-extrabold text-slate-900">Your Developer is Assigned</h3>
                   </div>
                 </div>
 

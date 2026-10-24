@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Baby,
   Trash2,
+  X,
 } from 'lucide-react';
 
 export default function GuestsDirectoryPage() {
@@ -39,6 +40,16 @@ export default function GuestsDirectoryPage() {
     }
     loadGuests();
   }, [currentTenant]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && previewIdUrl) {
+        setPreviewIdUrl(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewIdUrl]);
 
   const filtered = reservations.filter((r) => {
     const text = (
@@ -194,18 +205,29 @@ export default function GuestsDirectoryPage() {
 
       {/* ID Document Preview Modal */}
       {previewIdUrl && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-lg w-full bg-white rounded-2xl border border-border-light p-4 space-y-3 shadow-2xl">
+        <div
+          onClick={() => setPreviewIdUrl(null)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="guest-id-preview-title"
+            className="max-w-lg w-full bg-white rounded-2xl border border-border-light p-4 space-y-3 shadow-2xl"
+          >
             <div className="flex justify-between items-center pb-2 border-b border-border-light">
-              <span className="font-bold text-xs text-content-primary-light flex items-center gap-1.5">
+              <span id="guest-id-preview-title" className="font-bold text-xs text-content-primary-light flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
                 Verified Guest Identity Document
               </span>
               <button
+                type="button"
                 onClick={() => setPreviewIdUrl(null)}
-                className="text-xs text-content-secondary-light hover:text-content-primary-light font-bold"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

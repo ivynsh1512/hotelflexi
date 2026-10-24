@@ -16,6 +16,7 @@ import {
   BedDouble,
   Users,
   Upload,
+  X,
 } from 'lucide-react';
 
 const COMMON_ROOM_AMENITIES = [
@@ -147,6 +148,16 @@ export default function RoomTypesPage() {
   useEffect(() => {
     if (currentTenant) fetchRoomTypes();
   }, [currentTenant]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && modalOpen) {
+        setModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalOpen]);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -495,17 +506,28 @@ export default function RoomTypesPage() {
 
       {/* Create / Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-border-light max-h-[92vh] overflow-y-auto">
+        <div
+          onClick={() => setModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="room-cat-modal-title"
+            className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-border-light max-h-[92vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light mb-4">
-              <h3 className="text-base font-bold text-content-primary-light">
+              <h3 id="room-cat-modal-title" className="text-base font-bold text-content-primary-light">
                 {editingId ? 'Edit Room Category' : 'Create Room Category'}
               </h3>
               <button
+                type="button"
                 onClick={() => setModalOpen(false)}
-                className="text-xs font-semibold text-content-secondary-light hover:text-content-primary-light"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

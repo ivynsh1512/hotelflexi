@@ -16,6 +16,7 @@ import {
   Hash,
   Pencil,
   Trash2,
+  X,
 } from 'lucide-react';
 
 export default function RoomsManagementPage() {
@@ -110,6 +111,20 @@ export default function RoomsManagementPage() {
   useEffect(() => {
     if (currentTenant) fetchData();
   }, [currentTenant]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (addModalOpen) setAddModalOpen(false);
+        if (editModalOpen) {
+          setEditModalOpen(false);
+          setEditingRoom(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [addModalOpen, editModalOpen]);
 
   const handleUnblockRoom = async (room: any) => {
     if (!room.block_id && !room.is_blocked) {
@@ -499,20 +514,31 @@ export default function RoomsManagementPage() {
 
       {/* Add Room Modal (Single & Bulk Range Generator) */}
       {addModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light max-h-[92vh] overflow-y-auto">
+        <div
+          onClick={() => setAddModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-room-modal-title"
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light max-h-[92vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light mb-4">
               <div>
-                <h3 className="text-base font-bold text-content-primary-light">Add Room Units</h3>
+                <h3 id="add-room-modal-title" className="text-base font-bold text-content-primary-light">Add Room Units</h3>
                 <p className="text-[11px] text-content-secondary-light">
                   Add a single room or batch generate a room number range
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setAddModalOpen(false)}
-                className="text-xs font-semibold text-content-secondary-light hover:text-content-primary-light"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -725,11 +751,23 @@ export default function RoomsManagementPage() {
 
       {/* Edit Room Modal */}
       {editModalOpen && editingRoom && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light max-h-[92vh] overflow-y-auto">
+        <div
+          onClick={() => {
+            setEditModalOpen(false);
+            setEditingRoom(null);
+          }}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-room-modal-title"
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light max-h-[92vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light mb-4">
               <div>
-                <h3 className="text-base font-bold text-content-primary-light">
+                <h3 id="edit-room-modal-title" className="text-base font-bold text-content-primary-light">
                   Edit Room {editingRoom.room_number}
                 </h3>
                 <p className="text-[11px] text-content-secondary-light">
@@ -737,13 +775,15 @@ export default function RoomsManagementPage() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => {
                   setEditModalOpen(false);
                   setEditingRoom(null);
                 }}
-                className="text-xs font-semibold text-content-secondary-light hover:text-content-primary-light"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

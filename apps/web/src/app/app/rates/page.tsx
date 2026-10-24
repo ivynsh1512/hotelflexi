@@ -72,6 +72,16 @@ export default function RatesManagementPage() {
     init();
   }, [currentTenant]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && modalOpen) {
+        setModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalOpen]);
+
   const handleOpenCreate = () => {
     setModalMode('create');
     setEditingId(null);
@@ -285,18 +295,29 @@ export default function RatesManagementPage() {
 
       {/* Edit / Create Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light space-y-4">
+        <div
+          onClick={() => setModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="meal-plan-modal-title"
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light space-y-4"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
-              <h3 className="text-sm font-bold text-content-primary-light flex items-center gap-2">
+              <h3 id="meal-plan-modal-title" className="text-sm font-bold text-content-primary-light flex items-center gap-2">
                 <UtensilsCrossed className="w-4 h-4 text-brand-blue" />
                 {modalMode === 'create' ? 'Create Meal Plan & Policy' : 'Edit Meal Plan & Policy'}
               </h3>
               <button
+                type="button"
                 onClick={() => setModalOpen(false)}
-                className="text-xs text-content-secondary-light hover:text-content-primary-light"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

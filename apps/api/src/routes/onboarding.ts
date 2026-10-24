@@ -241,3 +241,125 @@ onboardingRoutes.post('/', authMiddleware, async (c) => {
     },
   });
 });
+
+// -----------------------------------------------------------------------------
+// DYNAMIC ONBOARDING CHECKLIST (Authoritative status from real DB records)
+// -----------------------------------------------------------------------------
+onboardingRoutes.get('/checklist', authMiddleware, async (c) => {
+  const propertyId = c.req.query('property_id');
+  const user = c.get('user')!;
+
+  if (!propertyId) {
+    return c.json({ error: 'property_id is required' }, 400);
+  }
+
+  // 1. Fetch Property details
+  const prop: any = await c.env.DB.prepare(
+    `SELECT p.*, ps.gst_number, ps.razorpay_enabled, ps.razorpay_key_id
+     FROM properties p
+     LEFT JOIN property_settings ps ON ps.property_id = p.id
+     WHERE p.id = ?`
+  )
+    .bind(propertyId)
+    .first();
+
+  if (!prop) {
+    return c.json({ error: 'Property not found' }, 404);
+  }
+
+  // 2. Authoritative counts of rooms, categories, rate plans, taxes
+  const [typesRow, roomsRow, ratesRow, taxesRow]: any = await Promise.all([
+    c.env.DB.prepare(`SELECT COUNT(*) as cnt FROM room_types WHERE property_id = ? AND is_active = 1`).bind(propertyId).first(),
+    c.env.DB.prepare(`SELECT COUNT(*) as cnt FROM rooms WHERE property_id = ? AND is_active = 1`).bind(propertyId).first(),
+    c.env.DB.prepare(`SELECT COUNT(*) as cnt FROM rate_plans WHERE property_id = ? AND is_active = 1`).bind(propertyId).first(),
+    c.env.DB.prepare(`SELECT COUNT(*) as cnt FROM property_tax_rules WHERE property_id = ? AND is_active = 1`).bind(propertyId).first(),
+  ]);
+
+  const categoriesCount = typesRow?.cnt || 0;
+  const roomsCount = roomsRow?.cnt || 0;
+  const ratesCount = ratesRow?.cnt || 0;
+  const customTaxesCount = taxesRow?.cnt || 0;
+
+  // Real authoritative validation rules
+  const isProfileComplete = Boolean(prop.name && prop.phone && (prop.address_line1 || prop.city));
+  const hasCategories = categoriesCount > 0;
+  const hasRooms = roomsCount > 0;
+  const hasRates = ratesCount > 0;
+  const hasTaxes = Boolean(prop.gst_number || customTaxesCount > 0);
+  const hasRazorpay = Boolean(prop.razorpay_enabled === 1 && prop.razorpay_key_id && prop.razorpay_key_id.length > 5);
+
+  const checklistItems = [
+    {
+      id: 'property_profile',
+      title: 'Complete Property Profile',
+      description: 'Add your property phone, full address, and check-in / check-out times.',
+      isCompleted: isProfileComplete,
+      actionUrl: '/app/settings',
+      actionLabel: 'Edit Details',
+      category: 'basic',
+    },
+    {
+      id: 'room_categories',
+      title: 'Create Room Categories',
+      description: 'Define your room types such as Deluxe Room, Cottage, or Suite with occupancy & base rates.',
+      isCompleted: hasCategories,
+      actionUrl: '/app/room-types',
+      actionLabel: 'Add Categories',
+      category: 'inventory',
+    },
+    {
+      id: 'physical_rooms',
+      title: 'Add Physical Room Inventory',
+      description: 'Map your individual room numbers (e.g. 101, 102) to room categories.',
+      isCompleted: hasRooms,
+      actionUrl: '/app/rooms',
+      actionLabel: 'Add Room Numbers',
+      category: 'inventory',
+    },
+    {
+      id: 'rate_plans',
+      title: 'Configure Rate Plans & Meals',
+      description: 'Set up room-only (EP), breakfast included (CP), or package rate plans.',
+      isCompleted: hasRates,
+      actionUrl: '/app/rates',
+      actionLabel: 'Configure Rates',
+      category: 'pricing',
+    },
+    {
+      id: 'tax_configuration',
+      title: 'Configure Indian GST & Taxes',
+      description: 'Add your GSTIN for 12%/18% tax invoices or configure custom resort fees.',
+      isCompleted: hasTaxes,
+      actionUrl: '/app/taxes',
+      actionLabel: 'Set Up Taxes',
+      category: 'compliance',
+    },
+    {
+      id: 'razorpay_payments',
+      title: 'Set up Razorpay payments',
+      description: 'Continue to the Razorpay link provided for your payment setup.',
+      isCompleted: hasRazorpay,
+      actionUrl: 'https://rzp.io/rzp/fKRf0v8',
+      actionLabel: 'Continue to Razorpay',
+      isExternal: true,
+      secondaryActionUrl: '/app/settings',
+      secondaryActionLabel: 'Enter API Credentials',
+      category: 'payments',
+    },
+  ];
+
+  const completedCount = checklistItems.filter((it) => it.isCompleted).length;
+  const totalCount = checklistItems.length;
+  const completionPercentage = Math.round((completedCount / totalCount) * 100);
+
+  return c.json({
+    propertyId,
+    propertyName: prop.name,
+    items: checklistItems,
+    pendingItems: checklistItems.filter((it) => !it.isCompleted),
+    completedCount,
+    totalCount,
+    completionPercentage,
+    isFullyOnboarded: completedCount === totalCount,
+  });
+});

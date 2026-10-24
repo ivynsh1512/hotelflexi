@@ -7,6 +7,7 @@ import { sendEmailVerification } from 'firebase/auth';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/lib/api';
 import { StaffSirenAlert } from '@/components/ui/StaffSirenAlert';
+import { OnboardingChecklist } from '@/components/OnboardingChecklist';
 import {
   Hotel,
   LayoutDashboard,
@@ -202,6 +203,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       items: [
         { label: 'Overview', href: '/app', icon: LayoutDashboard },
         { label: 'AI Business Agent', href: '/app/ai-agent', icon: Sparkles, badge: 'Live AI' },
+        { label: 'AI Property Setup', href: '/app/ai-agent/setup', icon: Sparkles, badge: 'Auto' },
         { label: 'Calendar Grid', href: '/app/calendar', icon: Calendar },
         { label: 'Reservations', href: '/app/reservations', icon: BookOpen },
         { label: 'New Booking', href: '/app/reservations/new', icon: PlusCircle },
@@ -247,6 +249,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { label: 'Expenses', href: '/app/expenses', icon: PieChart },
         { label: 'Accounting P&L', href: '/app/accounting', icon: FileText },
         { label: 'TallyPrime Sync', href: '/app/tally', icon: FileText, badge: 'Tally' },
+        { label: 'Taxes & GST', href: '/app/taxes', icon: Percent },
         { label: 'Reports', href: '/app/reports', icon: BarChart3 },
       ],
     },
@@ -499,6 +502,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* Dynamic Authoritative Onboarding Checklist */}
+            <OnboardingChecklist variant="compact" />
+
             {/* Quick Support / Raise Complaint Link */}
             <Link
               href="/app/support"

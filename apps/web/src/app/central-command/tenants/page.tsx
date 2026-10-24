@@ -96,6 +96,22 @@ export default function AdminTenantsPage() {
     fetchTenants();
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setApproveDeletionTenant(null);
+        setRejectDeletionTenant(null);
+        setEditModalTenant(null);
+        setPlanModalTenant(null);
+        setStatusModalTenant(null);
+        setClearDataModalTenant(null);
+        setDeleteModalTenant(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const openPlanModal = (tenant: any) => {
     setPlanModalTenant(tenant);
     setSelectedPlanId(tenant.current_plan_id || 'essential');
@@ -585,15 +601,24 @@ export default function AdminTenantsPage() {
 
       {/* APPROVE DELETION & PURGE MODAL */}
       {approveDeletionTenant && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white border border-red-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-red-100">
+        <div
+          onClick={() => setApproveDeletionTenant(null)}
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="approve-deletion-title"
+            className="bg-white border border-red-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between pb-3 border-red-100 border-b">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
                   <AlertTriangle className="w-4 h-4 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">
+                  <h3 id="approve-deletion-title" className="text-sm font-black text-slate-900">
                     Approve Account Purge: {approveDeletionTenant.name}
                   </h3>
                   <p className="text-[11px] text-red-600 font-semibold">
@@ -602,8 +627,10 @@ export default function AdminTenantsPage() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setApproveDeletionTenant(null)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close dialog"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -655,15 +682,26 @@ export default function AdminTenantsPage() {
 
       {/* REJECT DELETION MODAL */}
       {rejectDeletionTenant && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div
+          onClick={() => setRejectDeletionTenant(null)}
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reject-deletion-title"
+            className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-black text-slate-900">
+              <h3 id="reject-deletion-title" className="text-sm font-black text-slate-900">
                 Reject Deletion Request: {rejectDeletionTenant.name}
               </h3>
               <button
+                type="button"
                 onClick={() => setRejectDeletionTenant(null)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close dialog"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -706,11 +744,20 @@ export default function AdminTenantsPage() {
 
       {/* EDIT PROPERTY & HOTEL DETAILS MODAL */}
       {editModalTenant && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl text-slate-900 max-h-[90vh] overflow-y-auto">
+        <div
+          onClick={() => setEditModalTenant(null)}
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-hotel-details-title"
+            className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl text-slate-900 max-h-[90vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <h3 id="edit-hotel-details-title" className="text-base font-black text-slate-900 flex items-center gap-2">
                   <Hotel className="w-5 h-5 text-brand-blue" />
                   Edit Hotel &amp; Property Details: {editModalTenant.name}
                 </h3>
@@ -719,8 +766,10 @@ export default function AdminTenantsPage() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setEditModalTenant(null)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close dialog"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -864,11 +913,20 @@ export default function AdminTenantsPage() {
 
       {/* PLAN UPGRADE MODAL */}
       {planModalTenant && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl text-slate-900">
+        <div
+          onClick={() => setPlanModalTenant(null)}
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="plan-modal-title"
+            className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl text-slate-900"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <h3 id="plan-modal-title" className="text-base font-black text-slate-900 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-brand-blue" />
                   Upgrade Plan for {planModalTenant.name}
                 </h3>
@@ -877,8 +935,10 @@ export default function AdminTenantsPage() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setPlanModalTenant(null)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close dialog"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -956,11 +1016,20 @@ export default function AdminTenantsPage() {
 
       {/* LOCK / STATUS / PAYMENT BLOCK MODAL */}
       {statusModalTenant && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl text-slate-900">
+        <div
+          onClick={() => setStatusModalTenant(null)}
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="access-control-title"
+            className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl text-slate-900"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <h3 id="access-control-title" className="text-base font-black text-slate-900 flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4 text-amber-600" />
                   Account Access Control: {statusModalTenant.name}
                 </h3>
@@ -969,8 +1038,10 @@ export default function AdminTenantsPage() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setStatusModalTenant(null)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close dialog"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1059,15 +1130,24 @@ export default function AdminTenantsPage() {
 
       {/* CLEAR ALL TEST DATA MODAL */}
       {clearDataModalTenant && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900">
+        <div
+          onClick={() => setClearDataModalTenant(null)}
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="clear-test-data-title"
+            className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
                   <RotateCcw className="w-4 h-4 text-amber-700" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">
+                  <h3 id="clear-test-data-title" className="text-sm font-black text-slate-900">
                     Clear All Test Data: {clearDataModalTenant.name}
                   </h3>
                   <p className="text-[11px] text-slate-500">
@@ -1076,8 +1156,10 @@ export default function AdminTenantsPage() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setClearDataModalTenant(null)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close dialog"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1134,15 +1216,24 @@ export default function AdminTenantsPage() {
 
       {/* DELETE TENANT MODAL */}
       {deleteModalTenant && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white border border-red-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900">
+        <div
+          onClick={() => setDeleteModalTenant(null)}
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-hotel-title"
+            className="bg-white border border-red-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-red-100">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
                   <Trash2 className="w-4 h-4 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">
+                  <h3 id="delete-hotel-title" className="text-sm font-black text-slate-900">
                     Permanently Delete Hotel: {deleteModalTenant.name}
                   </h3>
                   <p className="text-[11px] text-red-600 font-semibold">
@@ -1151,8 +1242,10 @@ export default function AdminTenantsPage() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setDeleteModalTenant(null)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close dialog"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>

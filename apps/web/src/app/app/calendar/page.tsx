@@ -94,6 +94,17 @@ export default function CalendarPage() {
     init();
   }, [currentTenant]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (blockModalOpen) setBlockModalOpen(false);
+        if (bulkRateModalOpen) setBulkRateModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [blockModalOpen, bulkRateModalOpen]);
+
   // Generate array of day dates
   const dateList: string[] = [];
   const startObj = new Date(startDate);
@@ -459,18 +470,29 @@ export default function CalendarPage() {
 
       {/* Block Room Modal */}
       {blockModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light">
+        <div
+          onClick={() => setBlockModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="block-room-modal-title"
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light mb-4">
-              <h3 className="text-base font-bold text-content-primary-light flex items-center gap-2">
+              <h3 id="block-room-modal-title" className="text-base font-bold text-content-primary-light flex items-center gap-2">
                 <Lock className="w-4 h-4 text-amber-600" />
                 Block Room for Maintenance / Owner
               </h3>
               <button
+                type="button"
                 onClick={() => setBlockModalOpen(false)}
-                className="text-xs text-content-secondary-light hover:text-content-primary-light"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -651,18 +673,29 @@ export default function CalendarPage() {
 
       {/* Bulk Rate Update Modal */}
       {bulkRateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light">
+        <div
+          onClick={() => setBulkRateModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bulk-rate-modal-title"
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border-light"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light mb-4">
-              <h3 className="text-base font-bold text-content-primary-light flex items-center gap-2">
+              <h3 id="bulk-rate-modal-title" className="text-base font-bold text-content-primary-light flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-600" />
                 Bulk Rate & Price Matrix Update
               </h3>
               <button
+                type="button"
                 onClick={() => setBulkRateModalOpen(false)}
-                className="text-xs text-content-secondary-light hover:text-content-primary-light"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

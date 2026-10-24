@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, Phone, Mail, Building, Users, CheckCircle2, Loader2, Sparkles, Clock, ArrowRight } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { useAccessibleModal } from '@/lib/useAccessibleModal';
 
 interface BookDemoModalProps {
   isOpen: boolean;
@@ -21,6 +22,11 @@ export function BookDemoModal({ isOpen, onClose }: BookDemoModalProps) {
   const [propertyType, setPropertyType] = useState('Boutique Hotel');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  const { handleBackdropClick } = useAccessibleModal({
+    isOpen,
+    onClose,
+  });
 
   if (!isOpen) return null;
 
@@ -60,7 +66,13 @@ export function BookDemoModal({ isOpen, onClose }: BookDemoModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200">
+    <div
+      onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="book-demo-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200"
+    >
       <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-5 text-content-primary-light relative overflow-hidden">
         {/* Decorative Top Gradient */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
@@ -71,7 +83,7 @@ export function BookDemoModal({ isOpen, onClose }: BookDemoModalProps) {
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-base sm:text-lg text-content-primary-light tracking-tight">
+              <h3 id="book-demo-title" className="font-extrabold text-base sm:text-lg text-content-primary-light tracking-tight">
                 Book a Live 1-on-1 Demo
               </h3>
               <p className="text-xs text-content-secondary-light">
@@ -80,7 +92,9 @@ export function BookDemoModal({ isOpen, onClose }: BookDemoModalProps) {
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close dialog"
             className="p-1.5 rounded-lg text-content-secondary-light hover:text-content-primary-light hover:bg-surface-light transition"
           >
             <X className="w-5 h-5" />

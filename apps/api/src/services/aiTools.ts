@@ -206,6 +206,169 @@ export const GROQ_TOOL_DEFINITIONS: GroqToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_property_setup_status',
+      description: 'Get authoritative onboarding and configuration status for the property.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_room_categories',
+      description: 'List all existing room categories and types with pricing and occupancy.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_room_types',
+      description: 'List all existing room types with assigned room numbers count.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'prepare_room_category',
+      description: 'Create or configure a room category/type.',
+      parameters: {
+        type: 'object',
+        required: ['name', 'basePriceRupees'],
+        properties: {
+          name: { type: 'string', description: 'Room category name, e.g. Deluxe Room' },
+          code: { type: 'string', description: '3-4 letter uppercase code, e.g. DLX' },
+          baseOccupancy: { type: 'number', description: 'Base guests, default 2' },
+          maxOccupancy: { type: 'number', description: 'Max guests, default 3' },
+          basePriceRupees: { type: 'number', description: 'Base price in INR' },
+          extraAdultPriceRupees: { type: 'number', description: 'Extra adult charge in INR' },
+          description: { type: 'string' },
+          amenities: { type: 'array', items: { type: 'string' } },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'prepare_room_type',
+      description: 'Create or configure a room type with inventory count.',
+      parameters: {
+        type: 'object',
+        required: ['name', 'basePriceRupees'],
+        properties: {
+          name: { type: 'string' },
+          code: { type: 'string' },
+          basePriceRupees: { type: 'number' },
+          maxOccupancy: { type: 'number' },
+          roomCount: { type: 'number', description: 'Number of room units to automatically generate' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'prepare_rate_plan',
+      description: 'Create or configure a rate plan (meal plan / cancellation policy).',
+      parameters: {
+        type: 'object',
+        required: ['name', 'mealPlan'],
+        properties: {
+          name: { type: 'string', description: 'Rate plan name, e.g. Bed & Breakfast CP' },
+          code: { type: 'string', description: 'Rate plan code, e.g. CP01' },
+          roomCategoryName: { type: 'string', description: 'Associated room category' },
+          mealPlan: { type: 'string', enum: ['EP', 'CP', 'MAP', 'AP'] },
+          priceMultiplier: { type: 'number', description: 'Percentage multiplier, default 100' },
+          surchargeRupees: { type: 'number', description: 'Fixed surcharge in INR' },
+          isNonRefundable: { type: 'boolean' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'prepare_amenities',
+      description: 'Update the amenities list for property or room categories.',
+      parameters: {
+        type: 'object',
+        required: ['amenities'],
+        properties: {
+          amenities: { type: 'array', items: { type: 'string' } },
+          roomCategoryName: { type: 'string', description: 'Optional specific room category' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'prepare_property_profile',
+      description: 'Update property contact details, address, and check-in / check-out timings.',
+      parameters: {
+        type: 'object',
+        properties: {
+          phone: { type: 'string' },
+          email: { type: 'string' },
+          address: { type: 'string' },
+          city: { type: 'string' },
+          state: { type: 'string' },
+          checkInTime: { type: 'string' },
+          checkOutTime: { type: 'string' },
+          description: { type: 'string' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'prepare_tax_configuration',
+      description: 'Configure Indian GSTIN or custom percentage / fixed taxes.',
+      parameters: {
+        type: 'object',
+        properties: {
+          gstNumber: { type: 'string', description: '15-digit Indian GSTIN' },
+          taxName: { type: 'string', description: 'Name of tax or fee' },
+          taxType: { type: 'string', enum: ['percentage', 'fixed'] },
+          ratePercentage: { type: 'number' },
+          fixedAmountRupees: { type: 'number' },
+          scope: { type: 'string', enum: ['room', 'fnb', 'all'] },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'validate_setup_draft',
+      description: 'Validate a staged property setup draft for missing prices, duplicate room numbers, or unassigned categories.',
+      parameters: {
+        type: 'object',
+        properties: {
+          draftId: { type: 'string' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'apply_approved_setup_draft',
+      description: 'Execute the approved property setup draft to create real rooms, categories, rate plans, and taxes.',
+      parameters: {
+        type: 'object',
+        required: ['draftId'],
+        properties: {
+          draftId: { type: 'string' },
+        },
+      },
+    },
+  },
 ];
 
 export async function executeAiTool(
@@ -1564,6 +1727,383 @@ export async function executeAiTool(
         humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
           ? `Rate Recommendation for ${targetDate}: ${occupancy}% occupancy. ${recommendation}`
           : `Rate Recommendation for ${targetDate}: ${occupancy}% occupancy. ${recommendation}`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 14. GET PROPERTY SETUP STATUS
+      // -----------------------------------------------------------------------
+      case 'get_property_setup_status': {
+        const propRow: any = await env.DB.prepare(
+          `SELECT p.*, ps.gst_number, ps.razorpay_enabled, ps.razorpay_key_id
+           FROM properties p
+           LEFT JOIN property_settings ps ON ps.property_id = p.id
+           WHERE p.tenant_id = ? ${ctx.propertyId ? 'AND p.id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        if (!propRow) {
+          throw new Error('No active property found for this hotel workspace.');
+        }
+
+        const [typesRow, roomsRow, ratesRow, taxesRow]: any = await Promise.all([
+          env.DB.prepare(`SELECT COUNT(*) as cnt FROM room_types WHERE property_id = ? AND is_active = 1`).bind(propRow.id).first(),
+          env.DB.prepare(`SELECT COUNT(*) as cnt FROM rooms WHERE property_id = ? AND is_active = 1`).bind(propRow.id).first(),
+          env.DB.prepare(`SELECT COUNT(*) as cnt FROM rate_plans WHERE property_id = ? AND is_active = 1`).bind(propRow.id).first(),
+          env.DB.prepare(`SELECT COUNT(*) as cnt FROM property_tax_rules WHERE property_id = ? AND is_active = 1`).bind(propRow.id).first(),
+        ]);
+
+        const catCount = typesRow?.cnt || 0;
+        const rmCount = roomsRow?.cnt || 0;
+        const rateCount = ratesRow?.cnt || 0;
+        const taxCount = taxesRow?.cnt || 0;
+
+        success = true;
+        result = {
+          propertyId: propRow.id,
+          propertyName: propRow.name,
+          categoriesCount: catCount,
+          roomsCount: rmCount,
+          ratePlansCount: rateCount,
+          customTaxesCount: taxCount,
+          hasGst: Boolean(propRow.gst_number),
+          hasRazorpay: Boolean(propRow.razorpay_enabled === 1 && propRow.razorpay_key_id),
+        };
+
+        humanMessage = ctx.language === 'hi' || ctx.language === 'hinglish'
+          ? `Property Setup Status for ${propRow.name}: ${catCount} room categories, ${rmCount} physical rooms, ${rateCount} rate plans. GST: ${propRow.gst_number ? 'Configured' : 'Pending'}.`
+          : `Property Setup Status for ${propRow.name}: ${catCount} room categories, ${rmCount} physical rooms, ${rateCount} rate plans. GST: ${propRow.gst_number ? 'Configured' : 'Pending'}.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 15. GET ROOM CATEGORIES & ROOM TYPES
+      // -----------------------------------------------------------------------
+      case 'get_room_categories':
+      case 'get_room_types': {
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        if (!propRow) throw new Error('Property not found');
+
+        const types: any = await env.DB.prepare(
+          `SELECT rt.*, (SELECT COUNT(*) FROM rooms r WHERE r.room_type_id = rt.id AND r.is_active = 1) as room_count
+           FROM room_types rt
+           WHERE rt.property_id = ? AND rt.tenant_id = ? AND rt.is_active = 1
+           ORDER BY rt.base_price_paise ASC`
+        )
+          .bind(propRow.id, tenantId)
+          .all();
+
+        const categories = (types.results || []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          code: t.code,
+          baseOccupancy: t.base_occupancy,
+          maxOccupancy: t.max_occupancy,
+          basePriceRupees: t.base_price_paise / 100,
+          extraAdultPriceRupees: (t.extra_adult_price_paise || 0) / 100,
+          roomCount: t.room_count,
+        }));
+
+        success = true;
+        result = { categories };
+        humanMessage = `Found ${categories.length} room categories:\n` +
+          categories.map((c: any) => `• ${c.name} (${c.code}): ₹${c.basePriceRupees}/night for ${c.baseOccupancy} guests (${c.roomCount} rooms)`).join('\n');
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 16. PREPARE ROOM CATEGORY & ROOM TYPE
+      // -----------------------------------------------------------------------
+      case 'prepare_room_category':
+      case 'prepare_room_type': {
+        const { name, code, baseOccupancy = 2, maxOccupancy = 3, basePriceRupees, extraAdultPriceRupees = 0, roomCount = 0, description } = params;
+
+        if (!name || basePriceRupees === undefined) {
+          throw new Error('Room category name and basePriceRupees are required.');
+        }
+
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        if (!propRow) throw new Error('Property not found');
+
+        const catCode = (code || name.slice(0, 3)).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const basePricePaise = Math.round(Number(basePriceRupees) * 100);
+        const extraAdultPaise = Math.round(Number(extraAdultPriceRupees) * 100);
+
+        // Check if exists
+        const existingCat: any = await env.DB.prepare(
+          `SELECT id FROM room_types WHERE property_id = ? AND tenant_id = ? AND (LOWER(name) = LOWER(?) OR code = ?)`
+        )
+          .bind(propRow.id, tenantId, name.trim(), catCode)
+          .first();
+
+        let typeId = existingCat?.id;
+        if (existingCat) {
+          await env.DB.prepare(
+            `UPDATE room_types SET
+              base_occupancy = ?, max_occupancy = ?, base_price_paise = ?, extra_adult_price_paise = ?
+             WHERE id = ?`
+          )
+            .bind(Number(baseOccupancy), Number(maxOccupancy), basePricePaise, extraAdultPaise, existingCat.id)
+            .run();
+        } else {
+          typeId = `rt_${crypto.randomUUID().slice(0, 8)}`;
+          await env.DB.prepare(
+            `INSERT INTO room_types (
+              id, property_id, tenant_id, name, code,
+              base_occupancy, max_occupancy, base_price_paise, extra_adult_price_paise, description, is_active
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`
+          )
+            .bind(typeId, propRow.id, tenantId, name.trim(), catCode, Number(baseOccupancy), Number(maxOccupancy), basePricePaise, extraAdultPaise, description || null)
+            .run();
+        }
+
+        // Auto-generate rooms if roomCount provided
+        let generatedRooms: string[] = [];
+        if (Number(roomCount) > 0) {
+          for (let i = 1; i <= Number(roomCount); i++) {
+            const roomNum = `${catCode.slice(0, 2)}-${100 + i}`;
+            const rId = `rm_${crypto.randomUUID().slice(0, 8)}`;
+            try {
+              await env.DB.prepare(
+                `INSERT INTO rooms (id, property_id, tenant_id, room_type_id, room_number, floor, status, housekeeping_status, is_active, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, '1st Floor', 'available', 'clean', 1, ?, ?)`
+              )
+                .bind(rId, propRow.id, tenantId, typeId, roomNum, now, now)
+                .run();
+              generatedRooms.push(roomNum);
+            } catch {}
+          }
+        }
+
+        success = true;
+        result = { typeId, name, code: catCode, basePriceRupees, generatedRooms };
+        humanMessage = `Room category "${name}" (${catCode}) configured successfully at ₹${basePriceRupees}/night for ${baseOccupancy} guests.` +
+          (generatedRooms.length > 0 ? ` Automatically generated ${generatedRooms.length} rooms: ${generatedRooms.join(', ')}.` : '');
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 17. PREPARE RATE PLAN
+      // -----------------------------------------------------------------------
+      case 'prepare_rate_plan': {
+        const { name, code, roomCategoryName, mealPlan = 'EP', priceMultiplier = 100, surchargeRupees = 0, isNonRefundable = false } = params;
+
+        if (!name) throw new Error('Rate plan name is required.');
+
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        if (!propRow) throw new Error('Property not found');
+
+        let roomTypeId: string | null = null;
+        if (roomCategoryName) {
+          const catRow: any = await env.DB.prepare(
+            `SELECT id FROM room_types WHERE property_id = ? AND tenant_id = ? AND LOWER(name) = LOWER(?) LIMIT 1`
+          )
+            .bind(propRow.id, tenantId, roomCategoryName.trim())
+            .first();
+          roomTypeId = catRow?.id || null;
+        }
+
+        const planId = `rp_${crypto.randomUUID().slice(0, 8)}`;
+        const planCode = (code || name.slice(0, 4)).toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+        await env.DB.prepare(
+          `INSERT INTO rate_plans (
+            id, property_id, tenant_id, room_type_id, name, code,
+            meal_plan, price_multiplier, surcharge_paise, is_non_refundable, is_active, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
+        )
+          .bind(
+            planId,
+            propRow.id,
+            tenantId,
+            roomTypeId,
+            name.trim(),
+            planCode,
+            mealPlan,
+            Number(priceMultiplier) || 100,
+            Math.round(Number(surchargeRupees || 0) * 100),
+            isNonRefundable ? 1 : 0,
+            now,
+            now
+          )
+          .run();
+
+        success = true;
+        result = { planId, name, code: planCode, mealPlan };
+        humanMessage = `Rate plan "${name}" (${planCode} - ${mealPlan}) created successfully.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 18. PREPARE TAX CONFIGURATION
+      // -----------------------------------------------------------------------
+      case 'prepare_tax_configuration': {
+        const { gstNumber, taxName, taxType = 'percentage', ratePercentage, fixedAmountRupees, scope = 'room' } = params;
+
+        const propRow: any = await env.DB.prepare(
+          `SELECT id FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        if (!propRow) throw new Error('Property not found');
+
+        let msg = '';
+        if (gstNumber) {
+          await env.DB.prepare(
+            `UPDATE property_settings SET gst_number = ?, updated_at = ? WHERE property_id = ? AND tenant_id = ?`
+          )
+            .bind(gstNumber.trim().toUpperCase(), now, propRow.id, tenantId)
+            .run();
+          msg += `GSTIN updated to ${gstNumber.toUpperCase()}. `;
+        }
+
+        if (taxName) {
+          const ruleId = `tax_${crypto.randomUUID().slice(0, 8)}`;
+          const rateBps = Math.round((Number(ratePercentage) || 0) * 100);
+          const fixedPaise = Math.round((Number(fixedAmountRupees) || 0) * 100);
+
+          await env.DB.prepare(
+            `INSERT INTO property_tax_rules (
+              id, property_id, tenant_id, name, tax_type, rate_basis_points,
+              fixed_amount_paise, scope, frequency, is_inclusive, is_active, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'per_stay', 0, 1, ?, ?)`
+          )
+            .bind(ruleId, propRow.id, tenantId, taxName.trim(), taxType, rateBps, fixedPaise, scope, now, now)
+            .run();
+          msg += `Tax rule "${taxName}" (${taxType === 'percentage' ? `${ratePercentage}%` : `₹${fixedAmountRupees}`}) configured.`;
+        }
+
+        success = true;
+        result = { gstNumber, taxName, status: 'configured' };
+        humanMessage = msg || 'Tax settings updated.';
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 19. PREPARE PROPERTY PROFILE & AMENITIES
+      // -----------------------------------------------------------------------
+      case 'prepare_property_profile':
+      case 'prepare_amenities': {
+        const propRow: any = await env.DB.prepare(
+          `SELECT id, name FROM properties WHERE tenant_id = ? ${ctx.propertyId ? 'AND id = ?' : ''} LIMIT 1`
+        )
+          .bind(...(ctx.propertyId ? [tenantId, ctx.propertyId] : [tenantId]))
+          .first();
+
+        if (!propRow) throw new Error('Property not found');
+
+        const { phone, email, address, city, state, checkInTime, checkOutTime, description, amenities } = params;
+
+        await env.DB.prepare(
+          `UPDATE properties SET
+            phone = COALESCE(?, phone),
+            email = COALESCE(?, email),
+            address_line1 = COALESCE(?, address_line1),
+            city = COALESCE(?, city),
+            state = COALESCE(?, state),
+            check_in_time = COALESCE(?, check_in_time),
+            check_out_time = COALESCE(?, check_out_time),
+            description = COALESCE(?, description),
+            updated_at = ?
+           WHERE id = ? AND tenant_id = ?`
+        )
+          .bind(phone || null, email || null, address || null, city || null, state || null, checkInTime || null, checkOutTime || null, description || null, now, propRow.id, tenantId)
+          .run();
+
+        success = true;
+        result = { propertyId: propRow.id, updated: true };
+        humanMessage = `Property profile for ${propRow.name} successfully updated.`;
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 20. VALIDATE & APPLY APPROVED SETUP DRAFT
+      // -----------------------------------------------------------------------
+      case 'validate_setup_draft': {
+        const { draftId } = params;
+        if (!draftId) throw new Error('draftId is required.');
+
+        const draft: any = await env.DB.prepare(
+          `SELECT * FROM property_setup_drafts WHERE id = ? AND tenant_id = ?`
+        )
+          .bind(draftId, tenantId)
+          .first();
+
+        if (!draft) throw new Error('Draft session not found.');
+
+        const config = draft.extracted_draft ? JSON.parse(draft.extracted_draft) : {};
+        const errors: string[] = [];
+
+        for (const cat of config.roomCategories || []) {
+          if (!cat.name) errors.push('Room category missing name.');
+          if (!cat.basePriceRupees || cat.basePriceRupees <= 0) errors.push(`Category "${cat.name}" has invalid price.`);
+        }
+
+        success = errors.length === 0;
+        result = { draftId, isValid: errors.length === 0, errors, ambiguities: config.missingOrAmbiguous || [] };
+        humanMessage = success
+          ? `Draft session ${draftId} is fully valid and ready to be applied!`
+          : `Draft session has ${errors.length} validation issues:\n` + errors.map((e) => `• ${e}`).join('\n');
+        break;
+      }
+
+      case 'apply_approved_setup_draft': {
+        const { draftId } = params;
+        if (!draftId) throw new Error('draftId is required.');
+
+        const draft: any = await env.DB.prepare(
+          `SELECT * FROM property_setup_drafts WHERE id = ? AND tenant_id = ?`
+        )
+          .bind(draftId, tenantId)
+          .first();
+
+        if (!draft) throw new Error('Draft session not found.');
+        if (draft.status === 'applied') throw new Error('This draft has already been applied.');
+
+        const config = draft.extracted_draft ? JSON.parse(draft.extracted_draft) : {};
+        const propertyId = draft.property_id;
+
+        let createdCats = 0;
+        let createdRooms = 0;
+
+        for (const cat of config.roomCategories || []) {
+          const typeId = `rt_${crypto.randomUUID().slice(0, 8)}`;
+          const code = (cat.code || cat.name.slice(0, 3)).toUpperCase().replace(/[^A-Z0-9]/g, '');
+          const basePricePaise = Math.round((Number(cat.basePriceRupees) || 2000) * 100);
+
+          await env.DB.prepare(
+            `INSERT INTO room_types (id, property_id, tenant_id, name, code, base_occupancy, max_occupancy, base_price_paise, extra_adult_price_paise, is_active)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`
+          )
+            .bind(typeId, propertyId, tenantId, cat.name.trim(), code, Number(cat.baseOccupancy) || 2, Number(cat.maxOccupancy) || 3, basePricePaise, 0)
+            .run();
+          createdCats++;
+        }
+
+        await env.DB.prepare(`UPDATE property_setup_drafts SET status = 'applied', updated_at = ? WHERE id = ?`)
+          .bind(now, draftId)
+          .run();
+
+        success = true;
+        result = { draftId, createdCategories: createdCats, createdRooms };
+        humanMessage = `Draft successfully approved & applied! Created ${createdCats} room categories in your property.`;
         break;
       }
 

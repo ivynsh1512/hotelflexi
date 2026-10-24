@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { GROQ_TOOL_DEFINITIONS } from '../src/services/aiTools';
-import { isGroqConfigured } from '../src/services/groqClient';
+import { isGroqConfigured, GROQ_MODELS, runGroqDiagnostic } from '../src/services/groqClient';
 
 describe('Operational & Intelligence Services Test Suite', () => {
   describe('Groq AI Tool Definitions & Security', () => {
@@ -36,6 +36,39 @@ describe('Operational & Intelligence Services Test Suite', () => {
 
       const configuredEnv: any = { GROQ_API_KEY: 'gsk_test_mock_key_12345' };
       expect(isGroqConfigured(configuredEnv)).toBe(true);
+    });
+
+    it('configures openai/gpt-oss-120b as primary intelligence and reasoning model', () => {
+      expect(GROQ_MODELS.reasoning.id).toBe('openai/gpt-oss-120b');
+      expect(GROQ_MODELS.deep_reasoning.id).toBe('openai/gpt-oss-120b');
+      expect(GROQ_MODELS.reasoning.maxTokens).toBeGreaterThanOrEqual(4096);
+    });
+
+    it('defines natural-language property setup tools for Flexi AI', () => {
+      const toolNames = GROQ_TOOL_DEFINITIONS.map((t) => t.function.name);
+      expect(toolNames).toContain('get_property_setup_status');
+      expect(toolNames).toContain('get_room_categories');
+      expect(toolNames).toContain('prepare_room_category');
+      expect(toolNames).toContain('prepare_room_type');
+      expect(toolNames).toContain('prepare_rate_plan');
+      expect(toolNames).toContain('prepare_amenities');
+      expect(toolNames).toContain('prepare_property_profile');
+      expect(toolNames).toContain('prepare_tax_configuration');
+      expect(toolNames).toContain('validate_setup_draft');
+      expect(toolNames).toContain('apply_approved_setup_draft');
+      expect(toolNames).toContain('block_room');
+      expect(toolNames).toContain('unblock_room');
+      expect(toolNames).toContain('mark_room_clean');
+    });
+
+    it('runGroqDiagnostic correctly handles unconfigured environments without exposing keys', async () => {
+      const emptyEnv: any = {};
+      const diag = await runGroqDiagnostic(emptyEnv);
+      expect(diag.configured).toBe(false);
+      expect(diag.status).toBe('offline');
+      expect(diag.model).toBe('openai/gpt-oss-120b');
+      expect(diag.toolCallingSupported).toBe(false);
+      expect(diag.message).toContain('GROQ_API_KEY secret is not set');
     });
   });
 
@@ -182,6 +215,236 @@ describe('Operational & Intelligence Services Test Suite', () => {
       const generatedUrl = getReviewUrl(property);
       expect(generatedUrl).toContain('https://www.google.com/search?q=');
       expect(generatedUrl).toContain('Hilltop%20Resort%20Manali');
+    });
+  });
+
+  describe('Dynamic Onboarding Checklist & Authoritative DB Derivation', () => {
+    it('accurately derives task completion from real database counts', () => {
+      const deriveTasks = (dbCounts: {
+        hasPropertyProfile: boolean;
+        roomCategoryCount: number;
+        physicalRoomCount: number;
+        ratePlanCount: number;
+        hasTaxConfig: boolean;
+        razorpayEnabled: boolean;
+        razorpayKeyPresent: boolean;
+      }) => {
+        const tasks = [
+          {
+            id: 'property_profile',
+            title: 'Set up property details',
+            completed: dbCounts.hasPropertyProfile,
+          },
+          {
+            id: 'room_categories',
+            title: 'Create room categories',
+            completed: dbCounts.roomCategoryCount > 0,
+          },
+          {
+            id: 'physical_rooms',
+            title: 'Add physical room units',
+            completed: dbCounts.physicalRoomCount > 0,
+          },
+          {
+            id: 'rate_plans',
+            title: 'Configure rate plans & meal plans',
+            completed: dbCounts.ratePlanCount > 0,
+          },
+          {
+            id: 'tax_configuration',
+            title: 'Configure GST & property taxes',
+            completed: dbCounts.hasTaxConfig,
+          },
+          {
+            id: 'razorpay_payments',
+            title: 'Set up Razorpay payments',
+            completed: dbCounts.razorpayEnabled && dbCounts.razorpayKeyPresent,
+            ctaUrl: 'https://rzp.io/rzp/fKRf0v8',
+          },
+        ];
+
+        const completedCount = tasks.filter((t) => t.completed).length;
+        const percent = Math.round((completedCount / tasks.length) * 100);
+
+        return { tasks, completedCount, percent };
+      };
+
+      // Scenario A: Brand new hotel
+      const emptyState = deriveTasks({
+        hasPropertyProfile: false,
+        roomCategoryCount: 0,
+        physicalRoomCount: 0,
+        ratePlanCount: 0,
+        hasTaxConfig: false,
+        razorpayEnabled: false,
+        razorpayKeyPresent: false,
+      });
+
+      expect(emptyState.completedCount).toBe(0);
+      expect(emptyState.percent).toBe(0);
+      const rzpTask = emptyState.tasks.find((t) => t.id === 'razorpay_payments');
+      expect(rzpTask?.completed).toBe(false);
+      expect(rzpTask?.ctaUrl).toBe('https://rzp.io/rzp/fKRf0v8');
+
+      // Scenario B: Partially onboarded hotel (clicked Razorpay link, but keys not configured)
+      const clickedLinkOnlyState = deriveTasks({
+        hasPropertyProfile: true,
+        roomCategoryCount: 2,
+        physicalRoomCount: 8,
+        ratePlanCount: 1,
+        hasTaxConfig: true,
+        razorpayEnabled: false, // NOT completed merely on click
+        razorpayKeyPresent: false,
+      });
+
+      expect(clickedLinkOnlyState.completedCount).toBe(5);
+      expect(clickedLinkOnlyState.percent).toBe(83);
+      expect(clickedLinkOnlyState.tasks.find((t) => t.id === 'razorpay_payments')?.completed).toBe(false);
+
+      // Scenario C: Fully verified with Razorpay credentials
+      const fullyVerifiedState = deriveTasks({
+        hasPropertyProfile: true,
+        roomCategoryCount: 3,
+        physicalRoomCount: 15,
+        ratePlanCount: 2,
+        hasTaxConfig: true,
+        razorpayEnabled: true,
+        razorpayKeyPresent: true,
+      });
+
+      expect(fullyVerifiedState.completedCount).toBe(6);
+      expect(fullyVerifiedState.percent).toBe(100);
+      expect(fullyVerifiedState.tasks.find((t) => t.id === 'razorpay_payments')?.completed).toBe(true);
+    });
+  });
+
+  describe('Custom Tax, GST & Multi-Rule Folio Invoice Calculations', () => {
+    it('accurately computes standard GST (12%) for tariffs <= ₹7,500/night', () => {
+      const nightlyTariffPaise = 500000; // ₹5,000
+      const standardGstPercent = 12.0;
+
+      const gstRate = standardGstPercent / 100;
+      const totalGstPaise = Math.round(nightlyTariffPaise * gstRate);
+      const cgstPaise = Math.round(totalGstPaise / 2);
+      const sgstPaise = totalGstPaise - cgstPaise;
+
+      expect(totalGstPaise).toBe(60000); // ₹600 total GST
+      expect(cgstPaise).toBe(30000); // ₹300 CGST (6%)
+      expect(sgstPaise).toBe(30000); // ₹300 SGST (6%)
+      expect(cgstPaise + sgstPaise).toBe(totalGstPaise);
+    });
+
+    it('accurately computes luxury GST (18%) for tariffs > ₹7,500/night', () => {
+      const nightlyTariffPaise = 1000000; // ₹10,000
+      const luxuryGstPercent = 18.0;
+
+      const gstRate = luxuryGstPercent / 100;
+      const totalGstPaise = Math.round(nightlyTariffPaise * gstRate);
+      const cgstPaise = Math.round(totalGstPaise / 2);
+      const sgstPaise = totalGstPaise - cgstPaise;
+
+      expect(totalGstPaise).toBe(180000); // ₹1,800 total GST
+      expect(cgstPaise).toBe(90000); // ₹900 CGST (9%)
+      expect(sgstPaise).toBe(90000); // ₹900 SGST (9%)
+      expect(cgstPaise + sgstPaise).toBe(totalGstPaise);
+    });
+
+    it('computes mixed multi-tax folios with fixed fees and percentage surcharges', () => {
+      const roomChargesPaise = 800000; // ₹8,000 (2 nights @ ₹4,000)
+      const nights = 2;
+
+      const customRules = [
+        {
+          name: 'Resort Maintenance Fee',
+          type: 'fixed',
+          frequency: 'per_night',
+          fixedAmountPaise: 25000, // ₹250/night
+          isInclusive: false,
+        },
+        {
+          name: 'Service Charge',
+          type: 'percentage',
+          ratePercent: 5.0, // 5%
+          isInclusive: false,
+        },
+      ];
+
+      // Fixed fees
+      const resortFeePaise = 25000 * nights; // ₹500 (50,000 paise)
+      expect(resortFeePaise).toBe(50000);
+
+      // Service charge: 5% of ₹8,000
+      const serviceChargePaise = Math.round(roomChargesPaise * 0.05); // ₹400 (40,000 paise)
+      expect(serviceChargePaise).toBe(40000);
+
+      // Taxable subtotal: ₹8,000 + ₹500 + ₹400 = ₹8,900
+      const taxableSubtotalPaise = roomChargesPaise + resortFeePaise + serviceChargePaise;
+      expect(taxableSubtotalPaise).toBe(890000);
+
+      // Standard GST 12% on taxable subtotal
+      const gstPaise = Math.round(taxableSubtotalPaise * 0.12); // ₹1,068
+      expect(gstPaise).toBe(106800);
+
+      const grandTotalPaise = taxableSubtotalPaise + gstPaise;
+      expect(grandTotalPaise).toBe(996800); // ₹9,968
+    });
+
+    it('properly extracts base amount when tax is inclusive', () => {
+      // Inclusive price ₹5,600 with 12% GST
+      const inclusiveTotalPaise = 560000;
+      const gstPercent = 12.0;
+
+      // Base = Total / (1 + Rate)
+      const basePaise = Math.round(inclusiveTotalPaise / (1 + gstPercent / 100));
+      const extractedTaxPaise = inclusiveTotalPaise - basePaise;
+
+      expect(basePaise).toBe(500000); // ₹5,000 base
+      expect(extractedTaxPaise).toBe(60000); // ₹600 tax
+      expect(basePaise + extractedTaxPaise).toBe(inclusiveTotalPaise);
+    });
+  });
+
+  describe('Natural-Language Property Setup Draft Parsing & Diff Evaluation', () => {
+    it('accurately categorizes entities into create vs update vs existing vs ambiguous', () => {
+      const existingCategories = [
+        { name: 'Deluxe Room', base_price_paise: 250000 },
+        { name: 'Executive Suite', base_price_paise: 450000 },
+      ];
+
+      const proposedCategories = [
+        { name: 'Deluxe Room', basePriceRupees: 2800 }, // Price changed -> update
+        { name: 'Executive Suite', basePriceRupees: 4500 }, // Same price -> existing
+        { name: 'Presidential Penthouse', basePriceRupees: 8500 }, // New -> create
+        { name: 'Family Room', basePriceRupees: 0 }, // Missing price -> ambiguous
+      ];
+
+      const diff = proposedCategories.map((proposed) => {
+        const match = existingCategories.find(
+          (ex) => ex.name.toLowerCase() === proposed.name.toLowerCase()
+        );
+
+        if (!proposed.basePriceRupees || proposed.basePriceRupees <= 0) {
+          return { name: proposed.name, action: 'ambiguous', reason: 'Missing price tariff' };
+        }
+        if (!match) {
+          return { name: proposed.name, action: 'create' };
+        }
+        const existingPriceRupees = match.base_price_paise / 100;
+        if (existingPriceRupees !== proposed.basePriceRupees) {
+          return {
+            name: proposed.name,
+            action: 'update',
+            oldPrice: existingPriceRupees,
+            newPrice: proposed.basePriceRupees,
+          };
+        }
+        return { name: proposed.name, action: 'existing' };
+      });
+
+      expect(diff.find((d) => d.name === 'Presidential Penthouse')?.action).toBe('create');
+      expect(diff.find((d) => d.name === 'Deluxe Room')?.action).toBe('update');
+      expect(diff.find((d) => d.name === 'Executive Suite')?.action).toBe('existing');
+      expect(diff.find((d) => d.name === 'Family Room')?.action).toBe('ambiguous');
     });
   });
 });

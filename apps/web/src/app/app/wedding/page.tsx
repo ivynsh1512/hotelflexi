@@ -264,6 +264,17 @@ export default function WeddingManagementPage() {
     }
   }, [currentTenant, loadWeddingData]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (packageModalOpen) setPackageModalOpen(false);
+        if (decorModalOpen) setDecorModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [packageModalOpen, decorModalOpen]);
+
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -1152,17 +1163,20 @@ export default function WeddingManagementPage() {
           <form
             onSubmit={handleSavePackage}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wedding-pkg-title"
             className="relative bg-white rounded-3xl max-w-lg w-full p-6 text-slate-900 shadow-2xl space-y-4 text-xs"
           >
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-base font-extrabold text-slate-900">
+              <h3 id="wedding-pkg-title" className="text-base font-extrabold text-slate-900">
                 Add Destination Wedding Package
               </h3>
               <button
                 type="button"
                 onClick={() => setPackageModalOpen(false)}
                 className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                aria-label="Close"
+                aria-label="Close dialog"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1252,17 +1266,20 @@ export default function WeddingManagementPage() {
           <form
             onSubmit={handleSaveDecor}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wedding-decor-title"
             className="relative bg-white rounded-3xl max-w-lg w-full p-6 text-slate-900 shadow-2xl space-y-4 text-xs"
           >
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-base font-extrabold text-slate-900">
+              <h3 id="wedding-decor-title" className="text-base font-extrabold text-slate-900">
                 Add Mandap &amp; Stage Decor Theme
               </h3>
               <button
                 type="button"
                 onClick={() => setDecorModalOpen(false)}
                 className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                aria-label="Close"
+                aria-label="Close dialog"
               >
                 <X className="w-5 h-5" />
               </button>

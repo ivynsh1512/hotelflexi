@@ -87,6 +87,16 @@ export default function TeamPage() {
     }
   }, [user, currentTenant]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showInviteModal) {
+        setShowInviteModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showInviteModal]);
+
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail.trim()) return;
@@ -434,16 +444,27 @@ export default function TeamPage() {
 
       {/* Invite Staff Member Modal */}
       {showInviteModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-border-light overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div
+          onClick={() => setShowInviteModal(false)}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-staff-modal-title"
+            className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-border-light overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+          >
             <div className="p-5 border-b border-border-light flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-brand-blue" />
-                <h3 className="font-extrabold text-base text-content-primary-light">Add Staff Member</h3>
+                <h3 id="add-staff-modal-title" className="font-extrabold text-base text-content-primary-light">Add Staff Member</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setShowInviteModal(false)}
-                className="p-1 rounded-lg text-content-secondary-light hover:bg-surface-light"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-content-secondary-light hover:bg-surface-light transition"
               >
                 <X className="w-5 h-5" />
               </button>

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient, formatINR } from '@/lib/api';
+import { OnboardingChecklist } from '@/components/OnboardingChecklist';
 import {
   BedDouble,
   DollarSign,
@@ -112,34 +113,8 @@ export default function DashboardOverviewPage() {
         </div>
       )}
 
-      {/* Getting Started Banner when 0 rooms */}
-      {totalRooms === 0 && (
-        <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-brand-blue font-bold text-sm">
-              <Sparkles className="w-4 h-4 shrink-0" />
-              <span>Welcome to {property?.name || 'HotelFlexi'}! Complete Your Setup</span>
-            </div>
-            <p className="text-xs text-content-secondary-light max-w-xl">
-              No rooms configured yet. Add your room categories (e.g. Deluxe, Suite) and your room units (e.g. 101, 102) to begin accepting bookings and managing housekeeping.
-            </p>
-          </div>
-          <div className="flex items-center gap-2.5 shrink-0">
-            <Link
-              href="/app/room-types"
-              className="px-3.5 py-2 rounded-lg bg-white border border-border-light text-brand-blue text-xs font-semibold hover:bg-surface-light shadow-sm transition"
-            >
-              1. Add Categories
-            </Link>
-            <Link
-              href="/app/rooms"
-              className="px-3.5 py-2 rounded-lg bg-brand-blue text-white text-xs font-semibold hover:bg-brand-blue-hover shadow-sm transition"
-            >
-              2. Add Rooms →
-            </Link>
-          </div>
-        </div>
-      )}
+      {/* Dynamic Authoritative Onboarding Checklist */}
+      <OnboardingChecklist propertyId={property?.id} variant="card" />
 
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

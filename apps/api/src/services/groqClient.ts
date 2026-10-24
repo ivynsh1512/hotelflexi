@@ -19,22 +19,22 @@ export interface GroqModelConfig {
 
 export const GROQ_MODELS: Record<GroqTaskType, GroqModelConfig> = {
   reasoning: {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Llama 3.3 70B Versatile (Primary Intelligence)',
+    id: 'openai/gpt-oss-120b',
+    name: 'OpenAI GPT-OSS 120B (Primary Intelligence & Tool Calling)',
     taskType: 'reasoning',
-    maxTokens: 2048,
+    maxTokens: 4096,
     temperature: 0.2, // Low temperature for high precision & financial reliability
   },
   deep_reasoning: {
-    id: 'deepseek-r1-distill-llama-70b',
-    name: 'DeepSeek R1 Distill Llama 70B (Complex Financial Analysis)',
+    id: 'openai/gpt-oss-120b',
+    name: 'OpenAI GPT-OSS 120B (Deep Structured Extraction)',
     taskType: 'deep_reasoning',
-    maxTokens: 3000,
+    maxTokens: 4096,
     temperature: 0.1,
   },
   fast: {
-    id: 'llama-3.1-8b-instant',
-    name: 'Llama 3.1 8B Instant (Routine Summaries & Drafting)',
+    id: 'openai/gpt-oss-20b',
+    name: 'OpenAI GPT-OSS 20B (Fast Summary)',
     taskType: 'fast',
     maxTokens: 1024,
     temperature: 0.3,
@@ -61,6 +61,7 @@ export interface GroqToolDefinition {
 export interface GroqResponse {
   success: boolean;
   content: string;
+  reasoning?: string;
   toolCalls?: Array<{
     id: string;
     name: string;
@@ -187,7 +188,8 @@ export async function callGroqChat(
 
       return {
         success: true,
-        content: message?.content || '',
+        content: message?.content || (message?.reasoning && toolCalls.length === 0 ? message.reasoning : ''),
+        reasoning: message?.reasoning || undefined,
         toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
         usage: {
           promptTokens: data.usage?.prompt_tokens || 0,
@@ -211,4 +213,68 @@ export async function callGroqChat(
     modelUsed: modelConfig.id,
     error: lastError || 'Max retries exhausted to Groq provider',
   };
+}
+
+/**
+ * Run a safe connectivity diagnostic to verify openai/gpt-oss-120b on Groq
+ * Never exposes API keys or secrets in output.
+ */
+export async function runGroqDiagnostic(env: Env): Promise<{
+  configured: boolean;
+  status: 'online' | 'offline' | 'error';
+  model: string;
+  latencyMs: number;
+  toolCallingSupported: boolean;
+  message?: string;
+}> {
+  const startTime = Date.now();
+  if (!isGroqConfigured(env)) {
+    return {
+      configured: false,
+      status: 'offline',
+      model: GROQ_MODELS.reasoning.id,
+      latencyMs: 0,
+      toolCallingSupported: false,
+      message: 'GROQ_API_KEY secret is not set in Worker environment',
+    };
+  }
+
+  try {
+    const res = await callGroqChat(
+      env,
+      [{ role: 'user', content: 'Respond with "OK" only.' }],
+      { taskType: 'reasoning', timeoutMs: 12000, maxRetries: 1 }
+    );
+
+    const latencyMs = Date.now() - startTime;
+
+    if (!res.success) {
+      return {
+        configured: true,
+        status: 'error',
+        model: res.modelUsed,
+        latencyMs,
+        toolCallingSupported: false,
+        message: res.error,
+      };
+    }
+
+    return {
+      configured: true,
+      status: 'online',
+      model: res.modelUsed,
+      latencyMs,
+      toolCallingSupported: true,
+      message: 'openai/gpt-oss-120b verified operational on Groq Cloud',
+    };
+  } catch (e: any) {
+    return {
+      configured: true,
+      status: 'error',
+      model: GROQ_MODELS.reasoning.id,
+      latencyMs: Date.now() - startTime,
+      toolCallingSupported: false,
+      message: e.message || 'Diagnostic request failed',
+    };
+  }
 }

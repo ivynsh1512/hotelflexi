@@ -167,6 +167,7 @@ export const ROLE_ALLOWED_ROUTES: Record<string, string[]> = {
     '/app/expenses',
     '/app/accounting',
     '/app/tally',
+    '/app/taxes',
     '/app/reports',
     '/app/notifications',
     '/app/support',

@@ -59,6 +59,16 @@ export default function CouponsPage() {
     loadData();
   }, [currentTenant]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showModal) {
+        setShowModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showModal]);
+
   const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code || !discountValue || !propertyId) {
@@ -265,15 +275,18 @@ export default function CouponsPage() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="coupon-modal-title"
             className="relative max-w-md w-full bg-white rounded-2xl border border-border-light shadow-xl p-6 space-y-4"
           >
             <div className="flex justify-between items-center pb-3 border-b border-border-light">
-              <h3 className="font-bold text-base text-content-primary-light">Create Promotional Coupon</h3>
+              <h3 id="coupon-modal-title" className="font-bold text-base text-content-primary-light">Create Promotional Coupon</h3>
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
                 className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                aria-label="Close"
+                aria-label="Close dialog"
               >
                 <X className="w-5 h-5" />
               </button>

@@ -44,6 +44,7 @@ import {
   ChevronRight,
   Star,
   AlertTriangle,
+  X,
 } from 'lucide-react';
 
 declare global {
@@ -146,6 +147,18 @@ export default function HotelSettingsPage() {
     const timer = setInterval(() => setEmailCooldown((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
   }, [emailCooldown]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showPasswordModal) setShowPasswordModal(false);
+        if (showEmailModal) setShowEmailModal(false);
+        if (showDeletionModal) setShowDeletionModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showPasswordModal, showEmailModal, showDeletionModal]);
 
   const handleSendVerificationEmail = async () => {
     if (!auth.currentUser) return;
@@ -1376,19 +1389,29 @@ export default function HotelSettingsPage() {
 
         {/* Change Password Modal */}
         {showPasswordModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4">
+          <div
+            onClick={() => setShowPasswordModal(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="change-password-title"
+              className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4"
+            >
               <div className="flex items-center justify-between border-b border-border-light pb-3">
                 <div className="flex items-center gap-2">
                   <KeyRound className="w-5 h-5 text-brand-blue" />
-                  <h4 className="font-bold text-sm text-content-primary-light">Change Account Password</h4>
+                  <h4 id="change-password-title" className="font-bold text-sm text-content-primary-light">Change Account Password</h4>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowPasswordModal(false)}
-                  className="text-slate-400 hover:text-slate-600 font-bold"
+                  aria-label="Close dialog"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
                 >
-                  ✕
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -1461,19 +1484,29 @@ export default function HotelSettingsPage() {
 
         {/* Change Email Modal */}
         {showEmailModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4">
+          <div
+            onClick={() => setShowEmailModal(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="change-email-title"
+              className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4"
+            >
               <div className="flex items-center justify-between border-b border-border-light pb-3">
                 <div className="flex items-center gap-2">
                   <MailCheck className="w-5 h-5 text-brand-blue" />
-                  <h4 className="font-bold text-sm text-content-primary-light">Change Primary Email</h4>
+                  <h4 id="change-email-title" className="font-bold text-sm text-content-primary-light">Change Primary Email</h4>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowEmailModal(false)}
-                  className="text-slate-400 hover:text-slate-600 font-bold"
+                  aria-label="Close dialog"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
                 >
-                  ✕
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -1646,16 +1679,35 @@ export default function HotelSettingsPage() {
 
       {/* Account Deletion Confirmation Modal */}
       {showDeletionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-red-200 space-y-4">
-            <div className="flex items-center gap-3 text-red-600 border-b border-red-100 pb-3">
-              <div className="p-2 bg-red-100 rounded-xl">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+        <div
+          onClick={() => setShowDeletionModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="deletion-modal-title"
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-red-200 space-y-4"
+          >
+            <div className="flex items-center justify-between border-b border-red-100 pb-3">
+              <div className="flex items-center gap-3 text-red-600">
+                <div className="p-2 bg-red-100 rounded-xl">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 id="deletion-modal-title" className="font-extrabold text-base text-slate-900">Request Data Purge &amp; Deletion</h3>
+                  <p className="text-xs text-red-600 font-semibold">Irreversible action upon approval</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-extrabold text-base text-slate-900">Request Data Purge &amp; Deletion</h3>
-                <p className="text-xs text-red-600 font-semibold">Irreversible action upon approval</p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowDeletionModal(false)}
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs text-red-800 space-y-1.5 leading-relaxed">

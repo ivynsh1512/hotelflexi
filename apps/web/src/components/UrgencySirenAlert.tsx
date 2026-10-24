@@ -121,6 +121,16 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
     return () => clearInterval(timer);
   }, [fetchActiveUrgentTickets]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && quickReportModalOpen) {
+        setQuickReportModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [quickReportModalOpen]);
+
   // Staff-only: Pick a pending request
   const handlePickRequest = async (ticket: UrgentTicket) => {
     try {
@@ -407,15 +417,24 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
 
       {/* ── QUICK RAISE URGENT SIREN MODAL ── */}
       {quickReportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4">
+        <div
+          onClick={() => setQuickReportModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="quick-raise-siren-title"
+            className="bg-white rounded-3xl border border-border-light shadow-2xl max-w-md w-full p-6 space-y-4"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
                   <Bell className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm text-content-primary-light">
+                  <h3 id="quick-raise-siren-title" className="font-extrabold text-sm text-content-primary-light">
                     Raise Urgent Housekeeping Siren
                   </h3>
                   <span className="text-[10px] text-content-secondary-light">
@@ -424,8 +443,10 @@ export function UrgencySirenAlert({ propertyId, onRefreshNeeded }: UrgencySirenP
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setQuickReportModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-surface-light flex items-center justify-center text-content-secondary-light"
+                aria-label="Close dialog"
+                className="w-7 h-7 rounded-full bg-surface-light flex items-center justify-center text-content-secondary-light hover:text-content-primary-light transition"
               >
                 <X className="w-4 h-4" />
               </button>

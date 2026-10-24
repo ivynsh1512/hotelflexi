@@ -43,6 +43,16 @@ export default function BillingInvoicesPage() {
     loadInvoices();
   }, [currentTenant]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedInvoice) {
+        setSelectedInvoice(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedInvoice]);
+
   const handleResetFilters = () => {
     setSearchQuery('');
     setStatusFilter('all');
@@ -291,6 +301,9 @@ export default function BillingInvoicesPage() {
           <div
             id="invoice-print-container"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="invoice-print-title"
             className="relative bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl border border-border-light max-h-[90vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0 print:border-none print:shadow-none"
           >
             {/* Top-Right Cross Button */}
@@ -298,7 +311,7 @@ export default function BillingInvoicesPage() {
               type="button"
               onClick={() => setSelectedInvoice(null)}
               className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors print:hidden"
-              aria-label="Close invoice"
+              aria-label="Close dialog"
             >
               <X className="w-5 h-5" />
             </button>

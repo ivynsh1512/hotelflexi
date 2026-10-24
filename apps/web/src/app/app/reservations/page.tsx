@@ -23,6 +23,7 @@ import {
   MessageCircle,
   ExternalLink,
   Lock,
+  X,
 } from 'lucide-react';
 
 export default function ReservationsListPage() {
@@ -71,6 +72,16 @@ export default function ReservationsListPage() {
       fetchReservations();
     }
   }, [currentTenant, statusFilter]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && linenModalOpen) {
+        setLinenModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [linenModalOpen]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -391,13 +402,32 @@ export default function ReservationsListPage() {
 
       {/* Linen Action Modal */}
       {linenModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
-            <div>
-              <h2 className="text-base font-extrabold text-content-primary-light">🧺 Room Linen — Post Checkout</h2>
-              <p className="text-xs text-content-secondary-light mt-0.5">
-                {linenResInfo?.guestName} · {linenResInfo?.roomNumber ? `Room ${linenResInfo.roomNumber}` : 'Unassigned Room'}
-              </p>
+        <div
+          onClick={() => setLinenModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="linen-modal-title"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 id="linen-modal-title" className="text-base font-extrabold text-content-primary-light">🧺 Room Linen — Post Checkout</h2>
+                <p className="text-xs text-content-secondary-light mt-0.5">
+                  {linenResInfo?.guestName} · {linenResInfo?.roomNumber ? `Room ${linenResInfo.roomNumber}` : 'Unassigned Room'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLinenModalOpen(false)}
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="space-y-2">

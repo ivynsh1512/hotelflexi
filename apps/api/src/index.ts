@@ -38,6 +38,8 @@ import { foodProcurementRoutes } from './routes/foodProcurement';
 import { tallyConnectorRoutes } from './routes/tallyConnector';
 import { guestReviewsRoutes } from './routes/guestReviews';
 import { marketingRoutes } from './routes/marketing';
+import { taxRulesRoutes } from './routes/taxRules';
+import { propertySetupRoutes } from './routes/propertySetup';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -114,6 +116,9 @@ app.route('/api/v1/support', supportRoutes);
 app.route('/api/v1/admin/support', adminSupportRoutes);
 app.route('/api/v1/push', pushRoutes);
 app.route('/api/v1/ai', aiAgentRoutes);
+app.route('/api/v1/ai-agent', aiAgentRoutes);
+app.route('/api/v1/property-setup', propertySetupRoutes);
+app.route('/api/v1/tax-rules', taxRulesRoutes);
 app.route('/api/v1/reports', reportRoutes);
 app.route('/api/v1/subscriptions', subscriptionRoutes);
 app.route('/api/v1/admin', adminRoutes);

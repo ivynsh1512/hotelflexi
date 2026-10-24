@@ -17,6 +17,7 @@ import {
   ShoppingCart,
   FileText,
   Search,
+  X,
 } from 'lucide-react';
 
 interface FoodItem {
@@ -122,6 +123,17 @@ export default function FoodProcurementPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showItemModal) setShowItemModal(false);
+        if (showRecipeModal) setShowRecipeModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showItemModal, showRecipeModal]);
 
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -485,9 +497,28 @@ export default function FoodProcurementPage() {
 
       {/* ADD ITEM MODAL */}
       {showItemModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
-            <h3 className="font-bold text-base text-slate-900">Add Pantry Ingredient</h3>
+        <div
+          onClick={() => setShowItemModal(false)}
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-item-modal-title"
+            className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 id="add-item-modal-title" className="font-bold text-base text-slate-900">Add Pantry Ingredient</h3>
+              <button
+                type="button"
+                onClick={() => setShowItemModal(false)}
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleCreateItem} className="space-y-3 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Item Name</label>
@@ -585,9 +616,28 @@ export default function FoodProcurementPage() {
 
       {/* ADD RECIPE RULE MODAL */}
       {showRecipeModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
-            <h3 className="font-bold text-base text-slate-900">Set Consumption Standard</h3>
+        <div
+          onClick={() => setShowRecipeModal(false)}
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="recipe-rule-modal-title"
+            className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 id="recipe-rule-modal-title" className="font-bold text-base text-slate-900">Set Consumption Standard</h3>
+              <button
+                type="button"
+                onClick={() => setShowRecipeModal(false)}
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleCreateRecipe} className="space-y-3 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Select Meal</label>

@@ -144,6 +144,16 @@ export default function AddonsPage() {
     }
   }, [currentTenant]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && modalOpen) {
+        setModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalOpen]);
+
   const openCreateModal = () => {
     setEditingId(null);
     setName('');
@@ -483,17 +493,21 @@ export default function AddonsPage() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="addon-modal-title"
             className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-border-light max-h-[90vh] overflow-y-auto space-y-4 text-xs"
           >
             <div className="flex items-center justify-between pb-3 border-b border-border-light">
-              <h3 className="text-base font-extrabold text-content-primary-light flex items-center gap-2">
+              <h3 id="addon-modal-title" className="text-base font-extrabold text-content-primary-light flex items-center gap-2">
                 <Compass className="w-5 h-5 text-brand-blue" />
                 {editingId ? 'Edit Add-on Service' : 'Create New Add-on Service'}
               </h3>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close dialog"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
